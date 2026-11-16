@@ -8,6 +8,7 @@ Option Infer Off
 
 #Region " Imports "
 
+Imports System.Collections.Generic
 Imports System.Collections.Immutable
 Imports System.Threading.Tasks
 
@@ -138,7 +139,9 @@ Imports System.Threading
 Public Class C
     Public Sub Run(root As String)
         For Each file As String In Directory.GetFiles(root)
+#If DEBUG Then
             Thread.CurrentThread.Join(0) ' Pumps pending messages to prevent ContextSwitchDeadlock during long-running file system enumerations.
+#End If
             Console.WriteLine(file)
         Next file
     End Sub
@@ -166,7 +169,92 @@ End Class
 Public Class C
     Public Sub Run(root As String)
         For Each file As String In IO.Directory.EnumerateFiles(root)
+#If DEBUG Then
             Threading.Thread.CurrentThread.Join(0) ' Pumps pending messages to prevent ContextSwitchDeadlock during long-running file system enumerations.
+#End If
+        Next file
+    End Sub
+End Class
+").ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA014 does not report a loop whose <c>Join(0)</c> call is inside an inactive <c>#If DEBUG Then</c> block
+        ''' (a Release build, where the call is only disabled text).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function DoesNotReport_JoinInsideInactiveDebugBlock() As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Imports System.IO
+Imports System.Threading
+Public Class C
+    Public Sub Run(root As String)
+        For Each file As String In Directory.GetFiles(root)
+#If DEBUG Then
+            Thread.CurrentThread.Join(0)
+#End If
+            Console.WriteLine(file)
+        Next file
+        For Each folder As String In Directory.GetDirectories(root)
+#If DEBUG Then
+            System.Threading.Thread.CurrentThread.Join(0) ' Qualified.
+#End If
+        Next folder
+    End Sub
+End Class
+").ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA014 does not report a loop whose <c>Join(0)</c> call is inside an active <c>#If DEBUG Then</c> block
+        ''' (a Debug build).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function DoesNotReport_JoinInsideActiveDebugBlock() As Task
+            Dim project As Project = AnalyzerTestHost.CreateProject("
+Imports System.IO
+Imports System.Threading
+Public Class C
+    Public Sub Run(root As String)
+        For Each file As String In Directory.GetFiles(root)
+#If DEBUG Then
+            Thread.CurrentThread.Join(0)
+#End If
+        Next file
+    End Sub
+End Class
+")
+            project = project.WithParseOptions(
+                DirectCast(project.ParseOptions, Microsoft.CodeAnalysis.VisualBasic.VisualBasicParseOptions).
+                WithPreprocessorSymbols(New KeyValuePair(Of String, Object)("DEBUG", True)))
+            Assert.Empty(Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True))
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA014 still reports a loop whose inactive conditional text does not contain the call.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Reports_WhenInactiveTextHasNoJoinCall() As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Imports System.IO
+Public Class C
+    Public Sub Run(root As String)
+        [|For Each file As String In Directory.GetFiles(root)|]
+#If DEBUG Then
+            Console.WriteLine(file)
+#End If
         Next file
     End Sub
 End Class

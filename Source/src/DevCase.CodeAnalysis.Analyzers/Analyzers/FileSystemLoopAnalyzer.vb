@@ -10,6 +10,7 @@ Option Infer Off
 
 Imports System.Collections.Immutable
 Imports System.Linq
+Imports System.Text.RegularExpressions
 Imports System.Threading
 
 Imports Microsoft.CodeAnalysis
@@ -44,6 +45,16 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Private Shared ReadOnly EnumerationMethodNames As String() = {
             "GetFiles", "GetDirectories", "GetFileSystemEntries", "GetFileSystemInfos",
             "EnumerateFiles", "EnumerateDirectories", "EnumerateFileSystemEntries", "EnumerateFileSystemInfos"}
+
+#End Region
+
+#Region " Fields "
+
+        ''' <summary>
+        ''' Matches <c>Thread.CurrentThread.Join(0)</c> (optionally qualified) inside inactive conditional compilation text.
+        ''' </summary>
+        Private Shared ReadOnly DisabledJoinPattern As New Regex("(?<![\w.])(?:(?:Global\.)?System\.)?(?:Threading\.)?Thread\s*\.\s*CurrentThread\s*\.\s*Join\s*\(\s*0\s*\)",
+                                                                 RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1))
 
 #End Region
 
@@ -89,6 +100,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' <summary>
         ''' Determines whether a loop body calls <c>Thread.Join(0)</c> (on any thread instance, typically <c>Thread.CurrentThread</c>).
         ''' </summary>
+        ''' 
+        ''' <remarks>
+        ''' The call also counts when it is inside a conditional compilation block that is inactive in the current configuration 
+        ''' (e.g. <c>#If DEBUG Then</c> in a Release build), where it is only text: it is then recognized by its text, 
+        ''' <c>Thread.CurrentThread.Join(0)</c>.
+        ''' </remarks>
         '''
         ''' <param name="forEachBlock">
         ''' The loop block.
@@ -134,7 +151,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                     End If
                 Next invocation
             Next statement
-            Return False
+
+            ' Inactive conditional blocks (e.g. "#If DEBUG Then" in Release) are disabled text, not statements.
+            Return forEachBlock.DescendantTrivia(descendIntoTrivia:=True).Any(
+                Function(t As SyntaxTrivia) t.IsKind(SyntaxKind.DisabledTextTrivia) AndAlso
+                                             FileSystemLoopAnalyzer.DisabledJoinPattern.IsMatch(t.ToString()))
         End Function
 
         ''' <summary>

@@ -55,7 +55,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
             Dim sources As List(Of TestSource) = Directory.EnumerateFiles(sourceRoot, "*.vb", SearchOption.AllDirectories).
                 Where(Function(p As String) Not p.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) AndAlso
                                             Not p.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)).
-                Select(Function(p As String) New TestSource(Path.GetRelativePath(sourceRoot, p).Replace(Path.DirectorySeparatorChar, "_"c), File.ReadAllText(p))).
+                Select(Function(p As String) New TestSource(Path.GetRelativePath(sourceRoot, p).Replace(Path.DirectorySeparatorChar, "_"c), File.ReadAllText(p, System.Text.Encoding.UTF8))).
                 ToList()
             Assert.True(sources.Count > 20, $"Only {sources.Count} source files found under {sourceRoot}.")
 
@@ -92,7 +92,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
             Dim sourceRoot As String = SelfAnalysisTests.FindSourceDirectory()
             Dim sources As List(Of TestSource) = Directory.EnumerateFiles(sourceRoot, "*.vb", SearchOption.AllDirectories).
                 Where(Function(p As String) Not p.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)).
-                Select(Function(p As String) New TestSource(Path.GetRelativePath(sourceRoot, p).Replace(Path.DirectorySeparatorChar, "_"c), File.ReadAllText(p))).
+                Select(Function(p As String) New TestSource(Path.GetRelativePath(sourceRoot, p).Replace(Path.DirectorySeparatorChar, "_"c), File.ReadAllText(p, System.Text.Encoding.UTF8))).
                 ToList()
             Dim references As IEnumerable(Of MetadataReference) = Directory.EnumerateFiles(AppContext.BaseDirectory, "Microsoft.CodeAnalysis*.dll").
                 Concat(Directory.EnumerateFiles(AppContext.BaseDirectory, "System.Composition*.dll")).

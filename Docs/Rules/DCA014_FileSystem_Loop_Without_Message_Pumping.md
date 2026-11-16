@@ -4,7 +4,7 @@ Reports `For Each` loops over file-system enumeration methods whose body does no
 
 - **Severity:** Warning
 - **Category:** Reliability
-- **Code fix:** ✔️ Inserts `Thread.CurrentThread.Join(0)` with an explanatory comment
+- **Code fix:** ✔️ Inserts `Thread.CurrentThread.Join(0)` with an explanatory comment, inside an `#If DEBUG Then` block
 
 ---
 
@@ -16,7 +16,7 @@ Enumerating large directory trees on an STA thread (e.g. the UI thread of a Wind
 
 Methods of `System.IO.Directory` and `System.IO.DirectoryInfo`: `GetFiles`, `GetDirectories`, `GetFileSystemEntries`, `GetFileSystemInfos`, `EnumerateFiles`, `EnumerateDirectories`, `EnumerateFileSystemEntries`, `EnumerateFileSystemInfos`.
 
-The enumerated expression may contain the call directly (also inside a LINQ chain), or be a local variable whose initializer contains it. Any call to `Thread.Join(0)` inside the loop body (at any depth) satisfies the rule.
+The enumerated expression may contain the call directly (also inside a LINQ chain), or be a local variable whose initializer contains it. Any call to `Thread.Join(0)` inside the loop body (at any depth) satisfies the rule, **including a call inside an inactive conditional block** (such as `#If DEBUG Then` when compiling in Release, where the compiler treats the block as disabled text).
 
 ## ❌ Non-compliant
 
@@ -40,6 +40,12 @@ For Each file As String In Directory.GetFiles(root)
     Thread.CurrentThread.Join(0)
 Next file
 
+For Each file As String In Directory.GetFiles(root)
+#If DEBUG Then
+    Thread.CurrentThread.Join(0) ' Also recognized in Release builds, where this block is inactive.
+#End If
+Next file
+
 For Each line As String In File.ReadAllLines(path)   ' Not a directory enumeration.
 Next line
 ```
@@ -48,12 +54,23 @@ Next line
 
 ```vb
 For Each file As String In Directory.GetFiles(root)
+#If DEBUG Then
     Thread.CurrentThread.Join(0) ' Pumps pending messages to prevent ContextSwitchDeadlock during long-running file system enumerations.
+#End If
     Console.WriteLine(file)
 Next file
 ```
 
-The `Thread` type is written with the shortest name that resolves correctly (`Thread` with `Imports System.Threading`, otherwise `Threading.Thread`).
+Details:
+
+- The call is only compiled in **Debug** builds. ContextSwitchDeadlock is a *Managed Debugging Assistant*: it only exists while a debugger is attached, so Release builds do not need the extra call.
+- `DEBUG` is defined by Visual Studio in the Debug configuration of every VB.NET project (the `DefineDebug` property of the project, *Project Properties → Compile → Advanced Compile Options → Define DEBUG constant*), so the fix does not check whether it exists.
+- The block is written as `#If DEBUG Then`. The `Then` keyword is optional in VB.NET conditional compilation directives (`#If DEBUG` also compiles), but `#If ... Then` is the canonical form that Visual Studio writes and formats.
+- The directives are written at column 0, as Visual Studio formats them, and the statement keeps the indentation of the loop body.
+- The `Thread` type is written with the shortest name that resolves correctly (`Thread` with `Imports System.Threading`, otherwise `Threading.Thread`).
+
+> [!NOTE]
+> If you also need to pump messages in Release builds (for example, a long enumeration on the UI thread without a debugger), remove the `#If DEBUG Then` / `#End If` lines: the rule is satisfied either way.
 
 ## 🔕 How to disable
 

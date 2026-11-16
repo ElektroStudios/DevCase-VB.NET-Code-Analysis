@@ -30,7 +30,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' # Injects ConfigureAwait(continueOnCapturedContext:=False) instead of ConfigureAwait(False).
     ''' devcase_analyzers.configure_await_named_argument = true
     ''' # The match timeout (milliseconds) added by the DCA017 code fix.
-    ''' devcase_analyzers.dca017_timeout_ms = 2000
+    ''' devcase_analyzers.dca017_timeout_ms = 30000
     ''' 
     ''' # The namespace used by the DCA006 code fix (default: the namespace already used in the file, or the assembly name).
     ''' devcase_analyzers.default_namespace = Contoso.Tools
@@ -79,7 +79,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' <summary>
         ''' The match timeout, in milliseconds, added by the <see cref="DiagnosticIds.RegexWithoutTimeout"/> code fix when no option is configured.
         ''' </summary>
-        Public Const RegexMatchTimeoutValue As Integer = 1000
+        Public Const RegexMatchTimeoutValue As Integer = 30000
 
 #End Region
 

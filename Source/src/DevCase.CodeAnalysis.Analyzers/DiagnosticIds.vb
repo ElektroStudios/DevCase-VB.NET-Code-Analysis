@@ -142,6 +142,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Const RedundantNullCheckBeforeTypeOf As String = "DCA025"
 
+        ''' <summary>
+        ''' The identifier of the rule that reports text APIs called without an explicit <see cref="System.Text.Encoding"/>.
+        ''' </summary>
+        Public Const EncodingNotSpecified As String = "DCA026"
+
 #End Region
 
 #Region " Constructors "

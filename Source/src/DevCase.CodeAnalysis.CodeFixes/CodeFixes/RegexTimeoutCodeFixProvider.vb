@@ -37,8 +37,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
     '''
     ''' <remarks>
     ''' <list type="number">
-    '''   <item><description><b>Add match timeout</b>: a finite timeout, 1 second by default
-    '''   (configurable with <c>devcase_analyzers.dca017_timeout_ms</c>), e.g. <c>TimeSpan.FromSeconds(1)</c>.</description></item>
+    '''   <item><description><b>Add match timeout</b>: a finite timeout, 30 seconds by default
+    '''   (configurable with <c>devcase_analyzers.dca017_timeout_ms</c>), e.g. <c>TimeSpan.FromSeconds(30)</c>.</description></item>
     '''   <item><description><b>Add <c>Regex.InfiniteMatchTimeout</c></b>: an explicit, documented opt-out for patterns that only
     '''   process trusted input. It removes the diagnostic but gives no protection.</description></item>
     ''' </list>
@@ -277,7 +277,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' </param>
         '''
         ''' <returns>
-        ''' The argument text, including the leading separator (e.g. <c>", matchTimeout:=TimeSpan.FromSeconds(1)"</c>).
+        ''' The argument text, including the leading separator (e.g. <c>", matchTimeout:=TimeSpan.FromSeconds(30)"</c>).
         ''' </returns>
         Private Shared Function FormatArgument(parameterName As String, expression As String, named As Boolean) As String
 

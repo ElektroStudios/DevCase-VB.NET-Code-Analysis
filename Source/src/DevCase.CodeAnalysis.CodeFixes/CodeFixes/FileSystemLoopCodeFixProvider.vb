@@ -16,8 +16,6 @@ Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.CodeActions
 Imports Microsoft.CodeAnalysis.CodeFixes
-Imports Microsoft.CodeAnalysis.Formatting
-Imports Microsoft.CodeAnalysis.Simplification
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -32,8 +30,16 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
 
     ''' <summary>
     ''' Provides the code fix for rule <see cref="DiagnosticIds.FileSystemLoopWithoutMessagePumping"/>: 
-    ''' inserts <c>Thread.CurrentThread.Join(0)</c> (with an explanatory comment) as the first statement of the loop body.
+    ''' inserts <c>Thread.CurrentThread.Join(0)</c> (with an explanatory comment) as the first statement of the loop body, 
+    ''' inside a <c>#If DEBUG Then</c> block.
     ''' </summary>
+    ''' 
+    ''' <remarks>
+    ''' The <c>ContextSwitchDeadlock</c> message is raised by a Managed Debugging Assistant, which only runs under the debugger, 
+    ''' so the call is only compiled in the Debug configuration (Visual Basic projects define <c>DEBUG</c> there by default). 
+    ''' The directives are written at column 0, and the thread type in its shortest valid form 
+    ''' (<c>Thread</c>, or <c>Threading.Thread</c> when <c>System.Threading</c> is not imported).
+    ''' </remarks>
     <ExportCodeFixProvider(LanguageNames.VisualBasic, Name:=NameOf(FileSystemLoopCodeFixProvider)), [Shared]>
     Public NotInheritable Class FileSystemLoopCodeFixProvider : Inherits CodeFixProvider
 
@@ -43,6 +49,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' The title of the code action.
         ''' </summary>
         Private Const Title As String = "Add 'Thread.CurrentThread.Join(0)'"
+
+        ''' <summary>
+        ''' The directive that opens the conditional block around the inserted statement.
+        ''' </summary>
+        Friend Const DebugCondition As String = "#If DEBUG Then"
 
         ''' <summary>
         ''' The comment appended to the inserted statement.
@@ -126,40 +137,28 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
 
             Dim root As SyntaxNode = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
             Dim forEachStatement As ForEachStatementSyntax = UtilCodeFix.FindNodeBySpan(Of ForEachStatementSyntax)(root, span)
-            Dim forEachBlock As ForEachBlockSyntax = TryCast(forEachStatement.Parent, ForEachBlockSyntax)
+            Dim forEachBlock As ForEachBlockSyntax = TryCast(forEachStatement?.Parent, ForEachBlockSyntax)
             If forEachBlock Is Nothing Then
                 Throw New InvalidOperationException("The diagnostic does not point to a For Each loop.")
             End If
 
-            Dim eol As SyntaxTrivia = SyntaxFactory.EndOfLine(UtilAnalyzerSyntax.GetEndOfLine(root.SyntaxTree))
-            Dim dot As SyntaxToken = SyntaxFactory.Token(SyntaxKind.DotToken)
+            Dim model As SemanticModel = Await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(False)
+            Dim threadType As INamedTypeSymbol = model.Compilation.GetTypeByMetadataName("System.Threading.Thread")
+            If threadType Is Nothing Then
+                Throw New InvalidOperationException("The System.Threading.Thread type cannot be resolved.")
+            End If
 
-            ' Global.System.Threading.Thread.CurrentThread.Join(0), reduced by the simplifier to the shortest valid form.
-            Dim threadType As ExpressionSyntax =
-                SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-                    SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-                        SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, SyntaxFactory.GlobalName(), dot, SyntaxFactory.IdentifierName("System")),
-                        dot, SyntaxFactory.IdentifierName("Threading")),
-                    dot, SyntaxFactory.IdentifierName("Thread")).
-                WithAdditionalAnnotations(Simplifier.Annotation)
+            Dim text As SourceText = Await document.GetTextAsync(cancellationToken).ConfigureAwait(False)
+            Dim eol As String = UtilAnalyzerSyntax.GetEndOfLine(root.SyntaxTree)
+            Dim indentation As String = If(forEachBlock.Statements.Count > 0,
+                                           UtilAnalyzerSyntax.GetLineIndentation(forEachBlock.Statements(0).GetFirstToken()),
+                                           $"{UtilAnalyzerSyntax.GetLineIndentation(forEachStatement.GetFirstToken())}    ")
+            Dim position As Integer = text.Lines.GetLineFromPosition(forEachStatement.Span.End).EndIncludingLineBreak
+            Dim threadName As String = threadType.ToMinimalDisplayString(model, position)
 
-            Dim currentThread As MemberAccessExpressionSyntax =
-                SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, threadType, dot, SyntaxFactory.IdentifierName("CurrentThread"))
-            Dim join As MemberAccessExpressionSyntax =
-                SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, currentThread, dot, SyntaxFactory.IdentifierName("Join"))
-            Dim zero As ArgumentSyntax = SyntaxFactory.SimpleArgument(SyntaxFactory.NumericLiteralExpression(SyntaxFactory.Literal(0)))
-            Dim invocation As InvocationExpressionSyntax =
-                SyntaxFactory.InvocationExpression(join, SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(zero)))
-
-            Dim statement As StatementSyntax = SyntaxFactory.ExpressionStatement(invocation).
-                WithTrailingTrivia(SyntaxFactory.Space, SyntaxFactory.CommentTrivia(FileSystemLoopCodeFixProvider.ExplanatoryComment), eol).
-                WithAdditionalAnnotations(Formatter.Annotation)
-
-            Dim newForEachBlock As ForEachBlockSyntax = forEachBlock.WithStatements(forEachBlock.Statements.Insert(0, statement))
-            Dim newDocument As Document = document.WithSyntaxRoot(root.ReplaceNode(forEachBlock, newForEachBlock))
-            newDocument = Await Simplifier.ReduceAsync(newDocument, Simplifier.Annotation, Nothing, cancellationToken).ConfigureAwait(False)
-            Dim formatted As Document = Await Formatter.FormatAsync(newDocument, Formatter.Annotation, Nothing, cancellationToken).ConfigureAwait(False)
-            Return Await UtilCodeFix.NormalizeLineEndingsAsync(document, formatted, cancellationToken).ConfigureAwait(False)
+            Dim statement As String = $"{indentation}{threadName}.CurrentThread.Join(0) {FileSystemLoopCodeFixProvider.ExplanatoryComment}"
+            Dim block As String = $"{FileSystemLoopCodeFixProvider.DebugCondition}{eol}{statement}{eol}#End If{eol}"
+            Return Await UtilCodeFix.ApplyTextChangesAsync(document, {New TextChange(New TextSpan(position, 0), block)}, cancellationToken).ConfigureAwait(False)
         End Function
 
 #End Region

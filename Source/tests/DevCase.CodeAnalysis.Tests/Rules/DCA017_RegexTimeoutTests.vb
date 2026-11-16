@@ -138,7 +138,7 @@ End Class
 Imports System.Text.RegularExpressions
 Public Class C
     Public Function M(input As String) As Boolean
-        Return Regex.IsMatch(input, ""a+"", RegexOptions.None, TimeSpan.FromSeconds(1))
+        Return Regex.IsMatch(input, ""a+"", RegexOptions.None, TimeSpan.FromSeconds(30))
     End Function
 End Class
 ", equivalenceKey:=FiniteKey).ConfigureAwait(True)
@@ -164,9 +164,9 @@ End Class
 ", "
 Imports System.Text.RegularExpressions
 Public Class C
-    Private ReadOnly Pattern As New Regex(""a+"", RegexOptions.Compiled, TimeSpan.FromSeconds(1))
+    Private ReadOnly Pattern As New Regex(""a+"", RegexOptions.Compiled, TimeSpan.FromSeconds(30))
     Public Function M(input As String) As String
-        Return Regex.Replace(input, ""a+"", Function(x As Match) x.Value.ToUpperInvariant(), RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1))
+        Return Regex.Replace(input, ""a+"", Function(x As Match) x.Value.ToUpperInvariant(), RegexOptions.IgnoreCase, TimeSpan.FromSeconds(30))
     End Function
 End Class
 ", equivalenceKey:=FiniteKey).ConfigureAwait(True)
@@ -212,8 +212,8 @@ End Class
         <Theory>
         <InlineData("2000", "TimeSpan.FromSeconds(2)")>
         <InlineData("250", "TimeSpan.FromMilliseconds(250)")>
-        <InlineData("-5", "TimeSpan.FromSeconds(1)")>
-        <InlineData("abc", "TimeSpan.FromSeconds(1)")>
+        <InlineData("-5", "TimeSpan.FromSeconds(30)")>
+        <InlineData("abc", "TimeSpan.FromSeconds(30)")>
         Public Async Function Fix_UsesConfiguredTimeout(configured As String, expected As String) As Task
             Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
 Imports System.Text.RegularExpressions
@@ -253,7 +253,7 @@ End Class
 Public Class C
     Public Function M(input As String) As Boolean
         Return System.Text.RegularExpressions.Regex.IsMatch(input:=input,
-                                                            pattern:=""a+"", options:=Text.RegularExpressions.RegexOptions.None, matchTimeout:=TimeSpan.FromSeconds(1))
+                                                            pattern:=""a+"", options:=Text.RegularExpressions.RegexOptions.None, matchTimeout:=TimeSpan.FromSeconds(30))
     End Function
 End Class
 ", equivalenceKey:=FiniteKey).ConfigureAwait(True)
@@ -277,7 +277,7 @@ Public Class C
 End Class
 ").ConfigureAwait(True)
             Assert.Equal({FiniteKey, InfiniteKey}, actions.Select(Function(a As CodeAction) a.EquivalenceKey).ToArray())
-            Assert.Contains("TimeSpan.FromSeconds(1)", actions(0).Title, StringComparison.Ordinal)
+            Assert.Contains("TimeSpan.FromSeconds(30)", actions(0).Title, StringComparison.Ordinal)
         End Function
 
         ''' <summary>
@@ -297,7 +297,7 @@ Public Class C
     End Function
 End Class
 ", FiniteKey).ConfigureAwait(True)
-            Assert.Contains("Regex.Replace(Regex.Replace(input, ""a"", ""b"", RegexOptions.None, TimeSpan.FromSeconds(1)), ""c"", ""d"", RegexOptions.None, TimeSpan.FromSeconds(1))", fixedText, StringComparison.Ordinal)
+            Assert.Contains("Regex.Replace(Regex.Replace(input, ""a"", ""b"", RegexOptions.None, TimeSpan.FromSeconds(30)), ""c"", ""d"", RegexOptions.None, TimeSpan.FromSeconds(30))", fixedText, StringComparison.Ordinal)
         End Function
 
         ''' <summary>
@@ -320,7 +320,7 @@ End Class
 Imports System.Text.RegularExpressions
 Public Class C
     Public Function M(input As String) As MatchCollection
-        Return Regex.Matches(input, ""\d+"", RegexOptions.None, TimeSpan.FromSeconds(1))
+        Return Regex.Matches(input, ""\d+"", RegexOptions.None, TimeSpan.FromSeconds(30))
     End Function
 End Class
 ", equivalenceKey:=FiniteKey, targetNetFramework:=True).ConfigureAwait(True)

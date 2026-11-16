@@ -23,8 +23,8 @@ indent_size = 4
 # Use NET8_0_OR_GREATER when the project also targets .NET 5-7 (some helpers only exist since .NET 8).
 # devcase_analyzers.dca011_condition = NETCOREAPP
 
-# DCA017 code fix: match timeout (milliseconds) added to Regex calls. Default: 1000 (TimeSpan.FromSeconds(1)).
-# devcase_analyzers.dca017_timeout_ms = 1000
+# DCA017 code fix: match timeout (milliseconds) added to Regex calls. Default: 30000 (TimeSpan.FromSeconds(30)).
+# devcase_analyzers.dca017_timeout_ms = 30000
 
 # Standard Roslyn severity overrides also work, e.g.:
 # dotnet_diagnostic.DCA007.severity = suggestion

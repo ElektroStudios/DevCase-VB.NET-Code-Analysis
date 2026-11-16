@@ -79,8 +79,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' </summary>
         <Fact>
         Public Sub AnalyzerAndProviderCounts_MatchTheRuleSet()
-            Assert.Equal(25, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
-            Assert.Equal(24, DescriptorAndRegistrationTests.GetProviderTypes().Count)
+            Assert.Equal(26, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
+            Assert.Equal(25, DescriptorAndRegistrationTests.GetProviderTypes().Count)
         End Sub
 
         ''' <summary>
@@ -97,7 +97,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 Dim analyzer As DiagnosticAnalyzer = DirectCast(Activator.CreateInstance(analyzerType), DiagnosticAnalyzer)
                 Dim descriptor As DiagnosticDescriptor = Assert.Single(analyzer.SupportedDiagnostics)
                 Assert.True(ids.Add(descriptor.Id), $"Duplicated id {descriptor.Id}")
-                Assert.Matches("^DCA0(0[1-9]|1[0-9]|2[0-5])$", descriptor.Id)
+                Assert.Matches("^DCA0(0[1-9]|1[0-9]|2[0-6])$", descriptor.Id)
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Title.ToString()))
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Description.ToString()))
                 Assert.True(descriptor.IsEnabledByDefault)

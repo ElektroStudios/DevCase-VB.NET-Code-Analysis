@@ -4,8 +4,8 @@ Reports regular expressions evaluated **without a match timeout**: `New Regex(..
 
 - **Severity:** Error
 - **Category:** Security
-- **Code fix:** ✔️ Two lightbulb actions: a finite timeout (1 second by default) or an explicit `Regex.InfiniteMatchTimeout`
-- **Configuration:** `devcase_analyzers.dca017_timeout_ms = 1000` (optional)
+- **Code fix:** ✔️ Two lightbulb actions: a finite timeout (30 seconds by default) or an explicit `Regex.InfiniteMatchTimeout`
+- **Configuration:** `devcase_analyzers.dca017_timeout_ms = 30000` (optional)
 - **Equivalent to:** SonarQube [S6444](https://rules.sonarsource.com/vbnet/type/Security%20Hotspot) *"Not specifying a timeout for regular expressions is security-sensitive"*
 
 ---
@@ -65,14 +65,14 @@ Imports System.Text.RegularExpressions
 
 Public NotInheritable Class UrlParser
 
-    Private Shared ReadOnly HrefRegex As New Regex("href=""([^""]+)""", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1))
+    Private Shared ReadOnly HrefRegex As New Regex("href=""([^""]+)""", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(30))
 
     Public Shared Function IsValidName(name As String) As Boolean
-        Return Regex.IsMatch(name, "^(\w+\s?)*$", RegexOptions.None, TimeSpan.FromSeconds(1))
+        Return Regex.IsMatch(name, "^(\w+\s?)*$", RegexOptions.None, TimeSpan.FromSeconds(30))
     End Function
 
     Public Shared Function Clean(text As String) As String
-        Return Regex.Replace(text, "\s+", " ", RegexOptions.None, TimeSpan.FromSeconds(1))
+        Return Regex.Replace(text, "\s+", " ", RegexOptions.None, TimeSpan.FromSeconds(30))
     End Function
 
 End Class
@@ -84,7 +84,7 @@ Two lightbulb actions are offered:
 
 | Action | Result | When to use it |
 |---|---|---|
-| **Add match timeout (`TimeSpan.FromSeconds(1)`)** | `Regex.IsMatch(s, p, RegexOptions.None, TimeSpan.FromSeconds(1))` | Recommended in every case |
+| **Add match timeout (`TimeSpan.FromSeconds(30)`)** | `Regex.IsMatch(s, p, RegexOptions.None, TimeSpan.FromSeconds(30))` | Recommended in every case |
 | **Add `Regex.InfiniteMatchTimeout`** (explicit opt-out) | `Regex.IsMatch(s, p, RegexOptions.None, Regex.InfiniteMatchTimeout)` | Only for constant patterns that process trusted input, when an exception would be worse than a hang |
 
 Details:
@@ -100,7 +100,7 @@ Details:
 >
 > ```vb
 > Try
->     isValid = Regex.IsMatch(name, pattern, RegexOptions.None, TimeSpan.FromSeconds(1))
+>     isValid = Regex.IsMatch(name, pattern, RegexOptions.None, TimeSpan.FromSeconds(30))
 > Catch ex As RegexMatchTimeoutException
 >     isValid = False ' The input is treated as invalid.
 > End Try
@@ -112,9 +112,11 @@ There is no universal value. The timeout must be far above the normal execution 
 
 | Scenario | Suggested value |
 |---|---|
-| Validating short input (names, e-mails, fields) | 100 – 500 ms |
-| General use, desktop applications **(default)** | **1 second** |
-| Large text: HTML pages, logs, big files | 2 – 5 seconds |
+| Validating short input (names, e-mails, fields), hot paths | 100 ms – 1 second |
+| Web services: requests from untrusted clients | 1 – 5 seconds |
+| General use, desktop applications, large text: HTML pages, logs, big files **(default)** | **30 seconds** |
+
+The default is deliberately generous: in a desktop tool or a file processor, a legitimate but very large input (a huge HTML page, a multi-megabyte log) must never be rejected, while a catastrophic backtracking still ends with an exception instead of a hang that lasts forever. Lower it with the configuration below when the input is short or comes from untrusted clients.
 
 `TimeSpan.Infinite` / `Regex.InfiniteMatchTimeout` is **not** a valid default: it is exactly the behavior the rule protects against. It is only offered as a second, explicit action.
 
@@ -123,10 +125,10 @@ There is no universal value. The timeout must be far above the normal execution 
 ```ini
 [*.vb]
 # Match timeout (in milliseconds) added by the code fix. Whole seconds are written with TimeSpan.FromSeconds.
-devcase_analyzers.dca017_timeout_ms = 2000
+devcase_analyzers.dca017_timeout_ms = 5000
 ```
 
-Invalid values (non-numeric, zero or negative) are ignored and the default (1000 ms) applies.
+Invalid values (non-numeric, zero or negative) are ignored and the default (30000 ms) applies.
 
 ## 🔕 How to disable
 

@@ -118,6 +118,7 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA023`](Docs/Rules/DCA023_Inverted_Comparison.md) | 🔄 [Negated comparison](Docs/Rules/DCA023_Inverted_Comparison.md) | Warning | Style | ✔️ |
 | [`DCA024`](Docs/Rules/DCA024_Rethrow_Only_Catch.md) | 🔁 [`Catch` block that only rethrows](Docs/Rules/DCA024_Rethrow_Only_Catch.md) | Warning | Design | ✔️ |
 | [`DCA025`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | 🧹 [Redundant null check before `TypeOf`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | Warning | Style | ✔️ |
+| [`DCA026`](Docs/Rules/DCA026_Encoding_Not_Specified.md) | 🔤 [Text encoding not specified](Docs/Rules/DCA026_Encoding_Not_Specified.md) | Warning | Globalization | ✔️ |
 
 Click a rule to see its purpose, detection details, edge cases and VB.NET code examples.
 
@@ -171,8 +172,8 @@ devcase_analyzers.default_namespace = Contoso.Tools
 # DCA011 code fix: conditional compilation symbol of the throw-helper branch.
 devcase_analyzers.dca011_condition = NET8_0_OR_GREATER
 
-# DCA017 code fix: match timeout in milliseconds (default: 1000).
-devcase_analyzers.dca017_timeout_ms = 2000
+# DCA017 code fix: match timeout in milliseconds (default: 30000).
+devcase_analyzers.dca017_timeout_ms = 30000
 
 # Standard Roslyn severity overrides.
 dotnet_diagnostic.DCA007.severity = suggestion

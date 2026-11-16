@@ -381,6 +381,18 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             isEnabledByDefault:=True,
             description:="'TypeOf x Is T' is False when x is Nothing, and 'TypeOf x IsNot T' is True, so a preceding 'x IsNot Nothing AndAlso' or 'x Is Nothing OrElse' adds nothing. Equivalent to SonarQube rule S4201.")
 
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.EncodingNotSpecified"/>.
+        ''' </summary>
+        Public Shared ReadOnly EncodingNotSpecified As New DiagnosticDescriptor(
+            id:=DiagnosticIds.EncodingNotSpecified,
+            title:="Text encoding not specified",
+            messageFormat:="'{0}' uses an implicit text encoding; pass the Encoding explicitly",
+            category:=DevCaseDescriptors.CategoryGlobalization,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Text APIs called without an Encoding use an implicit one (UTF-8 without BOM for System.IO, UTF-8 with BOM for Microsoft.VisualBasic.FileIO). Stating the encoding documents the format of the file or stream, and avoids surprises with programs that expect another encoding.")
+
 #End Region
 
 #Region " Constructors "
