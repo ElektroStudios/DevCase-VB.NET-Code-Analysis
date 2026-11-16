@@ -40,3 +40,32 @@ DCA025 | Style | Warning | RedundantNullCheckAnalyzer
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 DCA026 | Globalization | Warning | EncodingAnalyzer
+
+## Release 1.0.2
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+DCA027 | Reliability | Warning | ThreadSleepAnalyzer
+DCA028 | Reliability | Warning | StaThreadAnalyzer
+DCA029 | Style | Warning | PlusConcatenationAnalyzer
+DCA030 | Style | Info | ArrayLiteralAnalyzer
+DCA031 | Style | Info | ArrayRankOnNameAnalyzer
+DCA032 | Reliability | Warning | EndStatementAnalyzer
+DCA033 | Reliability | Warning | OnErrorStatementAnalyzer
+DCA034 | Design | Info | GoToStatementAnalyzer
+DCA035 | Reliability | Warning | DoEventsInLoopAnalyzer
+DCA036 | Reliability | Warning | LockOnWeakIdentityAnalyzer
+DCA037 | Reliability | Warning | MonitorEnterAnalyzer
+DCA038 | Reliability | Warning | ThreadSuspendResumeAnalyzer
+DCA039 | Reliability | Warning | BeginInvokeAnalyzer
+DCA040 | Reliability | Warning | DuplicateConditionAnalyzer
+DCA041 | Reliability | Warning | AllBranchesIdenticalAnalyzer
+DCA042 | Design | Info | DuplicateBranchAnalyzer
+DCA043 | Reliability | Warning | IdenticalOperandsAnalyzer
+DCA044 | Reliability | Info | DateTimeNowTimingAnalyzer
+DCA045 | Security | Warning | InsecureTempFileAnalyzer
+DCA046 | Reliability | Warning | ThrowInFinallyAnalyzer
+DCA047 | Reliability | Warning | ThrowInFinalizeAnalyzer
+DCA048 | Design | Info | ThrowInPropertyGetterAnalyzer

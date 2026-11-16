@@ -739,6 +739,159 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             Return False
         End Function
 
+        ''' <summary>
+        ''' Gets the nearest executable boundary of a node: the enclosing lambda expression, or the enclosing method, 
+        ''' constructor, operator or accessor block.
+        ''' </summary>
+        ''' 
+        ''' <param name="node">
+        ''' The node.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' The boundary node, or <see langword="Nothing"/> if the node is not inside executable code.
+        ''' </returns>
+        ''' 
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="node"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function GetExecutableBoundary(node As SyntaxNode) As SyntaxNode
+
+            If node Is Nothing Then
+                Throw New ArgumentNullException(NameOf(node))
+            End If
+
+            Dim current As SyntaxNode = node.Parent
+            While current IsNot Nothing
+                If TypeOf current Is LambdaExpressionSyntax OrElse TypeOf current Is MethodBlockBaseSyntax Then
+                    Return current
+                End If
+                current = current.Parent
+            End While
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' Determines whether an executable boundary (see <see cref="GetExecutableBoundary"/>) is declared with the <see langword="Async"/> modifier.
+        ''' </summary>
+        ''' 
+        ''' <param name="boundary">
+        ''' The boundary node. May be <see langword="Nothing"/>.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> if the lambda or method is <see langword="Async"/>; otherwise, <see langword="False"/>.
+        ''' </returns>
+        Friend Shared Function IsAsyncBoundary(boundary As SyntaxNode) As Boolean
+
+            Dim modifiers As SyntaxTokenList
+            If TypeOf boundary Is LambdaExpressionSyntax Then
+                modifiers = DirectCast(boundary, LambdaExpressionSyntax).SubOrFunctionHeader.Modifiers
+            ElseIf TypeOf boundary Is MethodBlockBaseSyntax Then
+                modifiers = DirectCast(boundary, MethodBlockBaseSyntax).BlockStatement.Modifiers
+            Else
+                Return False ' Documented: Nothing or another node is not an Async boundary.
+            End If
+            Return modifiers.Any(Function(t As SyntaxToken) t.IsKind(SyntaxKind.AsyncKeyword))
+        End Function
+
+        ''' <summary>
+        ''' Determines whether a <see langword="Throw"/> statement is handled inside its executable boundary, because it is located 
+        ''' in the <see langword="Try"/> section of a <see langword="Try"/> block that has at least one <see langword="Catch"/> block.
+        ''' </summary>
+        ''' 
+        ''' <param name="throwStatement">
+        ''' The <see langword="Throw"/> statement.
+        ''' </param>
+        ''' 
+        ''' <param name="stopAt">
+        ''' The ancestor where the search stops (e.g. a <see langword="Finally"/> block or the executable boundary).
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> if a <see langword="Catch"/> block between the statement and <paramref name="stopAt"/> may handle the exception; 
+        ''' otherwise, <see langword="False"/>.
+        ''' </returns>
+        ''' 
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="throwStatement"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function IsCaughtLocally(throwStatement As SyntaxNode, stopAt As SyntaxNode) As Boolean
+
+            If throwStatement Is Nothing Then
+                Throw New ArgumentNullException(NameOf(throwStatement))
+            End If
+
+            Dim previous As SyntaxNode = throwStatement
+            Dim current As SyntaxNode = throwStatement.Parent
+            While current IsNot Nothing AndAlso current IsNot stopAt
+                Dim tryBlock As TryBlockSyntax = TryCast(current, TryBlockSyntax)
+                If tryBlock IsNot Nothing AndAlso tryBlock.CatchBlocks.Count > 0 AndAlso
+                   TypeOf previous IsNot CatchBlockSyntax AndAlso TypeOf previous IsNot FinallyBlockSyntax Then
+                    Return True
+                End If
+                previous = current
+                current = current.Parent
+            End While
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' Determines whether an expression contains a construct whose evaluation may have side effects or produce a different value 
+        ''' each time: an invocation, an object or array creation, an <see langword="Await"/> expression or a lambda.
+        ''' </summary>
+        ''' 
+        ''' <param name="expression">
+        ''' The expression.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> if the expression may have side effects; otherwise, <see langword="False"/>.
+        ''' </returns>
+        ''' 
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="expression"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function MayHaveSideEffects(expression As SyntaxNode) As Boolean
+
+            If expression Is Nothing Then
+                Throw New ArgumentNullException(NameOf(expression))
+            End If
+
+            Return expression.DescendantNodesAndSelf().Any(
+                Function(n As SyntaxNode) TypeOf n Is InvocationExpressionSyntax OrElse TypeOf n Is ObjectCreationExpressionSyntax OrElse
+                                          TypeOf n Is ArrayCreationExpressionSyntax OrElse TypeOf n Is AwaitExpressionSyntax OrElse
+                                          TypeOf n Is LambdaExpressionSyntax)
+        End Function
+
+        ''' <summary>
+        ''' Determines whether two statement lists are syntactically equivalent (trivia and comments are ignored).
+        ''' </summary>
+        ''' 
+        ''' <param name="first">
+        ''' The first statement list.
+        ''' </param>
+        ''' 
+        ''' <param name="second">
+        ''' The second statement list.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> if both lists have the same statements; otherwise, <see langword="False"/>.
+        ''' </returns>
+        Friend Shared Function AreEquivalentStatements(first As SyntaxList(Of StatementSyntax), second As SyntaxList(Of StatementSyntax)) As Boolean
+
+            If first.Count <> second.Count Then
+                Return False
+            End If
+            For index As Integer = 0 To first.Count - 1
+                If Not SyntaxFactory.AreEquivalent(first(index), second(index), topLevel:=False) Then
+                    Return False
+                End If
+            Next index
+            Return True
+        End Function
+
 #End Region
 
     End Class

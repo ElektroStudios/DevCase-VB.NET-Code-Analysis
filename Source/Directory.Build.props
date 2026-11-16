@@ -11,9 +11,9 @@
     <Authors>ElektroStudios</Authors>
     <Company>ElektroStudios</Company>
     <Product>DevCase VB.NET Code Analysis</Product>
-    <Version>1.0.1</Version>
-    <AssemblyVersion>1.0.1.0</AssemblyVersion>
-    <FileVersion>1.0.1.0</FileVersion>
+    <Version>1.0.2</Version>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
     <RoslynVersion>4.8.0</RoslynVersion>
     <!-- Report the code style rules configured in .editorconfig on command-line builds too, not only in the IDE. -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>

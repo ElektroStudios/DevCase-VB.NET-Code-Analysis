@@ -79,7 +79,7 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 
 ## 🤖 Features
 
-- **A comprehensive set of diagnostic rules**, nearly all featuring a code fix, all supporting **Fix All** (document, project and solution).
+- **A comprehensive set of diagnostic rules**, most of them featuring a code fix, all fixes supporting **Fix All** (document, project and solution). Rules without a safe, behavior-preserving fix only report.
 - **Semantic precision:** rules bind symbols through the Roslyn semantic model, so look-alike names (`myAsyncSettings.Result`) are not reported and no fix produces code that does not compile.
 - **.NET Framework migration helpers:** dedicated rules prepare .NET Framework code for modern .NET by adding `#If NETCOREAPP` blocks with the recommended modern APIs, keeping the original code untouched in the `#Else` branch.
 - **Behavior first:** when a fix offers several actions, the first one keeps the current behavior and only makes it explicit (for example `DateTimeKind.Unspecified` or `CultureInfo.CurrentCulture`); fixes that could change the result are never applied silently.
@@ -119,6 +119,28 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA024`](Docs/Rules/DCA024_Rethrow_Only_Catch.md) | 🔁 [`Catch` block that only rethrows](Docs/Rules/DCA024_Rethrow_Only_Catch.md) | Warning | Design | ✔️ |
 | [`DCA025`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | 🧹 [Redundant null check before `TypeOf`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | Warning | Style | ✔️ |
 | [`DCA026`](Docs/Rules/DCA026_Encoding_Not_Specified.md) | 🔤 [Text encoding not specified](Docs/Rules/DCA026_Encoding_Not_Specified.md) | Warning | Globalization | ✔️ |
+| [`DCA027`](Docs/Rules/DCA027_Thread_Sleep_In_Async_Method.md) | 💤 [`Thread.Sleep` in an `Async` method](Docs/Rules/DCA027_Thread_Sleep_In_Async_Method.md) | Warning | Reliability | ✔️ |
+| [`DCA028`](Docs/Rules/DCA028_Missing_STAThread.md) | 🧵 [Windows Forms entry point without `<STAThread>`](Docs/Rules/DCA028_Missing_STAThread.md) | Warning | Reliability | ✔️ |
+| [`DCA029`](Docs/Rules/DCA029_String_Concatenation_With_Plus.md) | ➕ [String concatenated with `+`](Docs/Rules/DCA029_String_Concatenation_With_Plus.md) | Warning | Style | ✔️ |
+| [`DCA030`](Docs/Rules/DCA030_Array_Creation_Instead_Of_Literal.md) | 📦 [Array creation expression can be an array literal](Docs/Rules/DCA030_Array_Creation_Instead_Of_Literal.md) | Info | Style | ✔️ |
+| [`DCA031`](Docs/Rules/DCA031_Array_Designator_On_Variable.md) | 🏷️ [Array designator on the variable name](Docs/Rules/DCA031_Array_Designator_On_Variable.md) | Info | Style | ✔️ |
+| [`DCA032`](Docs/Rules/DCA032_End_Statement.md) | 🛑 [`End` statement](Docs/Rules/DCA032_End_Statement.md) | Warning | Reliability | ❌ |
+| [`DCA033`](Docs/Rules/DCA033_On_Error_Statement.md) | 🚧 [`On Error` statement](Docs/Rules/DCA033_On_Error_Statement.md) | Warning | Reliability | ❌ |
+| [`DCA034`](Docs/Rules/DCA034_GoTo_Statement.md) | ↪️ [`GoTo` statement](Docs/Rules/DCA034_GoTo_Statement.md) | Info | Design | ❌ |
+| [`DCA035`](Docs/Rules/DCA035_DoEvents_In_Loop.md) | 🌀 [`Application.DoEvents` inside a loop](Docs/Rules/DCA035_DoEvents_In_Loop.md) | Warning | Reliability | ❌ |
+| [`DCA036`](Docs/Rules/DCA036_Lock_On_Weak_Identity.md) | 🔐 [`SyncLock` on a publicly accessible or weak-identity object](Docs/Rules/DCA036_Lock_On_Weak_Identity.md) | Warning | Reliability | ❌ |
+| [`DCA037`](Docs/Rules/DCA037_Monitor_Enter_Without_Finally.md) | 🔓 [`Monitor.Enter` without `Monitor.Exit` in a `Finally` block](Docs/Rules/DCA037_Monitor_Enter_Without_Finally.md) | Warning | Reliability | ❌ |
+| [`DCA038`](Docs/Rules/DCA038_Thread_Suspend_Resume.md) | ⏸️ [`Thread.Suspend` or `Thread.Resume`](Docs/Rules/DCA038_Thread_Suspend_Resume.md) | Warning | Reliability | ❌ |
+| [`DCA039`](Docs/Rules/DCA039_BeginInvoke_Without_EndInvoke.md) | 📮 [Delegate `BeginInvoke` without `EndInvoke`](Docs/Rules/DCA039_BeginInvoke_Without_EndInvoke.md) | Warning | Reliability | ❌ |
+| [`DCA040`](Docs/Rules/DCA040_Duplicate_Condition.md) | 👯 [Duplicated condition in `If`/`ElseIf` or `Select Case`](Docs/Rules/DCA040_Duplicate_Condition.md) | Warning | Reliability | ❌ |
+| [`DCA041`](Docs/Rules/DCA041_All_Branches_Identical.md) | 🪞 [All branches of a conditional structure are identical](Docs/Rules/DCA041_All_Branches_Identical.md) | Warning | Reliability | ❌ |
+| [`DCA042`](Docs/Rules/DCA042_Duplicate_Branch.md) | 🧬 [Two branches of a conditional structure are identical](Docs/Rules/DCA042_Duplicate_Branch.md) | Info | Design | ❌ |
+| [`DCA043`](Docs/Rules/DCA043_Identical_Operands.md) | 🟰 [Identical expressions on both sides of a binary operator](Docs/Rules/DCA043_Identical_Operands.md) | Warning | Reliability | ❌ |
+| [`DCA044`](Docs/Rules/DCA044_DateTime_Now_For_Timing.md) | ⏲️ [`DateTime.Now` used to measure elapsed time](Docs/Rules/DCA044_DateTime_Now_For_Timing.md) | Info | Reliability | ❌ |
+| [`DCA045`](Docs/Rules/DCA045_Insecure_Temp_File.md) | 🗃️ [`Path.GetTempFileName` creates a predictable temporary file](Docs/Rules/DCA045_Insecure_Temp_File.md) | Warning | Security | ✔️ |
+| [`DCA046`](Docs/Rules/DCA046_Throw_In_Finally.md) | 🧨 [Exception thrown in a `Finally` block](Docs/Rules/DCA046_Throw_In_Finally.md) | Warning | Reliability | ❌ |
+| [`DCA047`](Docs/Rules/DCA047_Throw_In_Finalize.md) | ☠️ [Exception thrown in `Finalize`](Docs/Rules/DCA047_Throw_In_Finalize.md) | Warning | Reliability | ❌ |
+| [`DCA048`](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | 🫳 [Exception thrown in a property getter](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | Info | Design | ❌ |
 
 Click a rule to see its purpose, detection details, edge cases and VB.NET code examples.
 
@@ -151,7 +173,7 @@ Click a rule to see its purpose, detection details, edge cases and VB.NET code e
 To debug the analyzers, set `DevCase.CodeAnalysis.Vsix` as the startup project and press **F5**: an experimental instance of Visual Studio starts with the extension loaded.
 
 > [!NOTE]
-> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA011, DCA013) appear in the *Messages* tab of the Error List and as gray dots under the code.
+> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA011, DCA013, DCA030, DCA031, DCA034, DCA042, DCA044, DCA048) appear in the *Messages* tab of the Error List and as gray dots under the code.
 
 ## ⚙️ Configuration
 

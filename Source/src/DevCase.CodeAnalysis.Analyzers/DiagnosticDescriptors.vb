@@ -393,6 +393,270 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             isEnabledByDefault:=True,
             description:="Text APIs called without an Encoding use an implicit one (UTF-8 without BOM for System.IO, UTF-8 with BOM for Microsoft.VisualBasic.FileIO). Stating the encoding documents the format of the file or stream, and avoids surprises with programs that expect another encoding.")
 
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ThreadSleepInAsyncMethod"/>.
+        ''' </summary>
+        Public Shared ReadOnly ThreadSleepInAsyncMethod As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ThreadSleepInAsyncMethod,
+            title:="Thread.Sleep in an Async method",
+            messageFormat:="'Thread.Sleep' blocks the thread inside an Async method; use 'Await Task.Delay' instead",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Thread.Sleep blocks the calling thread (the UI thread, or a thread-pool thread) for the whole delay, defeating the purpose of the Async method. Await Task.Delay waits without blocking any thread.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.MissingStaThread"/>.
+        ''' </summary>
+        Public Shared ReadOnly MissingStaThread As New DiagnosticDescriptor(
+            id:=DiagnosticIds.MissingStaThread,
+            title:="Windows Forms entry point without <STAThread>",
+            messageFormat:="'{0}' is the entry point of a Windows Forms application but is not marked with <STAThread>",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Windows Forms requires a single-threaded apartment (STA) thread: clipboard, drag and drop, common dialogs and ActiveX controls fail or hang on an MTA thread. A custom Sub Main must be marked with <STAThread>.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.StringConcatenationWithPlus"/>.
+        ''' </summary>
+        Public Shared ReadOnly StringConcatenationWithPlus As New DiagnosticDescriptor(
+            id:=DiagnosticIds.StringConcatenationWithPlus,
+            title:="String concatenated with '+'",
+            messageFormat:="Strings are concatenated with '{0}'; use '{1}' instead",
+            category:=DevCaseDescriptors.CategoryStyle,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="In Visual Basic, '+' is the addition operator: with Option Strict Off, ""1"" + 1 is 2, not ""11"". The '&' operator always concatenates and states the intent.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ArrayCreationInsteadOfLiteral"/>.
+        ''' </summary>
+        Public Shared ReadOnly ArrayCreationInsteadOfLiteral As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ArrayCreationInsteadOfLiteral,
+            title:="Array creation expression can be an array literal",
+            messageFormat:="'New {0}' is redundant; use an array literal",
+            category:=DevCaseDescriptors.CategoryStyle,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="When the target type of the expression is already the array type, the array literal {...} produces the same array with less noise.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ArrayRankOnVariable"/>.
+        ''' </summary>
+        Public Shared ReadOnly ArrayRankOnVariable As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ArrayRankOnVariable,
+            title:="Array designator on the variable name",
+            messageFormat:="Move the array designator '{0}' of '{1}' to the type",
+            category:=DevCaseDescriptors.CategoryStyle,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Writing the array designator on the type (Dim values As Integer()) keeps the whole type in one place, as in every other declaration.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.EndStatement"/>.
+        ''' </summary>
+        Public Shared ReadOnly EndStatement As New DiagnosticDescriptor(
+            id:=DiagnosticIds.EndStatement,
+            title:="'End' statement",
+            messageFormat:="The 'End' statement terminates the process abruptly: Finally blocks, Dispose methods and FormClosing events do not run",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="End terminates the process immediately: Finally blocks, Using blocks, Dispose methods, FormClosing events and pending writes do not run. Close the main form, call Application.Exit or return from Sub Main instead.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.OnErrorStatement"/>.
+        ''' </summary>
+        Public Shared ReadOnly OnErrorStatement As New DiagnosticDescriptor(
+            id:=DiagnosticIds.OnErrorStatement,
+            title:="'On Error' statement",
+            messageFormat:="'{0}' is unstructured error handling; use Try...Catch",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="On Error is unstructured error handling: On Error Resume Next silently ignores every error, and On Error GoTo jumps across the method. Try...Catch handles exceptions in a visible, scoped and typed way.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.GoToStatement"/>.
+        ''' </summary>
+        Public Shared ReadOnly GoToStatement As New DiagnosticDescriptor(
+            id:=DiagnosticIds.GoToStatement,
+            title:="'GoTo' statement",
+            messageFormat:="'GoTo {0}' makes the control flow hard to follow; use a loop, Exit, Continue or Return",
+            category:=DevCaseDescriptors.CategoryDesign,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="GoTo jumps make the control flow hard to follow. Loops, Exit, Continue and Return express the same flow in a structured way.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.DoEventsInLoop"/>.
+        ''' </summary>
+        Public Shared ReadOnly DoEventsInLoop As New DiagnosticDescriptor(
+            id:=DiagnosticIds.DoEventsInLoop,
+            title:="Application.DoEvents inside a loop",
+            messageFormat:="'{0}' inside a loop processes UI events reentrantly; move the work to a background task",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Application.DoEvents processes every pending message: the user can click the same button again, close the form or start another operation while the loop is still running. Run the work with Await and Task.Run, or a BackgroundWorker, instead.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.LockOnWeakIdentity"/>.
+        ''' </summary>
+        Public Shared ReadOnly LockOnWeakIdentity As New DiagnosticDescriptor(
+            id:=DiagnosticIds.LockOnWeakIdentity,
+            title:="SyncLock on a publicly accessible or weak-identity object",
+            messageFormat:="SyncLock on {0}: other code can lock on the same object; lock on a dedicated Private ReadOnly object",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Me, Type objects, strings (interned and shared by the whole process) and other weak-identity objects can be locked by code outside the type, causing deadlocks and contention. Lock on a dedicated Private ReadOnly object.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.MonitorEnterWithoutFinally"/>.
+        ''' </summary>
+        Public Shared ReadOnly MonitorEnterWithoutFinally As New DiagnosticDescriptor(
+            id:=DiagnosticIds.MonitorEnterWithoutFinally,
+            title:="Monitor.Enter without Monitor.Exit in a Finally block",
+            messageFormat:="'Monitor.{0}' is not paired with 'Monitor.Exit' in a Finally block; an exception leaves the lock held forever",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="If an exception occurs between Monitor.Enter and Monitor.Exit, the lock is never released and every other thread that tries to acquire it hangs. Use SyncLock, or call Monitor.Exit in a Finally block.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ThreadSuspendResume"/>.
+        ''' </summary>
+        Public Shared ReadOnly ThreadSuspendResume As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ThreadSuspendResume,
+            title:="Thread.Suspend or Thread.Resume",
+            messageFormat:="'Thread.{0}' can deadlock the process; use a synchronization primitive instead",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Thread.Suspend stops a thread at an arbitrary point, possibly while it holds a lock (also locks of the runtime), which deadlocks the process. Both methods are obsolete and not supported on modern .NET. Use ManualResetEventSlim, SemaphoreSlim or CancellationToken.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.BeginInvokeWithoutEndInvoke"/>.
+        ''' </summary>
+        Public Shared ReadOnly BeginInvokeWithoutEndInvoke As New DiagnosticDescriptor(
+            id:=DiagnosticIds.BeginInvokeWithoutEndInvoke,
+            title:="Delegate BeginInvoke without EndInvoke",
+            messageFormat:="'{0}.BeginInvoke' is not paired with 'EndInvoke': its result, exceptions and resources are lost",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Every call to the BeginInvoke method of a delegate must be paired with EndInvoke: it returns the result, rethrows the exception of the call and releases the resources. Delegate BeginInvoke is not supported on modern .NET (PlatformNotSupportedException); use Task.Run instead.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.DuplicateCondition"/>.
+        ''' </summary>
+        Public Shared ReadOnly DuplicateCondition As New DiagnosticDescriptor(
+            id:=DiagnosticIds.DuplicateCondition,
+            title:="Duplicated condition in If/ElseIf or Select Case",
+            messageFormat:="This condition is the same as the one on line {0}; this branch can never run",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="In an If/ElseIf chain or a Select Case statement, only the first matching branch runs: a later branch with the same condition is dead code, usually a copy-paste mistake.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.AllBranchesIdentical"/>.
+        ''' </summary>
+        Public Shared ReadOnly AllBranchesIdentical As New DiagnosticDescriptor(
+            id:=DiagnosticIds.AllBranchesIdentical,
+            title:="All branches of a conditional structure are identical",
+            messageFormat:="All branches of this '{0}' have the same implementation; the condition is useless",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="When every branch, including Else, does the same thing, the condition does not change the behavior: either it is a copy-paste mistake, or the conditional structure can be removed.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.DuplicateBranch"/>.
+        ''' </summary>
+        Public Shared ReadOnly DuplicateBranch As New DiagnosticDescriptor(
+            id:=DiagnosticIds.DuplicateBranch,
+            title:="Two branches of a conditional structure are identical",
+            messageFormat:="This branch has the same implementation as the branch on line {0}; merge their conditions",
+            category:=DevCaseDescriptors.CategoryDesign,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Two branches with the same implementation should be merged (OrElse in an If chain, a comma-separated Case clause in Select Case), or one of them is a copy-paste mistake.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.IdenticalOperands"/>.
+        ''' </summary>
+        Public Shared ReadOnly IdenticalOperands As New DiagnosticDescriptor(
+            id:=DiagnosticIds.IdenticalOperands,
+            title:="Identical expressions on both sides of a binary operator",
+            messageFormat:="Identical expressions on both sides of '{0}'; the result is always the same",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Comparing an expression with itself, or combining it with itself through And, Or, Xor, '-', '/' or Mod, always produces the same result: it is almost always a copy-paste mistake.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.DateTimeNowForTiming"/>.
+        ''' </summary>
+        Public Shared ReadOnly DateTimeNowForTiming As New DiagnosticDescriptor(
+            id:=DiagnosticIds.DateTimeNowForTiming,
+            title:="DateTime.Now used to measure elapsed time",
+            messageFormat:="'{0}' measures elapsed time with the system clock; use Stopwatch",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="DateTime.Now has a resolution of about 15 ms, and it jumps when the system clock changes (daylight saving time, time synchronization). Stopwatch uses a monotonic, high-resolution counter.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.InsecureTempFile"/>.
+        ''' </summary>
+        Public Shared ReadOnly InsecureTempFile As New DiagnosticDescriptor(
+            id:=DiagnosticIds.InsecureTempFile,
+            title:="Path.GetTempFileName creates a predictable temporary file",
+            messageFormat:="'{0}' creates a temporary file with a predictable name; create it with a random name and FileMode.CreateNew",
+            category:=DevCaseDescriptors.CategorySecurity,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="GetTempFileName uses a predictable name and throws IOException when the temporary folder holds 65535 'tmp*.tmp' files. A random name (Path.GetRandomFileName) created with FileMode.CreateNew cannot be predicted, and never reuses an existing file.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ThrowInFinally"/>.
+        ''' </summary>
+        Public Shared ReadOnly ThrowInFinally As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ThrowInFinally,
+            title:="Exception thrown in a Finally block",
+            messageFormat:="An exception thrown in a Finally block replaces the exception that is being propagated",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="If the Try block threw an exception, an exception thrown in the Finally block replaces it: the original error and its stack trace are lost.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ThrowInFinalize"/>.
+        ''' </summary>
+        Public Shared ReadOnly ThrowInFinalize As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ThrowInFinalize,
+            title:="Exception thrown in Finalize",
+            messageFormat:="An exception thrown in 'Finalize' terminates the process",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="An unhandled exception on the finalizer thread terminates the process immediately, without running other finalizers or Finally blocks.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ThrowInPropertyGetter"/>.
+        ''' </summary>
+        Public Shared ReadOnly ThrowInPropertyGetter As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ThrowInPropertyGetter,
+            title:="Exception thrown in a property getter",
+            messageFormat:="The getter of '{0}' throws '{1}'; getters should only throw InvalidOperationException, NotSupportedException or NotImplementedException",
+            category:=DevCaseDescriptors.CategoryDesign,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Reading a property is expected to be safe: debuggers, data binding and serializers read properties freely. Validate in the setter or in methods; a getter should only throw when the object is in an invalid state.")
+
 #End Region
 
 #Region " Constructors "

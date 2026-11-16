@@ -45,6 +45,57 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
 #Region " Test Methods "
 
         ''' <summary>
+        ''' Verifies that no analyzer throws on incomplete code (an exception would appear as AD0001 in Visual Studio).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function EveryAnalyzer_ToleratesIncompleteCode() As Task
+            Dim project As Project = AnalyzerTestHost.CreateProject("
+Imports System.Threading
+Public Class C
+    Public Async Function M(value As Integer) As Task
+        SyncLock
+        End SyncLock
+        Thread.Sleep(
+        Monitor.Enter(
+        If value = Then
+        ElseIf value = Then
+        End If
+        Select Case
+            Case
+            Case 1, 1
+        End Select
+        Dim a() As = New () {}
+        Dim text As String = value +
+        Throw
+        Return If(, , )
+    End Function
+    Public ReadOnly Property P As Integer
+        Get
+            Throw New
+        End Get
+    End Property
+    Protected Overrides Sub Finalize()
+        Throw New
+    End Sub
+End Class
+")
+            Dim analyzers As DiagnosticAnalyzer() = DescriptorAndRegistrationTests.GetAnalyzerTypes().
+                Select(Function(t As Type) DirectCast(Activator.CreateInstance(t), DiagnosticAnalyzer)).ToArray()
+            Dim compilation As Compilation = Await project.GetCompilationAsync().ConfigureAwait(True)
+            Dim withAnalyzers As CompilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create(analyzers),
+                New CompilationWithAnalyzersOptions(New AnalyzerOptions(ImmutableArray(Of AdditionalText).Empty), Nothing,
+                                                    concurrentAnalysis:=False, logAnalyzerExecutionTime:=False, reportSuppressedDiagnostics:=False))
+            Dim diagnostics As ImmutableArray(Of Diagnostic) = Await withAnalyzers.GetAllDiagnosticsAsync().ConfigureAwait(True)
+            Dim failures As String() = diagnostics.Where(Function(d As Diagnostic) d.Id.Equals("AD0001", StringComparison.Ordinal)).
+                Select(Function(d As Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).ToArray()
+            Assert.True(failures.Length = 0, String.Join(vbLf, failures))
+        End Function
+
+        ''' <summary>
         ''' Verifies that Fix All of rule DCA007 inserts one documentation comment per member, without duplicates.
         ''' </summary>
         '''

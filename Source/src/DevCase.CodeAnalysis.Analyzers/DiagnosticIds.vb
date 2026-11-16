@@ -147,6 +147,116 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Const EncodingNotSpecified As String = "DCA026"
 
+        ''' <summary>
+        ''' The identifier of the rule: Thread.Sleep in an Async method.
+        ''' </summary>
+        Public Const ThreadSleepInAsyncMethod As String = "DCA027"
+
+        ''' <summary>
+        ''' The identifier of the rule: Windows Forms entry point without <c>&lt;STAThread&gt;</c>.
+        ''' </summary>
+        Public Const MissingStaThread As String = "DCA028"
+
+        ''' <summary>
+        ''' The identifier of the rule: String concatenated with '+'.
+        ''' </summary>
+        Public Const StringConcatenationWithPlus As String = "DCA029"
+
+        ''' <summary>
+        ''' The identifier of the rule: Array creation expression can be an array literal.
+        ''' </summary>
+        Public Const ArrayCreationInsteadOfLiteral As String = "DCA030"
+
+        ''' <summary>
+        ''' The identifier of the rule: Array designator on the variable name.
+        ''' </summary>
+        Public Const ArrayRankOnVariable As String = "DCA031"
+
+        ''' <summary>
+        ''' The identifier of the rule: 'End' statement.
+        ''' </summary>
+        Public Const EndStatement As String = "DCA032"
+
+        ''' <summary>
+        ''' The identifier of the rule: 'On Error' statement.
+        ''' </summary>
+        Public Const OnErrorStatement As String = "DCA033"
+
+        ''' <summary>
+        ''' The identifier of the rule: 'GoTo' statement.
+        ''' </summary>
+        Public Const GoToStatement As String = "DCA034"
+
+        ''' <summary>
+        ''' The identifier of the rule: Application.DoEvents inside a loop.
+        ''' </summary>
+        Public Const DoEventsInLoop As String = "DCA035"
+
+        ''' <summary>
+        ''' The identifier of the rule: SyncLock on a publicly accessible or weak-identity object.
+        ''' </summary>
+        Public Const LockOnWeakIdentity As String = "DCA036"
+
+        ''' <summary>
+        ''' The identifier of the rule: Monitor.Enter without Monitor.Exit in a Finally block.
+        ''' </summary>
+        Public Const MonitorEnterWithoutFinally As String = "DCA037"
+
+        ''' <summary>
+        ''' The identifier of the rule: Thread.Suspend or Thread.Resume.
+        ''' </summary>
+        Public Const ThreadSuspendResume As String = "DCA038"
+
+        ''' <summary>
+        ''' The identifier of the rule: Delegate BeginInvoke without EndInvoke.
+        ''' </summary>
+        Public Const BeginInvokeWithoutEndInvoke As String = "DCA039"
+
+        ''' <summary>
+        ''' The identifier of the rule: Duplicated condition in If/ElseIf or Select Case.
+        ''' </summary>
+        Public Const DuplicateCondition As String = "DCA040"
+
+        ''' <summary>
+        ''' The identifier of the rule: All branches of a conditional structure are identical.
+        ''' </summary>
+        Public Const AllBranchesIdentical As String = "DCA041"
+
+        ''' <summary>
+        ''' The identifier of the rule: Two branches of a conditional structure are identical.
+        ''' </summary>
+        Public Const DuplicateBranch As String = "DCA042"
+
+        ''' <summary>
+        ''' The identifier of the rule: Identical expressions on both sides of a binary operator.
+        ''' </summary>
+        Public Const IdenticalOperands As String = "DCA043"
+
+        ''' <summary>
+        ''' The identifier of the rule: DateTime.Now used to measure elapsed time.
+        ''' </summary>
+        Public Const DateTimeNowForTiming As String = "DCA044"
+
+        ''' <summary>
+        ''' The identifier of the rule: Path.GetTempFileName creates a predictable temporary file.
+        ''' </summary>
+        Public Const InsecureTempFile As String = "DCA045"
+
+        ''' <summary>
+        ''' The identifier of the rule: Exception thrown in a Finally block.
+        ''' </summary>
+        Public Const ThrowInFinally As String = "DCA046"
+
+        ''' <summary>
+        ''' The identifier of the rule: Exception thrown in Finalize.
+        ''' </summary>
+        Public Const ThrowInFinalize As String = "DCA047"
+
+        ''' <summary>
+        ''' The identifier of the rule: Exception thrown in a property getter.
+        ''' </summary>
+        Public Const ThrowInPropertyGetter As String = "DCA048"
+
 #End Region
 
 #Region " Constructors "

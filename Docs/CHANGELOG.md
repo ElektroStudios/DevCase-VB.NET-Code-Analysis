@@ -1,6 +1,27 @@
 # DevCase VB.NET Code Analysis Change Log 📋
 
-## v1.0.1 *(current)* 🆕
+## v1.0.2 *(current)* 🆕
+22 new rules (DCA027 – DCA048), most of them VB.NET equivalents of SonarQube rules:
+ - With code fix:
+   - DCA027 (Warning): `Thread.Sleep` in an `Async` method → `Await Task.Delay(x).ConfigureAwait(False/True)`.
+   - DCA028 (Warning): Windows Forms `Sub Main` without `<STAThread>` (S4210) → adds the attribute.
+   - DCA029 (Warning): strings concatenated with `+` / `+=` (S1645) → `&` / `&=`.
+   - DCA030 (Info): `New T() {...}` that can be an array literal (S2355) → `{...}`.
+   - DCA031 (Info): array designator on the variable name (S1197) → moved to the type.
+   - DCA045 (Warning): `Path.GetTempFileName` (S5445) → random name created atomically with `FileMode.CreateNew`.
+ - Report only (no fix keeps the behavior of the code):
+   - DCA032, DCA033 (Warning) and DCA034 (Info): `End` (S1147), `On Error` (S2359) and `GoTo` (S907) statements.
+   - DCA035 (Warning): `Application.DoEvents` inside a loop.
+   - DCA036 (Warning): `SyncLock` on `Me`, strings, types and other weak-identity objects (S2551, S3998).
+   - DCA037 (Warning): `Monitor.Enter` without `Monitor.Exit` in a `Finally` block (S2222).
+   - DCA038 (Warning): `Thread.Suspend` / `Thread.Resume` (S3889).
+   - DCA039 (Warning): delegate `BeginInvoke` without `EndInvoke` (S4583).
+   - DCA040, DCA041 (Warning) and DCA042 (Info): duplicated conditions (S1862), all branches identical (S3923) and two identical branches (S1871).
+   - DCA043 (Warning): identical expressions on both sides of a binary operator (S1764).
+   - DCA044 (Info): `DateTime.Now` used to measure elapsed time (S6561).
+   - DCA046, DCA047 (Warning) and DCA048 (Info): exceptions thrown in `Finally` blocks (S1163), in `Finalize` (S1048) and in property getters (S2372).
+
+## v1.0.1 🔖
 New rule:
  - DCA026 (Warning): text APIs called without an explicit `Encoding` (`File.WriteAllText`, `File.ReadAllLines`, `New StreamWriter`, `My.Computer.FileSystem.WriteAllText`...). Three fixes: UTF-8 without BOM, UTF-8 with BOM, `Encoding.Default`; the one that keeps the current behavior is offered first.
 

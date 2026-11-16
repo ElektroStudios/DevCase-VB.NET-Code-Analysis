@@ -79,8 +79,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' </summary>
         <Fact>
         Public Sub AnalyzerAndProviderCounts_MatchTheRuleSet()
-            Assert.Equal(26, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
-            Assert.Equal(25, DescriptorAndRegistrationTests.GetProviderTypes().Count)
+            Assert.Equal(48, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
+            Assert.Equal(31, DescriptorAndRegistrationTests.GetProviderTypes().Count)
         End Sub
 
         ''' <summary>
@@ -97,7 +97,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 Dim analyzer As DiagnosticAnalyzer = DirectCast(Activator.CreateInstance(analyzerType), DiagnosticAnalyzer)
                 Dim descriptor As DiagnosticDescriptor = Assert.Single(analyzer.SupportedDiagnostics)
                 Assert.True(ids.Add(descriptor.Id), $"Duplicated id {descriptor.Id}")
-                Assert.Matches("^DCA0(0[1-9]|1[0-9]|2[0-6])$", descriptor.Id)
+                Assert.Matches("^DCA0(0[1-9]|[1-3][0-9]|4[0-8])$", descriptor.Id)
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Title.ToString()))
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Description.ToString()))
                 Assert.True(descriptor.IsEnabledByDefault)
@@ -110,7 +110,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         <Fact>
         Public Sub Severities_MatchTheSpecification()
             Dim errors As String() = {DiagnosticIds.MissingConfigureAwait, DiagnosticIds.TaskResultAccess, DiagnosticIds.SilentGuardClause, DiagnosticIds.RegexWithoutTimeout}
-            Dim infos As String() = {DiagnosticIds.ThrowHelperMigration, DiagnosticIds.NetFrameworkApiMigration}
+            Dim infos As String() = {DiagnosticIds.ThrowHelperMigration, DiagnosticIds.NetFrameworkApiMigration, DiagnosticIds.ArrayCreationInsteadOfLiteral,
+                                     DiagnosticIds.ArrayRankOnVariable, DiagnosticIds.GoToStatement, DiagnosticIds.DuplicateBranch,
+                                     DiagnosticIds.DateTimeNowForTiming, DiagnosticIds.ThrowInPropertyGetter}
             For Each analyzerType As Type In DescriptorAndRegistrationTests.GetAnalyzerTypes()
                 Dim analyzer As DiagnosticAnalyzer = DirectCast(Activator.CreateInstance(analyzerType), DiagnosticAnalyzer)
                 Dim descriptor As DiagnosticDescriptor = analyzer.SupportedDiagnostics(0)
@@ -149,8 +151,14 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 Next id
             Next providerType
 
-            ' Every rule has a code fix except DCA015 (recursion), which only reports.
-            knownIds.Remove(DiagnosticIds.RecursiveCall)
+            ' Rules that only report: there is no change that keeps the behavior of the code.
+            Dim reportOnly As String() = {
+                DiagnosticIds.RecursiveCall, DiagnosticIds.EndStatement, DiagnosticIds.OnErrorStatement, DiagnosticIds.GoToStatement,
+                DiagnosticIds.DoEventsInLoop, DiagnosticIds.LockOnWeakIdentity, DiagnosticIds.MonitorEnterWithoutFinally,
+                DiagnosticIds.ThreadSuspendResume, DiagnosticIds.BeginInvokeWithoutEndInvoke, DiagnosticIds.DuplicateCondition,
+                DiagnosticIds.AllBranchesIdentical, DiagnosticIds.DuplicateBranch, DiagnosticIds.IdenticalOperands,
+                DiagnosticIds.DateTimeNowForTiming, DiagnosticIds.ThrowInFinally, DiagnosticIds.ThrowInFinalize, DiagnosticIds.ThrowInPropertyGetter}
+            knownIds.ExceptWith(reportOnly)
             Assert.Equal(knownIds.OrderBy(Function(s As String) s, StringComparer.Ordinal), fixedIds.OrderBy(Function(s As String) s, StringComparer.Ordinal))
         End Sub
 
@@ -175,7 +183,29 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 {DevCaseDescriptors.NetFrameworkApiMigration, {"String.Contains(String)", "String.Contains(Char)"}},
                 {DevCaseDescriptors.FileSystemLoopWithoutMessagePumping, {"Directory.GetFiles"}},
                 {DevCaseDescriptors.RecursiveCall, {"Walk"}},
-                {DevCaseDescriptors.AsyncSubNotEventHandler, {"Refresh"}}}
+                {DevCaseDescriptors.AsyncSubNotEventHandler, {"Refresh"}},
+                {DevCaseDescriptors.ThreadSleepInAsyncMethod, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.MissingStaThread, {"Program.Main"}},
+                {DevCaseDescriptors.StringConcatenationWithPlus, {"+", "&"}},
+                {DevCaseDescriptors.ArrayCreationInsteadOfLiteral, {"Integer()"}},
+                {DevCaseDescriptors.ArrayRankOnVariable, {"()", "values"}},
+                {DevCaseDescriptors.EndStatement, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.OnErrorStatement, {"On Error Resume Next"}},
+                {DevCaseDescriptors.GoToStatement, {"Retry"}},
+                {DevCaseDescriptors.DoEventsInLoop, {"Application.DoEvents"}},
+                {DevCaseDescriptors.LockOnWeakIdentity, {"'Me'"}},
+                {DevCaseDescriptors.MonitorEnterWithoutFinally, {"Enter"}},
+                {DevCaseDescriptors.ThreadSuspendResume, {"Suspend"}},
+                {DevCaseDescriptors.BeginInvokeWithoutEndInvoke, {"Func`1"}},
+                {DevCaseDescriptors.DuplicateCondition, {12}},
+                {DevCaseDescriptors.AllBranchesIdentical, {"If"}},
+                {DevCaseDescriptors.DuplicateBranch, {12}},
+                {DevCaseDescriptors.IdenticalOperands, {"="}},
+                {DevCaseDescriptors.DateTimeNowForTiming, {"DateTime.Now"}},
+                {DevCaseDescriptors.InsecureTempFile, {"Path.GetTempFileName"}},
+                {DevCaseDescriptors.ThrowInFinally, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.ThrowInFinalize, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.ThrowInPropertyGetter, {"Value", "ArgumentException"}}}
 
             For Each pair As KeyValuePair(Of DiagnosticDescriptor, Object()) In samples
                 Dim message As String = Diagnostic.Create(pair.Key, Location.None, pair.Value).GetMessage(Globalization.CultureInfo.InvariantCulture)
