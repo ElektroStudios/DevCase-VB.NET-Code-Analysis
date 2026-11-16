@@ -72,7 +72,7 @@ The whole project, analyzers, code fixes and tests included, is written in VB.NE
 
 Over the years, I have established a rigorous custom coding standard for my VB.NET libraries: fail-fast argument validation, `ConfigureAwait(False)` on virtually every `Await`, comprehensive XML documentation covering absolutely every public and private member, mandating iterative methods over recursion, bit-shifted `<Flags>` enums to prevent manual integer calculation mistakes, explicit `Option` directives, etc. To enforce this discipline, I developed offline `VisualBasicSyntaxRewriter` snippets that I run across my codebases.
 
-That works, but it is slow, blind to semantics, and only happens after the code is written. **DevCase VB.NET Code Analysis** turns that standard into live diagnostics that show up while typing, with one-click fixes, and with semantic precision instead of text heuristics.
+Although functional, that offline methodology is a tedious and time-consuming chore relegated to post-coding manual reviews, lacking any semantic context. **DevCase VB.NET Code Analysis** turns that standard into live diagnostics that show up while typing, with one-click fixes, and with semantic precision instead of text heuristics.
 
 ##### ⚡ The Real Question
 Why keep fixing the same mistakes by hand when the compiler platform can point at them, and fix them, as you type?
