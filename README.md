@@ -62,15 +62,15 @@ windows
 
 ## 👋 Introduction
 
-**DevCase VB.NET Code Analysis** is a set of **25 Roslyn diagnostic rules** for Visual Basic .NET, most of them with an automatic **code fix** (Visual Studio lightbulb action). It finds and repairs problems that the built-in .NET analyzers do not cover for VB.NET: deadlock-prone `Await` expressions, silent guard clauses, missing or incomplete XML documentation, recursion, file-system loops that freeze the message pump, regular expressions without a ReDoS timeout, ambiguous dates, and much more.
+**DevCase VB.NET Code Analysis** is a set of **Roslyn diagnostic rules** for Visual Basic .NET, most of them with an automatic **code fix** (Visual Studio lightbulb action). It finds and repairs problems that the built-in .NET analyzers do not cover for VB.NET: deadlock-prone `Await` expressions, silent guard clauses, missing or incomplete XML documentation, recursion, file-system loops that freeze the message pump, regular expressions without a ReDoS timeout, ambiguous dates, and much more.
 
-Several rules are VB.NET equivalents of **SonarQube** rules (S6444, S6562, S6580, S2346, S6602/S6603/S6605, S6608, S1940, S2737, S4201), with an automatic fix that respects the semantics of the original code. Each rule document lists any overlap with Microsoft's built-in analyzers.
+Several rules are VB.NET equivalents of [**SonarQube**](https://docs.sonarsource.com/sonarqube-for-visual-studio/using/rules) rules, with an automatic fix that respects the semantics of the original code. Each rule document lists any overlap with Microsoft's built-in analyzers.
 
 The whole project, analyzers, code fixes and tests included, is written in VB.NET with `Option Strict On`, `Option Explicit On` and `Option Infer Off`.
 
 ## 💡 Motivation
 
-Over the years I wrote my own coding standard for VB.NET libraries: fail-fast argument validation, `ConfigureAwait(False)` on every `Await`, full XML documentation, no recursion, bit-shift `<Flags>` enums, explicit `Option` statements... I enforced it with offline `VisualBasicSyntaxRewriter` scripts that I ran over my code bases.
+Over the years, I have established a rigorous custom coding standard for my VB.NET libraries: fail-fast argument validation, `ConfigureAwait(False)` on virtually every `Await`, comprehensive XML documentation, prioritizing iterative methods over recursion, bit-shifted `<Flags>` enums, explicit `Option` directives, etc. To enforce this discipline, I developed offline `VisualBasicSyntaxRewriter` scripts that I run across my codebases.
 
 That works, but it is slow, blind to semantics, and only happens after the code is written. **DevCase VB.NET Code Analysis** turns that standard into live diagnostics that show up while typing, with one-click fixes, and with semantic precision instead of text heuristics.
 
@@ -79,9 +79,9 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 
 ## 🤖 Features
 
-- **25 diagnostic rules**, 24 of them with a code fix, all supporting **Fix All** (document, project and solution).
+- **A comprehensive set of diagnostic rules**, nearly all featuring a code fix, all supporting **Fix All** (document, project and solution).
 - **Semantic precision:** rules bind symbols through the Roslyn semantic model, so look-alike names (`myAsyncSettings.Result`) are not reported and no fix produces code that does not compile.
-- **.NET Framework migration helpers:** two rules prepare .NET Framework code for modern .NET by adding `#If NETCOREAPP` blocks with the recommended modern APIs, keeping the original code untouched in the `#Else` branch.
+- **.NET Framework migration helpers:** dedicated rules prepare .NET Framework code for modern .NET by adding `#If NETCOREAPP` blocks with the recommended modern APIs, keeping the original code untouched in the `#Else` branch.
 - **Behavior first:** when a fix offers several actions, the first one keeps the current behavior and only makes it explicit (for example `DateTimeKind.Unspecified` or `CultureInfo.CurrentCulture`); fixes that could change the result are never applied silently.
 - **Respectful fixes:** preserve comments, trivia, region layout, line endings (CRLF/LF) and indentation; never reformat unrelated code.
 - **Configurable** through `.editorconfig` (custom options and standard severity overrides).
