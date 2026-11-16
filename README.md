@@ -29,6 +29,8 @@ windows
 
 ### Roslyn analyzers and code fixes for Visual Basic .NET, packaged as a Visual Studio extension.
 
+**Visual Studio Marketplace:** [Download Extension](https://marketplace.visualstudio.com/items?itemName=elektroHacker.devcase-vbnet-code-analysis)
+
 </div>
 
 ------------------
