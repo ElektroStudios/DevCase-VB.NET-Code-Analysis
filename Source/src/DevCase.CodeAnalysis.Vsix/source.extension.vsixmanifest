@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="DevCase.CodeAnalysis.Vsix.62ed00af-6323-4e0e-bd91-03147c0a49f1" Version="1.0.0" Language="en-US" Publisher="ElektroStudios" />
+    <DisplayName>DevCase VB.NET Code Analysis</DisplayName>
+    <Description xml:space="preserve">25 Roslyn analyzers and code fixes for Visual Basic .NET: ConfigureAwait(False), blocking .Result, silent guard clauses, Option statements, explicit constructors, namespaces, XML documentation (summary, param, exception), string comparisons, Flags enums, .NET Framework to modern .NET migration helpers, ContextSwitchDeadlock-safe file-system loops, recursion, Async Sub, Regex match timeouts (ReDoS), DateTimeKind and culture-safe date parsing, Flags None members, collection-specific methods and indexers, negated comparisons, rethrow-only Catch blocks and redundant null checks.</Description>
+    <Tags>VB.NET, Visual Basic, Roslyn, Analyzer, CodeFix, ConfigureAwait, XML documentation</Tags>
+  </Metadata>
+  <Installation>
+    <!-- [17.0,19.0) = Visual Studio 2022 (17.x) and Visual Studio 2026 (18.x). The Community Id also covers Professional and Enterprise. -->
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,19.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,19.0)">
+      <ProductArchitecture>arm64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.7.2,)" />
+  </Dependencies>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="DevCase.CodeAnalysis.Analyzers" Path="|DevCase.CodeAnalysis.Analyzers|" />
+    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="DevCase.CodeAnalysis.Analyzers" Path="|DevCase.CodeAnalysis.Analyzers|" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="DevCase.CodeAnalysis.CodeFixes" Path="|DevCase.CodeAnalysis.CodeFixes|" />
+    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="DevCase.CodeAnalysis.CodeFixes" Path="|DevCase.CodeAnalysis.CodeFixes|" />
+  </Assets>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+    <Prerequisite Id="Microsoft.VisualStudio.Component.Roslyn.LanguageServices" Version="[17.0,)" DisplayName="Roslyn Language Services" />
+  </Prerequisites>
+</PackageManifest>

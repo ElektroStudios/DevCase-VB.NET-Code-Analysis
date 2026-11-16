@@ -1,0 +1,22 @@
+<Project>
+
+  <!-- Shared build settings for every project in the solution. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>Off</OptionInfer>
+    <OptionCompare>Binary</OptionCompare>
+    <Deterministic>true</Deterministic>
+    <Authors>ElektroStudios</Authors>
+    <Company>ElektroStudios</Company>
+    <Product>DevCase VB.NET Code Analysis</Product>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <RoslynVersion>4.8.0</RoslynVersion>
+    <!-- Report the code style rules configured in .editorconfig on command-line builds too, not only in the IDE. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

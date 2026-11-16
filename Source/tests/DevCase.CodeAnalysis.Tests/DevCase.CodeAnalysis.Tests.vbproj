@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>DevCase.CodeAnalysis.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="$(RoslynVersion)" />
+    <!-- .NET Framework 4.8 reference assemblies, used to analyze test sources as a .NET Framework compilation (DCA011). -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="Net48ReferenceAssembliesPath" Value="$(PkgMicrosoft_NETFramework_ReferenceAssemblies_net48)/build/.NETFramework/v4.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Referenced as a library and as an analyzer: the DCA rules are enforced on the test code when it is built. -->
+    <ProjectReference Include="..\..\src\DevCase.CodeAnalysis.Analyzers\DevCase.CodeAnalysis.Analyzers.vbproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+    <ProjectReference Include="..\..\src\DevCase.CodeAnalysis.CodeFixes\DevCase.CodeAnalysis.CodeFixes.vbproj" />
+  </ItemGroup>
+
+</Project>

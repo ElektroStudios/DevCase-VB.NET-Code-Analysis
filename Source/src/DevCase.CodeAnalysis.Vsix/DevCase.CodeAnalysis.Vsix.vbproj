@@ -1,0 +1,64 @@
+<Project>
+
+  <!--
+    IMPORTANT: the SDK is imported explicitly (Sdk.props at the top, Sdk.targets BEFORE Microsoft.VsSDK.targets).
+    With <Project Sdk="...">, Sdk.targets is imported implicitly at the very end, and Microsoft.Common.CurrentVersion.targets
+    then overwrites PrepareForRunDependsOn, removing the CreateVsixContainer step: the build succeeds but no .vsix is produced.
+  -->
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <!--
+    VSIX container for the DevCase analyzers and code fixes (Visual Studio 2022 17.x and Visual Studio 2026 18.x).
+    The VSIX contains no code of its own: it packages the Analyzers and CodeFixes assemblies as
+    "Microsoft.VisualStudio.Analyzer" and "Microsoft.VisualStudio.MefComponent" assets.
+    Build it from Visual Studio (requires the "Visual Studio extension development" workload).
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>DevCase.CodeAnalysis.Vsix</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GeneratePkgDefFile>false</GeneratePkgDefFile>
+    <IncludeAssemblyInVSIXContainer>false</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
+    <IncludeDebugSymbolsInLocalVSIXDeployment>false</IncludeDebugSymbolsInLocalVSIXDeployment>
+    <CopyBuildOutputToOutputDirectory>false</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+    <VSSDKTargetPlatformRegRootSuffix>Roslyn</VSSDKTargetPlatformRegRootSuffix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- F5 launches an experimental Visual Studio instance with the extension installed. -->
+  <PropertyGroup>
+    <StartAction>Program</StartAction>
+    <StartProgram>$(DevEnvDir)devenv.exe</StartProgram>
+    <StartArguments>/rootsuffix $(VSSDKTargetPlatformRegRootSuffix)</StartArguments>
+  </PropertyGroup>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\DevCase.CodeAnalysis.Analyzers\DevCase.CodeAnalysis.Analyzers.vbproj" />
+    <ProjectReference Include="..\DevCase.CodeAnalysis.CodeFixes\DevCase.CodeAnalysis.CodeFixes.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- https://github.com/dotnet/sdk/issues/433 -->
+    <ProjectReference Update="@(ProjectReference)" AdditionalProperties="TargetFramework=netstandard2.0" />
+    <!-- https://github.com/Microsoft/extendvs/issues/57 -->
+    <ProjectReference Update="@(ProjectReference)" Name="%(Filename)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="source.extension.vsixmanifest">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+
+</Project>

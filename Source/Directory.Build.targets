@@ -1,0 +1,11 @@
+<Project>
+
+  <!--
+    Absolute namespaces: every source file declares its full Namespace block.
+    The SDK assigns RootNamespace = project name when it is empty, so it is cleared here (after the SDK defaults).
+  -->
+  <PropertyGroup>
+    <RootNamespace></RootNamespace>
+  </PropertyGroup>
+
+</Project>

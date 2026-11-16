@@ -1,0 +1,49 @@
+root = true
+
+[*.vb]
+indent_style = space
+indent_size = 4
+
+# ----------------------------------------------------------------------------
+# DevCase VB.NET Code Analysis options
+# ----------------------------------------------------------------------------
+
+# DCA010 (Flags enums without bit-shift format) is DISABLED by default because of
+# legacy P/Invoke flag enums. Enable it per project (or per folder) with:
+# devcase_analyzers.dca010_enabled = true
+
+# DCA001 code fix: emit ConfigureAwait(continueOnCapturedContext:=False) instead of ConfigureAwait(False).
+# devcase_analyzers.configure_await_named_argument = true
+
+# DCA006 code fix: namespace used to wrap types declared in the global namespace.
+# When not set, the fix uses the namespace already declared in the file, or else the assembly name.
+# devcase_analyzers.default_namespace = Contoso.Tools
+
+# DCA011 code fix: conditional compilation symbol of the throw-helper branch.
+# Use NET8_0_OR_GREATER when the project also targets .NET 5-7 (some helpers only exist since .NET 8).
+# devcase_analyzers.dca011_condition = NETCOREAPP
+
+# DCA017 code fix: match timeout (milliseconds) added to Regex calls. Default: 1000 (TimeSpan.FromSeconds(1)).
+# devcase_analyzers.dca017_timeout_ms = 1000
+
+# Standard Roslyn severity overrides also work, e.g.:
+# dotnet_diagnostic.DCA007.severity = suggestion
+# dotnet_diagnostic.DCA009.severity = none
+
+# ----------------------------------------------------------------------------
+# Code style of this repository's own source code
+# ----------------------------------------------------------------------------
+# The DCA rules are applied to the CodeFixes and Tests projects at build time (see their .vbproj files).
+# The following built-in suggestions are raised to warnings so that they are also reported on command-line builds.
+
+dotnet_diagnostic.IDE0004.severity = warning
+dotnet_diagnostic.IDE0031.severity = warning
+dotnet_diagnostic.IDE0045.severity = warning
+dotnet_diagnostic.IDE0046.severity = warning
+dotnet_diagnostic.IDE0059.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+dotnet_diagnostic.IDE0084.severity = warning
+dotnet_diagnostic.IDE0140.severity = warning
+dotnet_diagnostic.IDE0270.severity = warning
+dotnet_diagnostic.CA1510.severity = warning
+dotnet_diagnostic.CA1861.severity = warning
