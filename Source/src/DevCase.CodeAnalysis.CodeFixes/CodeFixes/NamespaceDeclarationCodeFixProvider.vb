@@ -200,7 +200,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
                 segments.Add(segment)
             Next rawSegment
 
-            Dim result As String = String.Join(".", segments)
+            Dim result As String = String.Join("."c, segments)
             Return If(NamespaceDeclarationCodeFixProvider.IsValidNamespaceName(result), result, Nothing)
         End Function
 

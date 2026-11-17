@@ -217,8 +217,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             End If
 
             Dim properties As ImmutableDictionary(Of String, String) = ImmutableDictionary(Of String, String).Empty.
-                Add(XmlParameterDocumentationAnalyzer.MissingParametersPropertyKey, String.Join(",", missing)).
-                Add(XmlParameterDocumentationAnalyzer.EmptyParametersPropertyKey, String.Join(",", emptyTags))
+                Add(XmlParameterDocumentationAnalyzer.MissingParametersPropertyKey, String.Join(","c, missing)).
+                Add(XmlParameterDocumentationAnalyzer.EmptyParametersPropertyKey, String.Join(","c, emptyTags))
 
             Dim identifier As SyntaxToken = UtilAnalyzerSyntax.GetIdentifierToken(declaration)
             context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.XmlParameterMismatch, identifier.GetLocation(), properties,

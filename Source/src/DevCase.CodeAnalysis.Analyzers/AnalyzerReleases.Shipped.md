@@ -69,3 +69,13 @@ DCA045 | Security | Warning | InsecureTempFileAnalyzer
 DCA046 | Reliability | Warning | ThrowInFinallyAnalyzer
 DCA047 | Reliability | Warning | ThrowInFinalizeAnalyzer
 DCA048 | Design | Info | ThrowInPropertyGetterAnalyzer
+
+## Release 1.0.3
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+DCA049 | Performance | Info | SingleCharacterStringAnalyzer
+DCA050 | Design | Info | UnvalidatedParameterAnalyzer
+DCA051 | Reliability | Warning | DiscardedAwaiterAnalyzer

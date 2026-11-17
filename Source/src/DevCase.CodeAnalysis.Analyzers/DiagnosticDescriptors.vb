@@ -657,6 +657,42 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             isEnabledByDefault:=True,
             description:="Reading a property is expected to be safe: debuggers, data binding and serializers read properties freely. Validate in the setter or in methods; a getter should only throw when the object is in an invalid state.")
 
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.SingleCharacterString"/>.
+        ''' </summary>
+        Public Shared ReadOnly SingleCharacterString As New DiagnosticDescriptor(
+            id:=DiagnosticIds.SingleCharacterString,
+            title:="Single-character string where a Char can be used",
+            messageFormat:="Use the character literal {0} instead of a single-character string in '{1}'",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="String.Join and StringBuilder.Append accept a Char. On modern .NET the Char overload is used; on .NET Framework, where String.Join has no Char overload, the character literal is converted to the same constant string at compile time. The result is identical on every target framework.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.UnvalidatedParameter"/>.
+        ''' </summary>
+        Public Shared ReadOnly UnvalidatedParameter As New DiagnosticDescriptor(
+            id:=DiagnosticIds.UnvalidatedParameter,
+            title:="Parameter of an externally visible method is not validated",
+            messageFormat:="Parameter '{0}' of '{1}' is not validated",
+            category:=DevCaseDescriptors.CategoryDesign,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Externally visible methods can be called with any argument. Without a guard clause, Nothing or an undefined Enum value fails later, far from the cause, with a NullReferenceException or a wrong result. A guard clause fails immediately with an exception that names the parameter.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.DiscardedAwaiter"/>.
+        ''' </summary>
+        Public Shared ReadOnly DiscardedAwaiter As New DiagnosticDescriptor(
+            id:=DiagnosticIds.DiscardedAwaiter,
+            title:="Awaiter or ConfigureAwait result discarded",
+            messageFormat:="The result of '{0}' is discarded: the task is neither awaited nor waited, and its exceptions are lost",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="GetAwaiter() and ConfigureAwait() do not wait for a task: they only prepare it to be awaited. When their result is discarded, the statement does nothing, the method returns before the task completes, and any exception of the task is lost.")
+
 #End Region
 
 #Region " Constructors "

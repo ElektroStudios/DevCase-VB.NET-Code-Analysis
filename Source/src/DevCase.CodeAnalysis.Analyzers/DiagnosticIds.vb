@@ -257,6 +257,21 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Const ThrowInPropertyGetter As String = "DCA048"
 
+        ''' <summary>
+        ''' The identifier of the rule: Single-character string where a Char can be used.
+        ''' </summary>
+        Public Const SingleCharacterString As String = "DCA049"
+
+        ''' <summary>
+        ''' The identifier of the rule: Parameter of an externally visible method is not validated.
+        ''' </summary>
+        Public Const UnvalidatedParameter As String = "DCA050"
+
+        ''' <summary>
+        ''' The identifier of the rule: Awaiter or ConfigureAwait result discarded.
+        ''' </summary>
+        Public Const DiscardedAwaiter As String = "DCA051"
+
 #End Region
 
 #Region " Constructors "

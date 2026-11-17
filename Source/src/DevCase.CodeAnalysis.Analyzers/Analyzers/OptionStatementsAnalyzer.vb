@@ -207,7 +207,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             End If
 
             Dim properties As ImmutableDictionary(Of String, String) =
-                ImmutableDictionary(Of String, String).Empty.Add(OptionStatementsAnalyzer.MissingStatementsPropertyKey, String.Join(",", missing))
+                ImmutableDictionary(Of String, String).Empty.Add(OptionStatementsAnalyzer.MissingStatementsPropertyKey, String.Join(","c, missing))
 
             context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.MissingOptionStatements, location, properties, String.Join(", ", missing)))
         End Sub

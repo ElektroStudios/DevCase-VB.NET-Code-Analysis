@@ -16,7 +16,6 @@
 | `s.StartsWith("x", StringComparison.Ordinal)` / `EndsWith` | `s.StartsWith("x"c)` | `NETCOREAPP` |
 | `s.IndexOf(v, comparison) >= 0` (also `> -1`, `<> -1`, and `IndexOf(Char)`) | `s.Contains(v, comparison)` | `NETCOREAPP` |
 | `s.IndexOf(v, comparison) < 0` (also `= -1`) | `Not s.Contains(v, comparison)` | `NETCOREAPP` |
-| `String.Join(",", values)` | `String.Join(","c, values)` | `NETCOREAPP` |
 | `s.Split({"ab"}, options)` / `s.Split(New String() {"ab"}, count, options)` | `s.Split("ab", options)` | `NETCOREAPP` |
 | `If Not d.ContainsKey(k) Then d.Add(k, v)` (`Dictionary`) | `d.TryAdd(k, v)` | `NETCOREAPP` |
 | `DirectCast([Enum].Parse(GetType(T), s), T)` (also `CType`, `ignoreCase`) | `[Enum].Parse(Of T)(s)` | `NETCOREAPP` |
@@ -34,6 +33,7 @@ Deliberately **not** included, because they are not exact equivalents:
 | `Math.Max(min, Math.Min(v, max))` → `Math.Clamp` | `Clamp` throws when `min > max`. |
 | `New Random()` → `Random.Shared` | Different seeding and thread-safety semantics. |
 | `Environment.TickCount` → `TickCount64` | Different overflow behavior. |
+| `String.Join(",", values)` → `String.Join(","c, values)` | Not a migration: the character literal compiles and behaves the same on .NET Framework (it is converted to the same constant string), so no `#If` block is needed. Rule [DCA049](DCA049_Single_Character_String.md) reports it on every target framework. |
 
 ## 🔎 Detection
 

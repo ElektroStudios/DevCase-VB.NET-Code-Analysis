@@ -131,7 +131,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             End If
 
             Dim words As List(Of String) = UtilDocumentationText.SplitIdentifier(name)
-            Dim phrase As String = String.Join(" ", words)
+            Dim phrase As String = String.Join(" "c, words)
 
             If type IsNot Nothing Then
                 Dim typeName As String = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
@@ -239,11 +239,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
 
             Dim first As String = words(0).ToLowerInvariant()
             If words.Count > 1 AndAlso UtilDocumentationText.ConditionPrefixes.Contains(first, StringComparer.Ordinal) Then
-                Dim condition As String = String.Join(" ", words.Skip(If(first.Equals("is", StringComparison.Ordinal), 1, 0)))
+                Dim condition As String = String.Join(" "c, words.Skip(If(first.Equals("is", StringComparison.Ordinal), 1, 0)))
                 Return $"{TrueWord} if {condition}; otherwise, {FalseWord}."
             End If
 
-            Dim phrase As String = String.Join(" ", words)
+            Dim phrase As String = String.Join(" "c, words)
             Return If(UtilDocumentationText.VerbPrefixes.Contains(first, StringComparer.Ordinal),
                       $"{TrueWord} to {phrase}; otherwise, {FalseWord}.",
                       $"{TrueWord} to enable the {phrase} option; otherwise, {FalseWord}.")

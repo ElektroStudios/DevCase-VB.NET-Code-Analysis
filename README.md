@@ -143,6 +143,9 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA046`](Docs/Rules/DCA046_Throw_In_Finally.md) | 🧨 [Exception thrown in a `Finally` block](Docs/Rules/DCA046_Throw_In_Finally.md) | Warning | Reliability | ❌ |
 | [`DCA047`](Docs/Rules/DCA047_Throw_In_Finalize.md) | ☠️ [Exception thrown in `Finalize`](Docs/Rules/DCA047_Throw_In_Finalize.md) | Warning | Reliability | ❌ |
 | [`DCA048`](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | 🫳 [Exception thrown in a property getter](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | Info | Design | ❌ |
+| [`DCA049`](Docs/Rules/DCA049_Single_Character_String.md) | 🔤 [Single-character string where a `Char` can be used](Docs/Rules/DCA049_Single_Character_String.md) | Info | Performance | ✔️ |
+| [`DCA050`](Docs/Rules/DCA050_Unvalidated_Parameter.md) | 🛂 [Parameter of an externally visible method is not validated](Docs/Rules/DCA050_Unvalidated_Parameter.md) | Info | Design | ✔️ |
+| [`DCA051`](Docs/Rules/DCA051_Discarded_Awaiter.md) | 🕳️ [Awaiter or `ConfigureAwait` result discarded](Docs/Rules/DCA051_Discarded_Awaiter.md) | Warning | Reliability | ❌ |
 
 Click a rule to see its purpose, detection details, edge cases and VB.NET code examples.
 
@@ -175,7 +178,7 @@ Click a rule to see its purpose, detection details, edge cases and VB.NET code e
 To debug the analyzers, set `DevCase.CodeAnalysis.Vsix` as the startup project and press **F5**: an experimental instance of Visual Studio starts with the extension loaded.
 
 > [!NOTE]
-> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA011, DCA013, DCA030, DCA031, DCA034, DCA042, DCA044, DCA048) appear in the *Messages* tab of the Error List and as gray dots under the code.
+> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA011, DCA013, DCA030, DCA031, DCA034, DCA042, DCA044, DCA048, DCA049, DCA050) appear in the *Messages* tab of the Error List and as gray dots under the code.
 
 ## ⚙️ Configuration
 

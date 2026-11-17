@@ -1,6 +1,24 @@
 # DevCase VB.NET Code Analysis Change Log 📋
 
-## v1.0.2 *(current)* 🆕
+## v1.0.3 *(current)* 🆕
+New rules:
+ - DCA049 (Info): single-character string literal passed to `String.Join` or `StringBuilder.Append` → character literal (`String.Join("&"c, parts)`). It compiles and behaves the same on .NET Framework and modern .NET, so no `#If` block is needed.
+ - DCA050 (Info): parameter of a public or protected method or constructor used without being validated. Three kinds of guard clause:
+   - `Enum` (without `<Flags>`): `[Enum].IsDefined` → `InvalidEnumArgumentException` (`ArgumentOutOfRangeException` for `Long` enumerations).
+   - `String`: `String.IsNullOrEmpty` (default), `String.IsNullOrWhiteSpace` or `Is Nothing` → `ArgumentNullException`.
+   - Other reference types: `Is Nothing` → `ArgumentNullException`.
+
+   Guard clauses are inserted in parameter order, after `MyBase.New` and among the existing guard clauses; Fix All keeps that order. Value types, `Nullable(Of T)`, `Optional`/`ByRef`/`ParamArray` parameters, event handlers, overrides of framework members, and parameters that are only stored, returned or concatenated are not reported.
+ - DCA051 (Warning): `GetAwaiter()` or `ConfigureAwait(...)` called as a statement (`Task.Run(...).GetAwaiter()`, `Me.WorkAsync().ConfigureAwait(False)`). Such a statement does not wait for the task, and the task's exceptions are lost. Report only.
+
+Changes:
+ - DCA013: `String.Join(",", values)` is no longer reported. Its fix duplicated the statement into an `#If NETCOREAPP` block that was not needed; DCA049 now reports it on every target framework, and its fix just writes `","c`.
+
+Fixes:
+ - DCA007: no longer reports the other declarations of a partial type when one declaration is documented. Documenting them would produce compiler warning BC42314 (*"XML comment cannot be applied more than once on a partial class"*). When no declaration is documented, only one is reported: the main declaration, or the first one.
+ - DCA045: the code fix no longer fails on calls written without parentheses (`Dim tmp As String = Path.GetTempFileName`). Before, Visual Studio disabled `InsecureTempFileCodeFixProvider` and `BatchFixAllProvider` with *"encountered an error and has been disabled"*.
+
+## v1.0.2 🔖
 22 new rules (DCA027 – DCA048), most of them VB.NET equivalents of SonarQube rules:
  - With code fix:
    - DCA027 (Warning): `Thread.Sleep` in an `Async` method → `Await Task.Delay(x).ConfigureAwait(False/True)`.

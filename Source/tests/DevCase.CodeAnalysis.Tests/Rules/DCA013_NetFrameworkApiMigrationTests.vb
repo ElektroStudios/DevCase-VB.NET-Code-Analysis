@@ -70,7 +70,6 @@ Public Class C
         Dim b As Boolean = [|s.StartsWith(""x"", StringComparison.Ordinal)|]
         Dim c As Boolean = [|s.IndexOf(""ab"", StringComparison.OrdinalIgnoreCase) >= 0|]
         Dim e As Boolean = [|s.IndexOf(""z""c) = -1|]
-        Dim f As String = [|String.Join("","", items)|]
         Dim g As String() = [|s.Split({""ab""}, StringSplitOptions.None)|]
         [|If Not d.ContainsKey(s) Then d.Add(s, 1)|]
         Dim h As StringSplitOptions = [|DirectCast([Enum].Parse(GetType(StringSplitOptions), s), StringSplitOptions)|]
@@ -100,6 +99,7 @@ Public Class C
         Dim b As Boolean = s.Contains(""xy"")
         Dim c As Boolean = s.IndexOf(""ab"") >= 0
         Dim d As String = String.Join("", "", items)
+        Dim d2 As String = String.Join("","", items) ' DCA049 handles it on every target framework.
         Dim e As String = File.ReadAllText(s)
 #If NETCOREAPP Then
         Dim f As Boolean = s.Contains(""x""c)
@@ -201,7 +201,7 @@ End Class
             Dim fixedText As String = Await AnalyzerTestHost.ApplyFixAllInDocumentAsync(Analyzer, Provider, "
 Public Class C
     Public Function Run(s As String, items As String()) As String
-        Return String.Join("","", items) & s.Contains(""x"").ToString()
+        Return s.EndsWith(""y"", StringComparison.Ordinal).ToString() & s.Contains(""x"").ToString()
     End Function
 End Class
 ", NameOf(NetFrameworkApiMigrationCodeFixProvider), targetNetFramework:=True).ConfigureAwait(True)
@@ -210,9 +210,9 @@ End Class
 Public Class C
     Public Function Run(s As String, items As String()) As String
 #If NETCOREAPP Then
-        Return String.Join("",""c, items) & s.Contains(""x""c).ToString()
+        Return s.EndsWith(""y""c).ToString() & s.Contains(""x""c).ToString()
 #Else
-        Return String.Join("","", items) & s.Contains(""x"").ToString()
+        Return s.EndsWith(""y"", StringComparison.Ordinal).ToString() & s.Contains(""x"").ToString()
 #End If
     End Function
 End Class
@@ -237,7 +237,6 @@ Public Class C
         Dim a As Boolean = s.Contains(""x"")
         Dim b As Boolean = s.EndsWith(""x"", StringComparison.Ordinal)
         Dim c As Boolean = s.IndexOf(""ab"", StringComparison.OrdinalIgnoreCase) > -1
-        Dim f As String = String.Join("","", items)
         Dim g As String() = s.Split(New String() {""ab""}, 2, StringSplitOptions.None)
         If Not d.ContainsKey(s) Then d.Add(s, 1)
         Dim h As StringSplitOptions = CType([Enum].Parse(GetType(StringSplitOptions), s, True), StringSplitOptions)

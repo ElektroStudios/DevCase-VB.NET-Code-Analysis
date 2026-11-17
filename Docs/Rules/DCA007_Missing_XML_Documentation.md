@@ -16,6 +16,13 @@ Public members are the API surface: IntelliSense, the generated XML documentatio
 
 Analyzed declarations: classes, structures, modules, interfaces, enumerations, methods, constructors, properties, events, operators, delegates, `Declare` statements and fields. A comment that only contains `''' <inheritdoc/>` is accepted. Members without the `Public` modifier (including interface members) are not reported.
 
+**Partial types** are documented once: if more than one declaration of a partial type has a `'''` comment, the compiler reports warning **BC42314** (*"XML comment cannot be applied more than once on a partial class"*) and ignores the comments. So:
+
+- When any declaration of the type is documented, the other declarations are **not** reported.
+- When none is documented, only **one** declaration is reported (and fixed): the `Public` declaration without the `Partial` modifier (the main declaration), or else the first `Public` declaration by file path and position. Declarations in generated files (`*.Designer.vb`, `*.g.vb`...) are never chosen.
+
+The members of every declaration are still analyzed individually.
+
 > [!NOTE]
 > When a project is built without `GenerateDocumentationFile`, the compiler parses `'''` comments as plain comments; they are still recognized as documentation.
 

@@ -293,7 +293,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             End If
 
             Dim properties As ImmutableDictionary(Of String, String) =
-                ImmutableDictionary(Of String, String).Empty.Add(ExceptionDocumentationAnalyzer.MissingExceptionsPropertyKey, String.Join(",", missing))
+                ImmutableDictionary(Of String, String).Empty.Add(ExceptionDocumentationAnalyzer.MissingExceptionsPropertyKey, String.Join(","c, missing))
             Dim identifier As SyntaxToken = UtilAnalyzerSyntax.GetIdentifierToken(declaration)
             context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.MissingExceptionDocumentation, identifier.GetLocation(), properties,
                                                        identifier.ValueText, String.Join(", ", missing)))

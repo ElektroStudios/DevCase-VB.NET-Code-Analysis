@@ -51,6 +51,7 @@ The fix keeps the behavior of `GetTempFileName`: after it, the variable holds th
 Details:
 
 - The `Using` block has no variable: it only creates the file and closes it immediately, exactly like `GetTempFileName`.
+- Calls written without parentheses (`Dim tempPath As String = Path.GetTempFileName`) are fixed in the same way.
 - Type names are written in their shortest valid form at that position. When a variable named `path` hides the `Path` type (Visual Basic is not case-sensitive), `IO.Path` is written.
 - Other usages (an argument, a member access such as `Path.GetTempFileName().Length`, a single-line `If`) are reported without a fix, because the file must be created in a separate statement.
 

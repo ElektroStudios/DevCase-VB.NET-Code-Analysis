@@ -177,7 +177,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             Dim appended As IEnumerable(Of String) = overload.Parameters.Skip(creation.Constructor.Parameters.Length).Select(Function(p As IParameterSymbol) p.Name)
             Dim properties As ImmutableDictionary(Of String, String) = ImmutableDictionary(Of String, String).Empty.
-                Add(DateTimeKindAnalyzer.ParameterNamesPropertyKey, String.Join(",", appended))
+                Add(DateTimeKindAnalyzer.ParameterNamesPropertyKey, String.Join(","c, appended))
 
             context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.DateTimeWithoutKind, creation.Syntax.GetLocation(), properties))
         End Sub

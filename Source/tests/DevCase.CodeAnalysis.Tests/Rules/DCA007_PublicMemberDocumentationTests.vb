@@ -8,6 +8,8 @@ Option Infer Off
 
 #Region " Imports "
 
+Imports System.Collections.Immutable
+Imports System.Globalization
 Imports System.Threading.Tasks
 
 Imports Microsoft.CodeAnalysis
@@ -132,6 +134,62 @@ End Interface
                 {New TestSource("Test0.vb", "''' <summary>Documented.</summary>" & vbLf & "Public Class C" & vbLf & "End Class" & vbLf)},
                 documentationMode:=DocumentationMode.None)
             Assert.Empty(Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True))
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA007 does not report the declarations of a partial type when another declaration is documented
+        ''' (documenting them would produce the compiler warning BC42314).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function DoesNotReport_PartialTypeDocumentedInAnotherDeclaration() As Task
+            Dim project As Project = AnalyzerTestHost.CreateProject({
+                New TestSource("A.vb", $"''' <summary>Documented.</summary>{vbLf}Public NotInheritable Class P{vbLf}End Class{vbLf}"),
+                New TestSource("B.vb", $"Partial Public NotInheritable Class P{vbLf}End Class{vbLf}"),
+                New TestSource("C.vb", $"Partial Public NotInheritable Class P{vbLf}End Class{vbLf}")})
+            Assert.Empty(Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True))
+            Assert.Empty(Await AnalyzerTestHost.GetCompilerErrorsAsync(project).ConfigureAwait(True))
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA007 reports an undocumented partial type once, on its main declaration (the one without
+        ''' the <see langword="Partial"/> modifier), even when that declaration is not the first one.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Reports_PartialTypeOnce_OnMainDeclaration() As Task
+            Dim project As Project = AnalyzerTestHost.CreateProject({
+                New TestSource("A.vb", $"Partial Public Class P{vbLf}End Class{vbLf}"),
+                New TestSource("B.vb", $"Public Class P{vbLf}End Class{vbLf}")})
+            Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True)
+            Assert.Single(diagnostics)
+            Assert.EndsWith("B.vb", diagnostics(0).Location.SourceTree.FilePath, StringComparison.Ordinal)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA007 reports an undocumented partial type once, on its first declaration, when every declaration
+        ''' has the <see langword="Partial"/> modifier; members of every declaration are still reported.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Reports_PartialTypeOnce_OnFirstDeclaration() As Task
+            Dim project As Project = AnalyzerTestHost.CreateProject({
+                New TestSource("A.vb", $"Partial Public Class P{vbLf}End Class{vbLf}"),
+                New TestSource("B.vb", $"Partial Public Class P{vbLf}    Public Sub Run(){vbLf}    End Sub{vbLf}End Class{vbLf}")})
+            Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True)
+            Assert.Equal(2, diagnostics.Length)
+            Assert.Single(diagnostics, Function(d As Diagnostic) d.GetMessage(CultureInfo.InvariantCulture).Contains("'P'", StringComparison.Ordinal) AndAlso
+                                                                d.Location.SourceTree.FilePath.EndsWith("A.vb", StringComparison.Ordinal))
+            Assert.Single(diagnostics, Function(d As Diagnostic) d.GetMessage(CultureInfo.InvariantCulture).Contains("'Run'", StringComparison.Ordinal))
         End Function
 
         ''' <summary>

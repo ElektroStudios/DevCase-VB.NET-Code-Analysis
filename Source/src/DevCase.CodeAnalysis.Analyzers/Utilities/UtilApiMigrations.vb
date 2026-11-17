@@ -133,7 +133,6 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     '''   <item><term><c>s.Contains("x")</c></term><description><c>s.Contains("x"c)</c> (NETCOREAPP)</description></item>
     '''   <item><term><c>s.StartsWith("x", StringComparison.Ordinal)</c> / <c>EndsWith</c></term><description><c>s.StartsWith("x"c)</c> (NETCOREAPP)</description></item>
     '''   <item><term><c>s.IndexOf(v, comparison) &gt;= 0</c> / <c>&lt; 0</c> (also <c>IndexOf(c)</c>)</term><description><c>s.Contains(v, comparison)</c> / <c>Not s.Contains(...)</c> (NETCOREAPP)</description></item>
-    '''   <item><term><c>String.Join(",", values)</c></term><description><c>String.Join(","c, values)</c> (NETCOREAPP)</description></item>
     '''   <item><term><c>s.Split({"ab"}, options)</c></term><description><c>s.Split("ab", options)</c> (NETCOREAPP)</description></item>
     '''   <item><term><c>If Not d.ContainsKey(k) Then d.Add(k, v)</c></term><description><c>d.TryAdd(k, v)</c> (NETCOREAPP)</description></item>
     '''   <item><term><c>DirectCast([Enum].Parse(GetType(T), s), T)</c></term><description><c>[Enum].Parse(Of T)(s)</c> (NETCOREAPP)</description></item>
@@ -144,7 +143,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' </list>
     ''' Deliberately excluded because they are not exact equivalents: <c>Math.Max(min, Math.Min(v, max))</c> → <c>Math.Clamp</c>
     ''' (throws when min &gt; max), culture-sensitive <c>StartsWith(String)</c> → <c>StartsWith(Char)</c> (ordinal),
-    ''' <c>New Random()</c> → <c>Random.Shared</c>, <c>Environment.TickCount</c> → <c>TickCount64</c>.
+    ''' <c>New Random()</c> → <c>Random.Shared</c>, <c>Environment.TickCount</c> → <c>TickCount64</c>. 
+    ''' <c>String.Join(",", values)</c> is not an entry: <c>String.Join(","c, values)</c> compiles and behaves the same on every 
+    ''' target framework, so rule <see cref="DiagnosticIds.SingleCharacterString"/> reports it without a conditional block.
     ''' </remarks>
     Friend NotInheritable Class UtilApiMigrations
 
@@ -344,10 +345,6 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             Return If(Array.IndexOf(UtilApiMigrations.ConditionOrder, second) > Array.IndexOf(UtilApiMigrations.ConditionOrder, first), second, first)
         End Function
 
-#End Region
-
-#Region " Private Methods "
-
         ''' <summary>
         ''' Gets the single character of a one-character string literal argument.
         ''' </summary>
@@ -359,7 +356,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' <returns>
         ''' The Visual Basic character literal (e.g. <c>"x"c</c>), or <see langword="Nothing"/> if the argument is not such a literal.
         ''' </returns>
-        Private Shared Function GetCharLiteral(argument As ArgumentSyntax) As String
+        Friend Shared Function GetCharLiteral(argument As ArgumentSyntax) As String
 
             Dim simple As SimpleArgumentSyntax = TryCast(argument, SimpleArgumentSyntax)
             If simple Is Nothing OrElse simple.IsNamed OrElse Not simple.Expression.IsKind(SyntaxKind.StringLiteralExpression) Then
@@ -367,11 +364,15 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             End If
 
             Dim value As String = DirectCast(simple.Expression, LiteralExpressionSyntax).Token.ValueText
-            Return If(value.Length <> 1 OrElse Char.IsControl(value(0)), Nothing, If(value = """", """""""""c", $"""{value}""c"))
+            Return If(value.Length <> 1 OrElse Char.IsControl(value(0)) OrElse Char.IsSurrogate(value(0)), Nothing, If(value = """", """""""""c", $"""{value}""c"))
         End Function
 
+#End Region
+
+#Region " Private Methods "
+
         ''' <summary>
-        ''' Matches <c>s.Contains("x")</c>, <c>s.StartsWith("x", Ordinal)</c>, <c>s.EndsWith("x", Ordinal)</c> and <c>String.Join(",", ...)</c>.
+        ''' Matches <c>s.Contains("x")</c>, <c>s.StartsWith("x", Ordinal)</c> and <c>s.EndsWith("x", Ordinal)</c>.
         ''' </summary>
         '''
         ''' <param name="invocation">
@@ -427,12 +428,6 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                             Return New ApiMigration(invocation.ArgumentList, $"({charLiteral})", UtilApiMigrations.NetCoreCondition,
                                                     $"String.{method.Name}(String, StringComparison.Ordinal)", $"String.{method.Name}(Char)")
                         End If
-                    End If
-
-                Case NameOf(String.Join)
-                    If method.IsStatic Then
-                        Return New ApiMigration(DirectCast(arguments(0), SimpleArgumentSyntax).Expression, charLiteral, UtilApiMigrations.NetCoreCondition,
-                                                "String.Join(String, ...)", "String.Join(Char, ...)")
                     End If
             End Select
             Return Nothing

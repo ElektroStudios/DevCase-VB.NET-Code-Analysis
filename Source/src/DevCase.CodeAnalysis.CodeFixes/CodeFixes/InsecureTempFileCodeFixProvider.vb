@@ -146,21 +146,22 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             Dim root As SyntaxNode = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
             Dim model As SemanticModel = Await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(False)
             Dim text As SourceText = Await document.GetTextAsync(cancellationToken).ConfigureAwait(False)
-            Dim invocation As InvocationExpressionSyntax = UtilCodeFix.FindNodeBySpan(Of InvocationExpressionSyntax)(root, diagnostic.Location.SourceSpan)
+            ' The reported node is an invocation, or a member access when the call is written without parentheses ("Path.GetTempFileName").
+            Dim reportedCall As ExpressionSyntax = UtilCodeFix.FindNodeBySpan(Of ExpressionSyntax)(root, diagnostic.Location.SourceSpan)
 
             Dim statement As StatementSyntax
             Dim variable As String
             Select Case usage
                 Case InsecureTempFileAnalyzer.DeclarationUsage
-                    Dim declarator As VariableDeclaratorSyntax = DirectCast(invocation.Parent.Parent, VariableDeclaratorSyntax)
+                    Dim declarator As VariableDeclaratorSyntax = DirectCast(reportedCall.Parent.Parent, VariableDeclaratorSyntax)
                     statement = DirectCast(declarator.Parent, StatementSyntax)
                     variable = declarator.Names(0).Identifier.ToString()
                 Case InsecureTempFileAnalyzer.AssignmentUsage
-                    Dim assignment As AssignmentStatementSyntax = DirectCast(invocation.Parent, AssignmentStatementSyntax)
+                    Dim assignment As AssignmentStatementSyntax = DirectCast(reportedCall.Parent, AssignmentStatementSyntax)
                     statement = assignment
                     variable = assignment.Left.ToString()
                 Case InsecureTempFileAnalyzer.ReturnUsage
-                    statement = DirectCast(invocation.Parent, StatementSyntax)
+                    statement = DirectCast(reportedCall.Parent, StatementSyntax)
                     variable = InsecureTempFileCodeFixProvider.GetUniqueName(model, statement.SpanStart)
                 Case Else
                     Throw New InvalidOperationException($"Unsupported usage '{usage}'.")
@@ -185,7 +186,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             Else
                 Dim line As TextLine = text.Lines.GetLineFromPosition(statement.Span.End)
                 Dim lineBreak As String = If(line.EndIncludingLineBreak = line.End, eol, String.Empty)
-                changes.Add(New TextChange(invocation.Span, newPath))
+                changes.Add(New TextChange(reportedCall.Span, newPath))
                 changes.Add(New TextChange(New TextSpan(line.EndIncludingLineBreak, 0), $"{lineBreak}{usingBlock}{eol}"))
             End If
             Return Await UtilCodeFix.ApplyTextChangesAsync(document, changes, cancellationToken).ConfigureAwait(False)
