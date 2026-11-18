@@ -272,6 +272,16 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Const DiscardedAwaiter As String = "DCA051"
 
+        ''' <summary>
+        ''' The identifier of the rule: Parameter named 'sender' outside an event handler.
+        ''' </summary>
+        Public Const MisusedSenderParameter As String = "DCA052"
+
+        ''' <summary>
+        ''' The identifier of the rule: Method call without parentheses.
+        ''' </summary>
+        Public Const MethodCallWithoutParentheses As String = "DCA053"
+
 #End Region
 
 #Region " Constructors "

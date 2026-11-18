@@ -242,22 +242,82 @@ End Class
         End Function
 
         ''' <summary>
-        ''' Verifies that rule DCA045 reports a call passed as an argument without offering a fix.
+        ''' Verifies that rule DCA045 reports, without offering a fix, calls whose evaluation is conditional or repeated, 
+        ''' or whose statement has no own line: lambdas, queries, <c>If(...)</c> branches, the right side of <see langword="AndAlso"/>, 
+        ''' <c>?.</c>, single-line <see langword="If"/> statements, loop headers and statements after a colon.
+        ''' </summary>
+        '''
+        ''' <param name="statement">
+        ''' The statement that contains the call.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData("Dim f As Func(Of Integer) = Function() IO.Path.GetTempFileName().Length")>
+        <InlineData("Dim n As Integer = If(flag, IO.Path.GetTempFileName().Length, 0)")>
+        <InlineData("Dim b As Boolean = flag AndAlso IO.Path.GetTempFileName().Length > 0")>
+        <InlineData("Dim n As Integer? = text?.IndexOf(IO.Path.GetTempFileName(), StringComparison.Ordinal)")>
+        <InlineData("If flag Then Console.WriteLine(IO.Path.GetTempFileName().Length)")>
+        <InlineData("While IO.Path.GetTempFileName().Length = 0 : End While")>
+        <InlineData("Dim x As Integer = 1 : Console.WriteLine(IO.Path.GetTempFileName().Length + x)")>
+        <InlineData("Dim q As IEnumerable(Of Integer) = From i As Integer In {1} Select IO.Path.GetTempFileName().Length")>
+        Public Async Function NoFix_ForConditionalOrRepeatedUsages(statement As String) As Task
+            Dim actions As List(Of CodeAction) = Await AnalyzerTestHost.GetRegisteredActionsAsync(Analyzer, Provider, $"
+Public Class C
+    Public Sub M(flag As Boolean, text As String)
+        {statement}
+    End Sub
+End Class
+").ConfigureAwait(True)
+            Assert.Empty(actions)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA045 moves a call nested in a larger expression to a new variable declared 
+        ''' before the statement (the reported case: <c>New FileInfo(Path.Combine(Path.GetTempPath, path2:=Path.GetTempFileName))</c>), 
+        ''' with a name that does not conflict with a local declared later in the method.
         ''' </summary>
         '''
         ''' <returns>
         ''' A <see cref="Task"/> that represents the asynchronous test.
         ''' </returns>
         <Fact>
-        Public Async Function NoFix_ForOtherUsages() As Task
-            Dim actions As List(Of CodeAction) = Await AnalyzerTestHost.GetRegisteredActionsAsync(Analyzer, Provider, "
+        Public Async Function Fix_NestedCall_MovesToVariable() As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
+Imports System.IO
 Public Class C
-    Public Function M() As Integer
-        Return IO.Path.GetTempFileName().Length
+    Public Function M(flag As Boolean) As Integer
+        If flag Then
+            ' Creates the file.
+            Dim tmpFile As New FileInfo(Path.Combine(Path.GetTempPath, path2:=Path.GetTempFileName))
+            Console.WriteLine(tmpFile.FullName)
+        End If
+        Dim tempFilePath As String = String.Empty
+        Return Path.GetTempFileName().Length + tempFilePath.Length
     End Function
 End Class
-").ConfigureAwait(True)
-            Assert.Empty(actions)
+", "
+Imports System.IO
+Public Class C
+    Public Function M(flag As Boolean) As Integer
+        If flag Then
+            ' Creates the file.
+            Dim tempFilePath2 As String = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ""tmp""))
+            Using New FileStream(tempFilePath2, FileMode.CreateNew, FileAccess.Write, FileShare.None) ' Creates the file atomically: fails instead of opening a file that already exists.
+            End Using
+            Dim tmpFile As New FileInfo(Path.Combine(Path.GetTempPath, path2:=tempFilePath2))
+            Console.WriteLine(tmpFile.FullName)
+        End If
+        Dim tempFilePath As String = String.Empty
+        Dim tempFilePath3 As String = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ""tmp""))
+        Using New FileStream(tempFilePath3, FileMode.CreateNew, FileAccess.Write, FileShare.None) ' Creates the file atomically: fails instead of opening a file that already exists.
+        End Using
+        Return tempFilePath3.Length + tempFilePath.Length
+    End Function
+End Class
+", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
 #End Region

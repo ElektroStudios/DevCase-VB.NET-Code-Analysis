@@ -9,9 +9,13 @@ Option Infer Off
 #Region " Imports "
 
 Imports System.Collections.Generic
+Imports System.Collections.Immutable
+Imports System.Threading
 Imports System.Threading.Tasks
 
+Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.CodeActions
+Imports Microsoft.CodeAnalysis.CodeFixes
 
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
@@ -320,11 +324,16 @@ End Class
         End Function
 
         ''' <summary>
-        ''' Verifies the alternative code fixes of rule DCA050 for a String parameter: <c>String.IsNullOrWhiteSpace</c> and <c>Is Nothing</c>.
+        ''' Verifies the code fixes of rule DCA050 for a String parameter: <c>If</c> blocks on .NET Framework, and the throw helpers 
+        ''' (<c>ArgumentException.ThrowIfNullOrEmpty</c>, <c>ThrowIfNullOrWhiteSpace</c>, <c>ArgumentNullException.ThrowIfNull</c>) on modern .NET.
         ''' </summary>
         '''
         ''' <param name="variant">
         ''' The guard clause variant.
+        ''' </param>
+        '''
+        ''' <param name="targetNetFramework">
+        ''' <see langword="True"/> to compile against .NET Framework 4.8.
         ''' </param>
         '''
         ''' <param name="expectedGuard">
@@ -335,13 +344,19 @@ End Class
         ''' A <see cref="Task"/> that represents the asynchronous test.
         ''' </returns>
         <Theory>
-        <InlineData(UnvalidatedParameterCodeFixProvider.NullOrWhiteSpaceVariant, "        If String.IsNullOrWhiteSpace(path) Then
+        <InlineData(UnvalidatedParameterCodeFixProvider.NullOrEmptyVariant, False, "        ArgumentException.ThrowIfNullOrEmpty(path)")>
+        <InlineData(UnvalidatedParameterCodeFixProvider.NullOrWhiteSpaceVariant, False, "        ArgumentException.ThrowIfNullOrWhiteSpace(path)")>
+        <InlineData(UnvalidatedParameterCodeFixProvider.NothingVariant, False, "        ArgumentNullException.ThrowIfNull(path)")>
+        <InlineData(UnvalidatedParameterCodeFixProvider.NullOrEmptyVariant, True, "        If String.IsNullOrEmpty(path) Then
+            Throw New ArgumentNullException(NameOf(path), $""The {NameOf(path)} cannot be null or empty."")
+        End If")>
+        <InlineData(UnvalidatedParameterCodeFixProvider.NullOrWhiteSpaceVariant, True, "        If String.IsNullOrWhiteSpace(path) Then
             Throw New ArgumentNullException(NameOf(path), $""The {NameOf(path)} cannot be null, empty or white space."")
         End If")>
-        <InlineData(UnvalidatedParameterCodeFixProvider.NothingVariant, "        If path Is Nothing Then
+        <InlineData(UnvalidatedParameterCodeFixProvider.NothingVariant, True, "        If path Is Nothing Then
             Throw New ArgumentNullException(NameOf(path))
         End If")>
-        Public Async Function Fix_String_Alternatives([variant] As String, expectedGuard As String) As Task
+        Public Async Function Fix_String_Variants([variant] As String, targetNetFramework As Boolean, expectedGuard As String) As Task
             Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
 Public Class C
     Public Function Run(path As String) As Integer
@@ -358,7 +373,7 @@ Public Class C
         Return path.Length
     End Function
 End Class
-", equivalenceKey:=$"{NameOf(UnvalidatedParameterCodeFixProvider)}.{[variant]}").ConfigureAwait(True)
+", equivalenceKey:=$"{NameOf(UnvalidatedParameterCodeFixProvider)}.{[variant]}", targetNetFramework:=targetNetFramework).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -398,11 +413,11 @@ Public Class C : Inherits Base
     End Sub
     Public ReadOnly Property Message As String
 End Class
-").ConfigureAwait(True)
+", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>
-        ''' Verifies that Fix All of rule DCA050 inserts the guard clauses among the existing ones, in parameter order, in several methods.
+        ''' Verifies that Fix All of rule DCA050 inserts the guard clauses among the existing ones, in parameter order, in several methods (.NET Framework: <c>If</c> blocks).
         ''' </summary>
         '''
         ''' <returns>
@@ -426,7 +441,7 @@ Public Class C
     Private Sub ThrowIfDisposed()
     End Sub
 End Class
-", $"{NameOf(UnvalidatedParameterCodeFixProvider)}.{UnvalidatedParameterCodeFixProvider.NothingVariant}").ConfigureAwait(True)
+", $"{NameOf(UnvalidatedParameterCodeFixProvider)}.{UnvalidatedParameterCodeFixProvider.NothingVariant}", targetNetFramework:=True).ConfigureAwait(True)
 
             AnalyzerTestHost.AssertTextEqual("
 Public Class C
@@ -458,6 +473,126 @@ Public Class C
     End Sub
 End Class
 ", fixedText)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that Fix All of rule DCA050 writes <c>ArgumentNullException.ThrowIfNull</c> on modern .NET, 
+        ''' in parameter order (the reported <c>MailTo</c> example).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function FixAll_ModernNet_UsesThrowHelpers() As Task
+            Dim fixedText As String = Await AnalyzerTestHost.ApplyFixAllInDocumentAsync(Analyzer, Provider, "
+Public NotInheritable Class UtilMail
+    Public Shared Sub MailTo(addresses As String(),
+                             subject As String,
+                             body As String)
+
+        Dim mailTo As String =
+                $""MailTo:{String.Join("";""c, addresses).Trim("" ""c)}?subject={ _
+                subject.Replace(Environment.NewLine, ""%20"", StringComparison.Ordinal)};&body={body.Replace(Environment.NewLine, ""%0A"", StringComparison.Ordinal)}""
+
+        Diagnostics.Process.Start(mailTo)
+
+    End Sub
+End Class
+", $"{NameOf(UnvalidatedParameterCodeFixProvider)}.{UnvalidatedParameterCodeFixProvider.NothingVariant}").ConfigureAwait(True)
+
+            AnalyzerTestHost.AssertTextEqual("
+Public NotInheritable Class UtilMail
+    Public Shared Sub MailTo(addresses As String(),
+                             subject As String,
+                             body As String)
+
+        ArgumentNullException.ThrowIfNull(addresses)
+        ArgumentNullException.ThrowIfNull(subject)
+        ArgumentNullException.ThrowIfNull(body)
+
+        Dim mailTo As String =
+                $""MailTo:{String.Join("";""c, addresses).Trim("" ""c)}?subject={ _
+                subject.Replace(Environment.NewLine, ""%20"", StringComparison.Ordinal)};&body={body.Replace(Environment.NewLine, ""%0A"", StringComparison.Ordinal)}""
+
+        Diagnostics.Process.Start(mailTo)
+
+    End Sub
+End Class
+", fixedText)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA050 writes an <c>If</c> block, not a throw helper, when the document is also 
+        ''' compiled by a .NET Framework project (multi-targeted project or linked file), where the helper does not exist.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Fix_LinkedNetFrameworkProject_UsesIfBlock() As Task
+            Dim project As Project = AnalyzerTestHost.CreateProject({New TestSource("Shared.vb", "
+Public Class C
+    Public Function Run(value As Object) As String
+        Return value.ToString()
+    End Function
+End Class
+")}, linkedNetFrameworkProject:=True)
+            Assert.Equal(2, project.Solution.ProjectIds.Count)
+
+            Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True)
+            Dim document As Document = project.GetDocument(Assert.Single(diagnostics).Location.SourceTree)
+            Dim actions As New List(Of CodeAction)()
+            Await Provider.RegisterCodeFixesAsync(New CodeFixContext(document, diagnostics(0),
+                                                                     Sub(a As CodeAction, d As ImmutableArray(Of Diagnostic)) actions.Add(a),
+                                                                     CancellationToken.None)).ConfigureAwait(True)
+            Dim operations As ImmutableArray(Of CodeActionOperation) = Await actions(0).GetOperationsAsync(CancellationToken.None).ConfigureAwait(True)
+            Dim changed As Solution = operations.OfType(Of ApplyChangesOperation)().Single().ChangedSolution
+            Dim text As String = (Await changed.GetDocument(document.Id).GetTextAsync(CancellationToken.None).ConfigureAwait(True)).ToString()
+
+            Assert.Contains("If value Is Nothing Then", text, StringComparison.Ordinal)
+            Assert.DoesNotContain("ThrowIfNull", text, StringComparison.Ordinal)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA050 does not report parameters passed only to framework methods that accept <see langword="Nothing"/> 
+        ''' (nullable annotations on modern .NET, or the known methods on .NET Framework), nor <c>ReferenceEquals</c> methods.
+        ''' </summary>
+        '''
+        ''' <param name="targetNetFramework">
+        ''' <see langword="True"/> to compile against .NET Framework 4.8.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData(False)>
+        <InlineData(True)>
+        Public Async Function DoesNotReport_ArgumentsThatAcceptNothing(targetNetFramework As Boolean) As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Imports System.Collections.Generic
+Imports System.Text
+Public Class C
+    <ComponentModel.EditorBrowsable(ComponentModel.EditorBrowsableState.Never)>
+    <DebuggerNonUserCode>
+    Public Shared Shadows Function ReferenceEquals(objA As Object, objB As Object) As Boolean
+        Return Object.ReferenceEquals(objA, objB)
+    End Function
+    Public Shared Function Same(a As Object, b As Object) As Boolean
+        Return Object.ReferenceEquals(a, b) OrElse Object.Equals(a, b)
+    End Function
+    Public Sub Log(message As String, value As Object)
+        Dim items As New List(Of String)()
+        Dim builder As New StringBuilder()
+        Console.WriteLine(message)
+        Debug.WriteLine(value)
+        items.Add(message)
+        builder.Append(message).AppendLine(Strings.Trim(message))
+    End Sub
+End Class
+", targetNetFramework:=targetNetFramework).ConfigureAwait(True)
         End Function
 
         ''' <summary>

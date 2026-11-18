@@ -173,6 +173,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' Optional project root namespace (empty by default, as in a project whose root namespace was removed).
         ''' </param>
         '''
+        ''' <param name="linkedNetFrameworkProject">
+        ''' <see langword="True"/> to add a second project to the solution, compiled against .NET Framework 4.8, with the same 
+        ''' documents and file paths (as a multi-targeted project or linked files).
+        ''' </param>
+        '''
         ''' <returns>
         ''' The project.
         ''' </returns>
@@ -180,7 +185,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                                              Optional documentationMode As DocumentationMode = DocumentationMode.Diagnose,
                                              Optional additionalReferences As IEnumerable(Of MetadataReference) = Nothing,
                                              Optional targetNetFramework As Boolean = False,
-                                             Optional rootNamespace As String = Nothing) As Project
+                                             Optional rootNamespace As String = Nothing,
+                                             Optional linkedNetFrameworkProject As Boolean = False) As Project
 
             Dim workspace As New AdhocWorkspace()
             Dim projectId As ProjectId = ProjectId.CreateNewId()
@@ -209,6 +215,19 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 Dim configText As String = $"root = true{vbLf}{vbLf}[*.vb]{vbLf}{editorConfig}{vbLf}"
                 solution = solution.AddAnalyzerConfigDocument(DocumentId.CreateNewId(projectId), ".editorconfig", SourceText.From(configText),
                                                               filePath:=$"{AnalyzerTestHost.ProjectDirectory}.editorconfig")
+            End If
+
+            If linkedNetFrameworkProject Then
+                Dim linkedId As ProjectId = ProjectId.CreateNewId()
+                solution = solution.AddProject(ProjectInfo.Create(
+                    id:=linkedId, version:=VersionStamp.Create(), name:="TestProject.Net48", assemblyName:="TestProject.Net48",
+                    language:=LanguageNames.VisualBasic, filePath:=$"{AnalyzerTestHost.ProjectDirectory}TestProject.Net48.vbproj",
+                    compilationOptions:=compilationOptions, parseOptions:=parseOptions,
+                    metadataReferences:=AnalyzerTestHost.NetFrameworkReferences.Value))
+                For Each source As TestSource In sources
+                    solution = solution.AddDocument(DocumentId.CreateNewId(linkedId), source.FileName, SourceText.From(source.Text),
+                                                    filePath:=$"{AnalyzerTestHost.ProjectDirectory}{source.FileName}")
+                Next source
             End If
 
             Return solution.GetProject(projectId)

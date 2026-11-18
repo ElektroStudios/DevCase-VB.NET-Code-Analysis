@@ -19,6 +19,7 @@ Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.CodeActions
 Imports Microsoft.CodeAnalysis.CodeFixes
 Imports Microsoft.CodeAnalysis.Text
+Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
@@ -162,13 +163,18 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
                     variable = assignment.Left.ToString()
                 Case InsecureTempFileAnalyzer.ReturnUsage
                     statement = DirectCast(reportedCall.Parent, StatementSyntax)
-                    variable = InsecureTempFileCodeFixProvider.GetUniqueName(model, statement.SpanStart)
+                    variable = InsecureTempFileCodeFixProvider.GetUniqueName(model, statement)
+                Case InsecureTempFileAnalyzer.ExpressionUsage
+                    statement = reportedCall.FirstAncestorOrSelf(Of StatementSyntax)()
+                    variable = InsecureTempFileCodeFixProvider.GetUniqueName(model, statement)
                 Case Else
                     Throw New InvalidOperationException($"Unsupported usage '{usage}'.")
             End Select
 
-            ' Type names are resolved after the statement, where a declared variable named "path" would hide the Path type.
-            Dim position As Integer = statement.Span.End
+            ' Type names are resolved where they are written: after the statement, where a declared variable named "path" would hide 
+            ' the Path type; or before it, when the new variable is declared above the statement.
+            Dim isExpression As Boolean = usage.Equals(InsecureTempFileAnalyzer.ExpressionUsage, StringComparison.Ordinal)
+            Dim position As Integer = If(isExpression, statement.SpanStart, statement.Span.End)
             Dim names As Dictionary(Of String, String) = InsecureTempFileCodeFixProvider.GetTypeNames(model, position)
             Dim pathName As String = names("System.IO.Path")
             Dim newPath As String = $"{pathName}.Combine({pathName}.GetTempPath(), {pathName}.ChangeExtension({pathName}.GetRandomFileName(), ""tmp""))"
@@ -180,7 +186,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             Dim usingBlock As String = $"{usingStatement}{eol}{indentation}End Using"
 
             Dim changes As New List(Of TextChange)()
-            If usage.Equals(InsecureTempFileAnalyzer.ReturnUsage, StringComparison.Ordinal) Then
+            If isExpression Then
+                ' The path is declared and the file created before the statement; the call is replaced with the variable.
+                Dim lineStart As Integer = text.Lines.GetLineFromPosition(statement.SpanStart).Start
+                changes.Add(New TextChange(New TextSpan(lineStart, 0), $"{indentation}Dim {variable} As String = {newPath}{eol}{usingBlock}{eol}"))
+                changes.Add(New TextChange(reportedCall.Span, variable))
+            ElseIf usage.Equals(InsecureTempFileAnalyzer.ReturnUsage, StringComparison.Ordinal) Then
                 Dim replacement As String = $"Dim {variable} As String = {newPath}{eol}{usingBlock}{eol}{indentation}Return {variable}"
                 changes.Add(New TextChange(statement.Span, replacement))
             Else
@@ -232,18 +243,24 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' The semantic model.
         ''' </param>
         ''' 
-        ''' <param name="position">
-        ''' The position where the variable is declared.
+        ''' <param name="statement">
+        ''' The statement before which the variable is declared.
         ''' </param>
         ''' 
         ''' <returns>
-        ''' The variable name.
+        ''' The variable name: not visible at the statement, and not used as an identifier anywhere in the enclosing method 
+        ''' (a local declared later in the same block would conflict with it).
         ''' </returns>
-        Private Shared Function GetUniqueName(model As SemanticModel, position As Integer) As String
+        Private Shared Function GetUniqueName(model As SemanticModel, statement As StatementSyntax) As String
+
+            Dim scope As SyntaxNode = If(statement.FirstAncestorOrSelf(Of MethodBlockBaseSyntax)(), statement.SyntaxTree.GetRoot())
+            Dim identifiers As New HashSet(Of String)(scope.DescendantTokens().
+                Where(Function(t As SyntaxToken) t.IsKind(SyntaxKind.IdentifierToken)).
+                Select(Function(t As SyntaxToken) t.ValueText), StringComparer.OrdinalIgnoreCase)
 
             Dim name As String = InsecureTempFileCodeFixProvider.ReturnVariableName
             Dim suffix As Integer = 1
-            While model.LookupSymbols(position, name:=name).Any()
+            While identifiers.Contains(name) OrElse model.LookupSymbols(statement.SpanStart, name:=name).Any()
                 suffix += 1
                 name = $"{InsecureTempFileCodeFixProvider.ReturnVariableName}{suffix}"
             End While

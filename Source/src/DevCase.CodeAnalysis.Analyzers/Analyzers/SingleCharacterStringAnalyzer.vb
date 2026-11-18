@@ -8,7 +8,9 @@ Option Infer Off
 
 #Region " Imports "
 
+Imports System.Collections.Generic
 Imports System.Collections.Immutable
+Imports System.Linq
 
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Diagnostics
@@ -23,20 +25,27 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
     ''' <summary>
-    ''' Reports single-character string literals passed to <c>String.Join</c> or <c>StringBuilder.Append</c>,
-    ''' where a character literal can be used (rule <see cref="DiagnosticIds.SingleCharacterString"/>).
+    ''' Reports single-character string literals passed to framework methods that have an equivalent <see cref="Char"/> overload
+    ''' (rule <see cref="DiagnosticIds.SingleCharacterString"/>).
     ''' </summary>
     '''
     ''' <remarks>
-    ''' Analyzed calls: the separator of <c>String.Join</c>, and <c>StringBuilder.Append(String)</c> with a single argument.
-    ''' The character literal produces the same result on every target framework:
-    ''' <list type="bullet">
-    '''   <item><description>On modern .NET, it binds to the <see cref="Char"/> overload (<c>String.Join(Char, ...)</c>, <c>StringBuilder.Append(Char)</c>).</description></item>
-    '''   <item><description>On .NET Framework, <c>String.Join</c> has no <see cref="Char"/> overload: the literal is widened to <see cref="String"/>,
-    '''   a constant conversion done at compile time, and the same overload is called with the same constant string.</description></item>
-    ''' </list>
-    ''' To be certain that the replaced call compiles and calls the same method of the same type, it is bound speculatively
-    ''' before the diagnostic is reported. Literals of control characters and surrogates are not reported.
+    ''' <para>
+    ''' Analyzed methods (<see cref="AnalyzedMethods"/>), whose <see cref="Char"/> overload produces the same result:
+    ''' <c>String.Join</c>, <c>String.Split</c>, <c>String.Replace</c>, <c>String.Contains</c>,
+    ''' <c>StringBuilder.Append</c>, <c>StringBuilder.Insert</c>, <c>StringBuilder.Replace</c>, <c>StringBuilder.AppendJoin</c>,
+    ''' <c>TextWriter.Write</c> / <c>WriteLine</c> (also <c>StreamWriter</c>, <c>StringWriter</c>...) and <c>Console.Write</c> / <c>WriteLine</c>.
+    ''' Methods whose <see cref="Char"/> overload behaves differently are not analyzed: <c>IndexOf</c>, <c>LastIndexOf</c>,
+    ''' <c>StartsWith</c> and <c>EndsWith</c> compare a <see cref="String"/> with the current culture, but a <see cref="Char"/> ordinally.
+    ''' </para>
+    ''' <para>
+    ''' Every single-character string literal of the call is replaced at once (<c>s.Replace("a", "b")</c> → <c>s.Replace("a"c, "b"c)</c>),
+    ''' and the replaced call is bound speculatively before the diagnostic is reported: it must call a method with the same name on
+    ''' the same type (or a base type) whose parameters are <see cref="Char"/> (or <see cref="Char"/> arrays) at those positions.
+    ''' <c>String.Join</c> is the exception: on .NET Framework it has no <see cref="Char"/> overload, but the literal is widened to
+    ''' <see cref="String"/>, a constant conversion done at compile time, so the same overload receives the same constant string.
+    ''' Literals of control characters and surrogates are not reported.
+    ''' </para>
     ''' </remarks>
     <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Public NotInheritable Class SingleCharacterStringAnalyzer : Inherits DiagnosticAnalyzer
@@ -44,14 +53,21 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 #Region " Constants "
 
         ''' <summary>
-        ''' The display name of <c>String.Join</c>.
+        ''' The key of the diagnostic property that holds the indexes of the replaced arguments, separated by commas.
         ''' </summary>
-        Private Const JoinApiName As String = "String.Join"
+        Friend Const ArgumentIndexesPropertyKey As String = "ArgumentIndexes"
+
+#End Region
+
+#Region " Fields "
 
         ''' <summary>
-        ''' The display name of <c>StringBuilder.Append</c>.
+        ''' The analyzed methods (<c>Namespace.Type.Method</c>), matched on the called method and the methods it overrides.
         ''' </summary>
-        Private Const AppendApiName As String = "StringBuilder.Append"
+        Private Shared ReadOnly AnalyzedMethods As ImmutableHashSet(Of String) = ImmutableHashSet.Create(StringComparer.Ordinal,
+            "System.String.Join", "System.String.Split", "System.String.Replace", "System.String.Contains",
+            "System.Text.StringBuilder.Append", "System.Text.StringBuilder.Insert", "System.Text.StringBuilder.Replace", "System.Text.StringBuilder.AppendJoin",
+            "System.IO.TextWriter.Write", "System.IO.TextWriter.WriteLine", "System.Console.Write", "System.Console.WriteLine")
 
 #End Region
 
@@ -92,10 +108,40 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
 #End Region
 
+#Region " Friend Methods "
+
+        ''' <summary>
+        ''' Gets the name of a method as <c>Namespace.Type.Method</c>, built from the namespace
+        ''' (<c>ToDisplayString</c> would write the Visual Basic keyword <c>String</c> for <c>System.String</c>).
+        ''' </summary>
+        '''
+        ''' <param name="method">
+        ''' The method.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The qualified name.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="method"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function GetQualifiedName(method As IMethodSymbol) As String
+
+            If method Is Nothing Then
+                Throw New ArgumentNullException(NameOf(method))
+            End If
+
+            Dim type As INamedTypeSymbol = method.ContainingType.OriginalDefinition
+            Return $"{type.ContainingNamespace.ToDisplayString()}.{type.MetadataName}.{method.Name}"
+        End Function
+
+#End Region
+
 #Region " Private Methods "
 
         ''' <summary>
-        ''' Reports an analyzed call whose string argument can be a character literal.
+        ''' Reports an analyzed call whose single-character string arguments can be character literals.
         ''' </summary>
         '''
         ''' <param name="context">
@@ -105,38 +151,53 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             Dim invocation As IInvocationOperation = DirectCast(context.Operation, IInvocationOperation)
             Dim method As IMethodSymbol = invocation.TargetMethod
-            Dim apiName As String = SingleCharacterStringAnalyzer.GetApiName(method)
-            If apiName Is Nothing Then
-                Exit Sub
-            End If
-
             Dim syntax As InvocationExpressionSyntax = TryCast(invocation.Syntax, InvocationExpressionSyntax)
-            If syntax Is Nothing OrElse syntax.ArgumentList Is Nothing OrElse syntax.ArgumentList.Arguments.Count = 0 OrElse
-               method.MethodKind <> MethodKind.Ordinary OrElse
-               (apiName.Equals(SingleCharacterStringAnalyzer.AppendApiName, StringComparison.Ordinal) AndAlso syntax.ArgumentList.Arguments.Count <> 1) Then
+            If syntax Is Nothing OrElse syntax.ArgumentList Is Nothing OrElse method.MethodKind <> MethodKind.Ordinary OrElse
+               Not SingleCharacterStringAnalyzer.IsAnalyzedMethod(method) Then
                 Exit Sub
             End If
 
-            Dim charLiteral As String = UtilApiMigrations.GetCharLiteral(syntax.ArgumentList.Arguments(0))
-            If charLiteral Is Nothing Then
+            ' Positional arguments that are single-character string literals passed to String parameters.
+            Dim indexes As New List(Of Integer)()
+            Dim replaced As InvocationExpressionSyntax = syntax
+            Dim literals As New List(Of String)()
+            For Each argument As IArgumentOperation In invocation.Arguments
+                Dim argumentSyntax As SimpleArgumentSyntax = TryCast(argument.Syntax, SimpleArgumentSyntax)
+                Dim charLiteral As String = If(argumentSyntax Is Nothing OrElse argument.Parameter Is Nothing OrElse
+                                               argument.Parameter.Type.SpecialType <> SpecialType.System_String, Nothing,
+                                               UtilApiMigrations.GetCharLiteral(argumentSyntax))
+                Dim index As Integer = syntax.ArgumentList.Arguments.IndexOf(argumentSyntax)
+                If charLiteral IsNot Nothing AndAlso index >= 0 Then
+                    indexes.Add(index)
+                    literals.Add(charLiteral)
+                End If
+            Next argument
+            If indexes.Count = 0 Then
                 Exit Sub
             End If
 
-            ' The replaced call must bind to a method with the same name, declared by the same type.
-            Dim literal As ExpressionSyntax = DirectCast(syntax.ArgumentList.Arguments(0), SimpleArgumentSyntax).Expression
-            Dim replaced As InvocationExpressionSyntax = syntax.ReplaceNode(literal, SyntaxFactory.ParseExpression(charLiteral))
+            For Each index As Integer In indexes
+                Dim literal As ExpressionSyntax = DirectCast(syntax.ArgumentList.Arguments(index), SimpleArgumentSyntax).Expression
+                Dim current As ArgumentSyntax = replaced.ArgumentList.Arguments(index)
+                replaced = replaced.ReplaceNode(DirectCast(current, SimpleArgumentSyntax).Expression,
+                                                SyntaxFactory.ParseExpression(UtilApiMigrations.GetCharLiteral(syntax.ArgumentList.Arguments(index))).WithTriviaFrom(literal))
+            Next index
+
             Dim speculative As IMethodSymbol = TryCast(invocation.SemanticModel.GetSpeculativeSymbolInfo(syntax.SpanStart, replaced,
                                                                                                          SpeculativeBindingOption.BindAsExpression).Symbol, IMethodSymbol)
-            If speculative Is Nothing OrElse Not speculative.Name.Equals(method.Name, StringComparison.Ordinal) OrElse
-               Not SymbolEqualityComparer.Default.Equals(speculative.ContainingType, method.ContainingType) Then
+            If Not SingleCharacterStringAnalyzer.IsEquivalentCharOverload(method, speculative, indexes) Then
                 Exit Sub
             End If
 
-            context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.SingleCharacterString, literal.GetLocation(), charLiteral, apiName))
+            Dim properties As ImmutableDictionary(Of String, String) = ImmutableDictionary.CreateRange(StringComparer.Ordinal,
+                {New KeyValuePair(Of String, String)(SingleCharacterStringAnalyzer.ArgumentIndexesPropertyKey, String.Join(","c, indexes))})
+            Dim location As Location = DirectCast(syntax.ArgumentList.Arguments(indexes(0)), SimpleArgumentSyntax).Expression.GetLocation()
+            context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.SingleCharacterString, location, properties,
+                                                       String.Join(" / ", literals), $"{method.ContainingType.Name}.{method.Name}"))
         End Sub
 
         ''' <summary>
-        ''' Gets the display name of an analyzed method.
+        ''' Determines whether a method, or a method it overrides, is in <see cref="AnalyzedMethods"/>.
         ''' </summary>
         '''
         ''' <param name="method">
@@ -144,20 +205,66 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </param>
         '''
         ''' <returns>
-        ''' <c>String.Join</c> or <c>StringBuilder.Append</c>; or <see langword="Nothing"/> if the method is not analyzed.
+        ''' <see langword="True"/> if the method is analyzed; otherwise, <see langword="False"/>.
         ''' </returns>
-        Private Shared Function GetApiName(method As IMethodSymbol) As String
+        Private Shared Function IsAnalyzedMethod(method As IMethodSymbol) As Boolean
 
-            If method.Parameters.Length = 0 OrElse method.Parameters(0).Type.SpecialType <> SpecialType.System_String Then
-                Return Nothing
+            Dim current As IMethodSymbol = method
+            While current IsNot Nothing
+                If SingleCharacterStringAnalyzer.AnalyzedMethods.Contains(SingleCharacterStringAnalyzer.GetQualifiedName(current)) Then
+                    Return True
+                End If
+                current = current.OverriddenMethod
+            End While
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' Determines whether the method bound with character literals is the equivalent <see cref="Char"/> overload of the original method.
+        ''' </summary>
+        '''
+        ''' <param name="original">
+        ''' The method called with string literals.
+        ''' </param>
+        '''
+        ''' <param name="speculative">
+        ''' The method called with character literals, or <see langword="Nothing"/> if the call does not bind.
+        ''' </param>
+        '''
+        ''' <param name="indexes">
+        ''' The indexes of the replaced arguments.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> when the speculative method has the same name, is declared by the same type or a base type,
+        ''' and receives <see cref="Char"/> values at the replaced positions (or, for <c>String.Join</c> on .NET Framework,
+        ''' is the same method); otherwise, <see langword="False"/>.
+        ''' </returns>
+        Private Shared Function IsEquivalentCharOverload(original As IMethodSymbol, speculative As IMethodSymbol, indexes As List(Of Integer)) As Boolean
+
+            If speculative Is Nothing OrElse Not speculative.Name.Equals(original.Name, StringComparison.Ordinal) Then
+                Return False
             End If
 
-            Dim isJoin As Boolean = method.IsStatic AndAlso method.ContainingType.SpecialType = SpecialType.System_String AndAlso
-                                    method.Name.Equals(NameOf(String.Join), StringComparison.Ordinal)
-            Dim isAppend As Boolean = Not method.IsStatic AndAlso method.Parameters.Length = 1 AndAlso
-                                      method.Name.Equals(NameOf(System.Text.StringBuilder.Append), StringComparison.Ordinal) AndAlso
-                                      method.ContainingType.ToDisplayString().Equals("System.Text.StringBuilder", StringComparison.Ordinal)
-            Return If(isJoin, SingleCharacterStringAnalyzer.JoinApiName, If(isAppend, SingleCharacterStringAnalyzer.AppendApiName, Nothing))
+            Dim type As INamedTypeSymbol = original.ContainingType
+            While type IsNot Nothing AndAlso Not SymbolEqualityComparer.Default.Equals(type, speculative.ContainingType)
+                type = type.BaseType
+            End While
+            If type Is Nothing Then
+                Return False
+            End If
+
+            ' String.Join on .NET Framework: the literal is widened to the same constant string, for the same overload.
+            Return If(SymbolEqualityComparer.Default.Equals(speculative.OriginalDefinition, original.OriginalDefinition),
+                      SingleCharacterStringAnalyzer.GetQualifiedName(original).Equals("System.String.Join", StringComparison.Ordinal),
+                      indexes.TrueForAll(
+                Function(index As Integer)
+                    Dim parameter As IParameterSymbol = If(index < speculative.Parameters.Length, speculative.Parameters(index), speculative.Parameters.LastOrDefault())
+                    Dim arrayType As IArrayTypeSymbol = TryCast(parameter?.Type, IArrayTypeSymbol)
+                    Return parameter IsNot Nothing AndAlso
+                           (parameter.Type.SpecialType = SpecialType.System_Char OrElse
+                            (parameter.IsParams AndAlso arrayType IsNot Nothing AndAlso arrayType.ElementType.SpecialType = SpecialType.System_Char))
+                End Function))
         End Function
 
 #End Region

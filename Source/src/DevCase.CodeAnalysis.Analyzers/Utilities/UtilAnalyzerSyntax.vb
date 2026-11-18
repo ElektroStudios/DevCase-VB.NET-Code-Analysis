@@ -638,6 +638,58 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Function
 
         ''' <summary>
+        ''' Gets the statement list of a multi-line block (method, lambda, <see langword="If"/>, <see langword="ElseIf"/>, 
+        ''' <see langword="Else"/>, <see langword="Case"/>, loops, <see langword="Try"/>, <see langword="Catch"/>, 
+        ''' <see langword="Finally"/>, <see langword="Using"/>, <see langword="SyncLock"/>, <see langword="With"/>).
+        ''' </summary>
+        '''
+        ''' <param name="block">
+        ''' The block node. May be <see langword="Nothing"/>.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The statements of the block, or an empty list if the node is not a multi-line block 
+        ''' (single-line <see langword="If"/> statements and lambdas have no own lines to insert statements into).
+        ''' </returns>
+        Friend Shared Function GetBlockStatements(block As SyntaxNode) As SyntaxList(Of StatementSyntax)
+
+            Select Case True
+                Case TypeOf block Is MethodBlockBaseSyntax
+                    Return DirectCast(block, MethodBlockBaseSyntax).Statements
+                Case TypeOf block Is MultiLineLambdaExpressionSyntax
+                    Return DirectCast(block, MultiLineLambdaExpressionSyntax).Statements
+                Case TypeOf block Is MultiLineIfBlockSyntax
+                    Return DirectCast(block, MultiLineIfBlockSyntax).Statements
+                Case TypeOf block Is ElseIfBlockSyntax
+                    Return DirectCast(block, ElseIfBlockSyntax).Statements
+                Case TypeOf block Is ElseBlockSyntax
+                    Return DirectCast(block, ElseBlockSyntax).Statements
+                Case TypeOf block Is CaseBlockSyntax
+                    Return DirectCast(block, CaseBlockSyntax).Statements
+                Case TypeOf block Is WhileBlockSyntax
+                    Return DirectCast(block, WhileBlockSyntax).Statements
+                Case TypeOf block Is DoLoopBlockSyntax
+                    Return DirectCast(block, DoLoopBlockSyntax).Statements
+                Case TypeOf block Is ForOrForEachBlockSyntax
+                    Return DirectCast(block, ForOrForEachBlockSyntax).Statements
+                Case TypeOf block Is TryBlockSyntax
+                    Return DirectCast(block, TryBlockSyntax).Statements
+                Case TypeOf block Is CatchBlockSyntax
+                    Return DirectCast(block, CatchBlockSyntax).Statements
+                Case TypeOf block Is FinallyBlockSyntax
+                    Return DirectCast(block, FinallyBlockSyntax).Statements
+                Case TypeOf block Is UsingBlockSyntax
+                    Return DirectCast(block, UsingBlockSyntax).Statements
+                Case TypeOf block Is SyncLockBlockSyntax
+                    Return DirectCast(block, SyncLockBlockSyntax).Statements
+                Case TypeOf block Is WithBlockSyntax
+                    Return DirectCast(block, WithBlockSyntax).Statements
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        ''' <summary>
         ''' Determines whether a file path follows a well-known naming convention for generated source files
         ''' (<c>*.Designer.vb</c>, <c>*.g.vb</c>, <c>*.g.i.vb</c>, <c>*.generated.vb</c>).
         ''' </summary>

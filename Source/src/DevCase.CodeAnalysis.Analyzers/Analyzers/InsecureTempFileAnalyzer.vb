@@ -13,6 +13,7 @@ Imports System.Collections.Immutable
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Diagnostics
 Imports Microsoft.CodeAnalysis.Operations
+Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -29,8 +30,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' 
     ''' <remarks>
     ''' The diagnostic tells the code fix how the returned path is used (<see cref="UsagePropertyKey"/>): 
-    ''' as the initializer of a local variable, as the right side of an assignment, or in a <see langword="Return"/> statement. 
-    ''' Other usages are reported without a code fix.
+    ''' as the initializer of a local variable, as the right side of an assignment, in a <see langword="Return"/> statement, 
+    ''' or inside a larger expression that can be moved before its statement (<see cref="ExpressionUsage"/>). 
+    ''' Other usages (conditional evaluation, lambdas, queries, single-line statements) are reported without a code fix.
     ''' </remarks>
     <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Public NotInheritable Class InsecureTempFileAnalyzer : Inherits DiagnosticAnalyzer
@@ -57,6 +59,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' The call is returned: <c>Return Path.GetTempFileName()</c>.
         ''' </summary>
         Public Const ReturnUsage As String = "Return"
+
+        ''' <summary>
+        ''' The call is part of a larger expression of a statement that evaluates it exactly once, before any other statement 
+        ''' of its block runs: <c>Dim file As New FileInfo(Path.GetTempFileName())</c>. The fix declares the path in a new 
+        ''' variable before the statement (see <see cref="IsExtractable"/>).
+        ''' </summary>
+        Public Const ExpressionUsage As String = "Expression"
 #End Region
 
 #Region " Properties "
@@ -158,7 +167,58 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                    TypeOf parent.Parent IsNot SingleLineElseClauseSyntax AndAlso TypeOf parent.Parent IsNot SingleLineLambdaExpressionSyntax Then
                 Return InsecureTempFileAnalyzer.ReturnUsage
             End If
-            Return String.Empty
+            Return If(InsecureTempFileAnalyzer.IsExtractable([call]), InsecureTempFileAnalyzer.ExpressionUsage, String.Empty)
+        End Function
+
+        ''' <summary>
+        ''' Determines whether a call can be moved to a variable declared just before its statement, without changing 
+        ''' whether or how many times it runs.
+        ''' </summary>
+        ''' 
+        ''' <param name="call">
+        ''' The invocation syntax.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> when every expression between the call and its statement always evaluates the call once 
+        ''' (no lambda, query, <c>If(...)</c> branch, right side of <see langword="AndAlso"/> / <see langword="OrElse"/>, or <c>?.</c>), 
+        ''' and the statement is the first one of its line in the statement list of a multi-line block; otherwise, <see langword="False"/>.
+        ''' </returns>
+        ''' 
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="call"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function IsExtractable([call] As SyntaxNode) As Boolean
+
+            If [call] Is Nothing Then
+                Throw New ArgumentNullException(NameOf([call]))
+            End If
+
+            Dim node As SyntaxNode = [call]
+            Dim parent As SyntaxNode = node.Parent
+            While parent IsNot Nothing AndAlso TypeOf parent IsNot StatementSyntax
+                Dim conditional As Boolean =
+                    TypeOf parent Is LambdaExpressionSyntax OrElse TypeOf parent Is QueryExpressionSyntax OrElse TypeOf parent Is QueryClauseSyntax OrElse
+                    (TypeOf parent Is TernaryConditionalExpressionSyntax AndAlso DirectCast(parent, TernaryConditionalExpressionSyntax).Condition IsNot node) OrElse
+                    (TypeOf parent Is BinaryConditionalExpressionSyntax AndAlso DirectCast(parent, BinaryConditionalExpressionSyntax).SecondExpression Is node) OrElse
+                    ((parent.IsKind(SyntaxKind.AndAlsoExpression) OrElse parent.IsKind(SyntaxKind.OrElseExpression)) AndAlso DirectCast(parent, BinaryExpressionSyntax).Right Is node) OrElse
+                    (TypeOf parent Is ConditionalAccessExpressionSyntax AndAlso DirectCast(parent, ConditionalAccessExpressionSyntax).WhenNotNull Is node)
+                If conditional Then
+                    Return False
+                End If
+                node = parent
+                parent = node.Parent
+            End While
+
+            Dim statement As StatementSyntax = TryCast(parent, StatementSyntax)
+            If statement Is Nothing OrElse Not UtilAnalyzerSyntax.GetBlockStatements(statement.Parent).Contains(statement) Then
+                Return False
+            End If
+
+            ' Only white space before the statement on its line (no "a = 1 : statement").
+            Dim source As SourceText = statement.SyntaxTree.GetText()
+            Dim lineStart As Integer = source.Lines.GetLineFromPosition(statement.SpanStart).Start
+            Return String.IsNullOrWhiteSpace(source.ToString(TextSpan.FromBounds(lineStart, statement.SpanStart)))
         End Function
 
 #End Region

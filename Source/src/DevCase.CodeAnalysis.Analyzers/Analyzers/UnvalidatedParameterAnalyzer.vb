@@ -14,6 +14,7 @@ Imports System.Linq
 
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Diagnostics
+Imports Microsoft.CodeAnalysis.Operations
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -56,7 +57,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' <para>
     ''' Analyzed methods: methods and constructors with a body that are callable from other assemblies (<see langword="Public"/>,
     ''' <see langword="Protected"/> or <see langword="Protected Friend"/>, in types that are also visible). Event handlers,
-    ''' <c>Shared Sub Main</c>, <c>Equals</c>, <c>CompareTo</c> and <c>Compare</c> (which accept <see langword="Nothing"/> by contract),
+    ''' <c>Shared Sub Main</c>, <c>Equals</c>, <c>ReferenceEquals</c>, <c>CompareTo</c> and <c>Compare</c> (which accept <see langword="Nothing"/> by contract),
     ''' overrides and implementations of members declared in referenced assemblies (their contract is defined there, and may accept 
     ''' <see langword="Nothing"/>), and methods whose body only throws an exception are not analyzed.
     ''' </para>
@@ -108,6 +109,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Friend Const ArgumentOutOfRangeExceptionPropertyKey As String = "ArgumentOutOfRangeException"
 
+        ''' <summary>
+        ''' The key of the diagnostic property that holds the shortest valid name of <see cref="ArgumentException"/>.
+        ''' </summary>
+        Friend Const ArgumentExceptionPropertyKey As String = "ArgumentException"
+
 #End Region
 
 #Region " Fields "
@@ -122,7 +128,28 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' The names of methods that accept <see langword="Nothing"/> arguments by contract.
         ''' </summary>
         Private Shared ReadOnly IgnoredMethodNames As ImmutableHashSet(Of String) =
-            ImmutableHashSet.Create(StringComparer.OrdinalIgnoreCase, "Equals", "CompareTo", "Compare")
+            ImmutableHashSet.Create(StringComparer.OrdinalIgnoreCase, "Equals", "ReferenceEquals", "CompareTo", "Compare")
+
+        ''' <summary>
+        ''' Framework methods (<c>Type.Method</c>, matched on the called method and the methods it overrides) whose arguments accept <see langword="Nothing"/> by contract, 
+        ''' as a valid input: output and concatenation methods, and object identity and equality. String comparisons such as 
+        ''' <c>dir.Equals(directory, comparison)</c> are deliberately not listed: there, <see langword="Nothing"/> silently returns 
+        ''' <see langword="False"/> and hides the missing argument.
+        ''' </summary>
+        Private Shared ReadOnly NullAcceptingMethods As ImmutableHashSet(Of String) = ImmutableHashSet.Create(StringComparer.Ordinal,
+            "System.Object.ReferenceEquals", "System.Object.Equals", "System.String.Concat", "System.String.IsNullOrEmpty",
+            "System.String.IsNullOrWhiteSpace", "System.Convert.ToString",
+            "System.Console.Write", "System.Console.WriteLine", "System.IO.TextWriter.Write", "System.IO.TextWriter.WriteLine",
+            "System.Text.StringBuilder.Append", "System.Text.StringBuilder.AppendLine", "System.Text.StringBuilder.Insert",
+            "System.Diagnostics.Debug.Write", "System.Diagnostics.Debug.WriteLine", "System.Diagnostics.Debug.WriteIf", "System.Diagnostics.Debug.WriteLineIf",
+            "System.Diagnostics.Debug.Print", "System.Diagnostics.Trace.Write", "System.Diagnostics.Trace.WriteLine", "System.Diagnostics.Trace.WriteIf",
+            "System.Diagnostics.Trace.WriteLineIf", "Microsoft.VisualBasic.Information.IsNothing")
+
+        ''' <summary>
+        ''' Framework types whose methods all accept <see langword="Nothing"/> arguments (Visual Basic string functions treat it as an empty string).
+        ''' </summary>
+        Private Shared ReadOnly NullAcceptingTypes As ImmutableHashSet(Of String) = ImmutableHashSet.Create(StringComparer.Ordinal,
+            "Microsoft.VisualBasic.Strings")
 
 #End Region
 
@@ -275,7 +302,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
                 ' Nothing only fails when a reference is consumed: stored, returned or concatenated, it is not an error by itself.
                 If Not kind.Equals(UnvalidatedParameterAnalyzer.EnumKind, StringComparison.Ordinal) AndAlso
-                   Not uses.Exists(Function(use As IdentifierNameSyntax) UnvalidatedParameterAnalyzer.IsConsumed(use)) Then
+                   Not uses.Exists(Function(use As IdentifierNameSyntax) UnvalidatedParameterAnalyzer.IsConsumed(use, context)) Then
                     Continue For
                 End If
 
@@ -555,11 +582,22 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' The identifier that refers to the parameter.
         ''' </param>
         ''' 
+        ''' <param name="context">
+        ''' The syntax node analysis context.
+        ''' </param>
+        ''' 
         ''' <returns>
-        ''' <see langword="True"/> if the use consumes the parameter; otherwise (e.g. the parameter is returned, assigned or 
-        ''' concatenated), <see langword="False"/>.
+        ''' <see langword="True"/> if the use consumes the parameter; otherwise (e.g. the parameter is returned, assigned, 
+        ''' concatenated, or passed to a parameter that accepts <see langword="Nothing"/>), <see langword="False"/>.
         ''' </returns>
-        Private Shared Function IsConsumed(use As IdentifierNameSyntax) As Boolean
+        ''' 
+        ''' <remarks>
+        ''' An argument does not consume the parameter when the called method accepts <see langword="Nothing"/>: 
+        ''' its parameter type is a type parameter (<c>List(Of T).Add(item As T)</c>), or the method is listed in 
+        ''' <see cref="NullAcceptingMethods"/> or <see cref="NullAcceptingTypes"/>. (Nullable annotations such as 
+        ''' <c>object? objA</c> cannot be used: Visual Basic symbols do not expose them.)
+        ''' </remarks>
+        Private Shared Function IsConsumed(use As IdentifierNameSyntax, context As SyntaxNodeAnalysisContext) As Boolean
 
             Dim parent As SyntaxNode = use.Parent
             Select Case True
@@ -569,12 +607,54 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                     Return DirectCast(parent, InvocationExpressionSyntax).Expression Is use
                 Case TypeOf parent Is SimpleArgumentSyntax
                     Dim owner As SyntaxNode = parent.Parent?.Parent
-                    Return TypeOf owner Is InvocationExpressionSyntax OrElse TypeOf owner Is ObjectCreationExpressionSyntax
+                    Dim isCallArgument As Boolean = TypeOf owner Is InvocationExpressionSyntax OrElse TypeOf owner Is ObjectCreationExpressionSyntax
+                    Return isCallArgument AndAlso Not UnvalidatedParameterAnalyzer.AcceptsNothing(parent, context)
                 Case TypeOf parent Is ForEachStatementSyntax
                     Return DirectCast(parent, ForEachStatementSyntax).Expression Is use
                 Case Else
                     Return TypeOf parent Is SyncLockStatementSyntax OrElse TypeOf parent Is AwaitExpressionSyntax
             End Select
+        End Function
+
+        ''' <summary>
+        ''' Determines whether the parameter that receives an argument accepts <see langword="Nothing"/> (see <see cref="IsConsumed"/>).
+        ''' </summary>
+        ''' 
+        ''' <param name="argument">
+        ''' The argument syntax.
+        ''' </param>
+        ''' 
+        ''' <param name="context">
+        ''' The syntax node analysis context.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> if the receiving parameter accepts <see langword="Nothing"/>; otherwise, <see langword="False"/>.
+        ''' </returns>
+        Private Shared Function AcceptsNothing(argument As SyntaxNode, context As SyntaxNodeAnalysisContext) As Boolean
+
+            Dim operation As IArgumentOperation = TryCast(context.SemanticModel.GetOperation(argument, context.CancellationToken), IArgumentOperation)
+            Dim parameter As IParameterSymbol = operation?.Parameter
+            If parameter Is Nothing Then
+                Return False
+            End If
+            If TypeOf parameter.OriginalDefinition.Type Is ITypeParameterSymbol Then
+                Return True
+            End If
+
+            ' The method, or the method it overrides (StreamWriter.Write overrides TextWriter.Write).
+            Dim method As IMethodSymbol = TryCast(parameter.ContainingSymbol, IMethodSymbol)
+            While method IsNot Nothing
+                ' Built from the namespace: ToDisplayString would write "Object" or "String" (the Visual Basic keywords) for special types.
+                Dim type As INamedTypeSymbol = method.ContainingType.OriginalDefinition
+                Dim typeName As String = $"{type.ContainingNamespace.ToDisplayString()}.{type.MetadataName}"
+                If UnvalidatedParameterAnalyzer.NullAcceptingTypes.Contains(typeName) OrElse
+                   UnvalidatedParameterAnalyzer.NullAcceptingMethods.Contains($"{typeName}.{method.Name}") Then
+                    Return True
+                End If
+                method = method.OverriddenMethod
+            End While
+            Return False
         End Function
 
         ''' <summary>
@@ -653,6 +733,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             properties.Add(UnvalidatedParameterAnalyzer.KindPropertyKey, kind)
             properties.Add(UnvalidatedParameterAnalyzer.ArgumentNullExceptionPropertyKey, UnvalidatedParameterAnalyzer.GetTypeName("System.ArgumentNullException", model, position))
             properties.Add(UnvalidatedParameterAnalyzer.ArgumentOutOfRangeExceptionPropertyKey, UnvalidatedParameterAnalyzer.GetTypeName("System.ArgumentOutOfRangeException", model, position))
+            properties.Add(UnvalidatedParameterAnalyzer.ArgumentExceptionPropertyKey, UnvalidatedParameterAnalyzer.GetTypeName("System.ArgumentException", model, position))
 
             If kind.Equals(UnvalidatedParameterAnalyzer.EnumKind, StringComparison.Ordinal) Then
                 Dim enumType As INamedTypeSymbol = DirectCast(parameter.Type, INamedTypeSymbol)

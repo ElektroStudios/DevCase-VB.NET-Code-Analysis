@@ -47,13 +47,22 @@ The fix keeps the behavior of `GetTempFileName`: after it, the variable holds th
 | Local variable: `Dim tempPath As String = Path.GetTempFileName()` | The initializer becomes the random path, and the `Using` block is added after the declaration |
 | Assignment: `Me.workFile = Path.GetTempFileName()` | The right side becomes the random path, and the `Using` block creates the file at `Me.workFile` |
 | `Return Path.GetTempFileName()` | A local variable `tempFilePath` (`tempFilePath2`... if the name is taken) is declared, the file is created, and the variable is returned |
+| Inside a larger expression: `Dim tmpFile As New FileInfo(Path.Combine(Path.GetTempPath, path2:=Path.GetTempFileName))` | A local variable `tempFilePath` is declared and the file created **before** the statement, and the call is replaced with the variable: `New FileInfo(Path.Combine(Path.GetTempPath, path2:=tempFilePath))` |
 
 Details:
 
 - The `Using` block has no variable: it only creates the file and closes it immediately, exactly like `GetTempFileName`.
 - Calls written without parentheses (`Dim tempPath As String = Path.GetTempFileName`) are fixed in the same way.
 - Type names are written in their shortest valid form at that position. When a variable named `path` hides the `Path` type (Visual Basic is not case-sensitive), `IO.Path` is written.
-- Other usages (an argument, a member access such as `Path.GetTempFileName().Length`, a single-line `If`) are reported without a fix, because the file must be created in a separate statement.
+- The new variable name is not used anywhere else in the method, so it cannot conflict with a local declared later.
+- Moving the call before its statement must not change **whether** or **how many times** it runs. So these usages are reported without a fix:
+
+| Usage | Reason |
+|---|---|
+| In a lambda or a query (`Function() Path.GetTempFileName()`, `Select Path.GetTempFileName()`) | It runs when the lambda or query runs, maybe never or many times |
+| In a branch of `If(c, x, y)`, the second operand of `If(x, y)`, the right side of `AndAlso` / `OrElse`, or after `?.` | It may not run |
+| In the condition of a loop (`While`, `Do`), `If`, `ElseIf` or `Select Case` header | It may run many times, or after other conditions |
+| In a single-line `If` or a statement after `:` | There is no own line to declare the variable before it |
 
 > [!TIP]
 > If the file is only needed while the program runs, consider `New FileStream(tempPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose)`: Windows deletes the file when the stream is closed, even if the program crashes.

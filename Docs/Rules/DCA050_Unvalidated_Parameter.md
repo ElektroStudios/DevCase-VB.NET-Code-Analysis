@@ -27,6 +27,14 @@ Analyzed parameters:
 
 A `String` or reference parameter is **consumed** when `Nothing` makes the code fail: a member access or call on it (`value.Length`, `action()`), an argument of a method or constructor, the collection of a `For Each`, the lock of a `SyncLock`, or the operand of `Await`. A parameter that is only stored, returned, compared or concatenated (`Me.name = name`, `Return $"Hello {name}"`) is not reported: there, `Nothing` is not an error by itself.
 
+An argument is not a consumption either when the called method accepts `Nothing` as a valid input:
+
+- `Object.ReferenceEquals`, `Object.Equals(a, b)`, `String.Concat`, `String.IsNullOrEmpty`, `String.IsNullOrWhiteSpace`, `Convert.ToString`;
+- `Console.Write`/`WriteLine`, `TextWriter.Write`/`WriteLine` (and the writers that override them), `StringBuilder.Append`/`AppendLine`/`Insert`, `Debug` and `Trace` output methods, `IsNothing` and every Visual Basic string function (`Strings.Trim`, `Len`...), which treat `Nothing` as an empty string;
+- parameters whose type is a type parameter, such as `List(Of T).Add(item As T)`.
+
+String **comparisons** (`dir.Equals(directory, StringComparison.OrdinalIgnoreCase)`) are still a consumption: with `Nothing` they silently return `False`, which hides the missing argument instead of reporting it.
+
 A parameter is considered **validated** when any of its uses looks like a validation:
 
 - a condition of `If`, `ElseIf`, `Select Case`, `While` or `Do`;
@@ -48,7 +56,7 @@ Not reported:
 | Parameters whose type derives from `EventArgs` | Events never raise `Nothing` arguments |
 | Unused parameters | There is nothing to protect |
 | Event handlers (`Handles` clause, or `sender As Object, e As EventArgs`) | They are called by the event source |
-| `Equals`, `CompareTo`, `Compare` | Their contract accepts `Nothing` |
+| `Equals`, `ReferenceEquals`, `CompareTo`, `Compare` | Their contract accepts `Nothing` (`Object.ReferenceEquals(Nothing, Nothing)` returns `True`) |
 | `Overrides` and `Implements` of members declared in referenced assemblies (`TypeConverter.CanConvertFrom`, `IFormattable.ToString`...) | Their contract is defined by the framework and may accept `Nothing` (for example, the `context` of a type converter). Overrides of your own `MustOverride` methods are analyzed |
 | `Shared Sub Main` | The runtime never passes `Nothing` |
 | Methods whose body only throws an exception (`Throw New NotImplementedException()`) | They never use the parameter |
@@ -94,6 +102,31 @@ End Function
 | `String` | 1. `If String.IsNullOrEmpty(value) Then Throw New ArgumentNullException(NameOf(value), $"The {NameOf(value)} cannot be null or empty.")`<br>2. The same with `String.IsNullOrWhiteSpace` (*"cannot be null, empty or white space"*)<br>3. `If value Is Nothing Then Throw New ArgumentNullException(NameOf(value))` |
 | Other reference types | `If value Is Nothing Then Throw New ArgumentNullException(NameOf(value))` |
 
+**Throw helpers.** When every project that compiles the file has them, the fix writes the throw helper instead of the `If` block:
+
+| Action | Throw helper | Available since |
+|---|---|---|
+| *Is Nothing* | `ArgumentNullException.ThrowIfNull(value)` | .NET 6 |
+| *IsNullOrEmpty* | `ArgumentException.ThrowIfNullOrEmpty(value)` | .NET 7 |
+| *IsNullOrWhiteSpace* | `ArgumentException.ThrowIfNullOrWhiteSpace(value)` | .NET 8 |
+
+```vb
+' .NET 8 project:
+Public Shared Sub MailTo(addresses As String(), subject As String, body As String)
+
+    ArgumentNullException.ThrowIfNull(addresses)
+    ArgumentNullException.ThrowIfNull(subject)
+    ArgumentNullException.ThrowIfNull(body)
+
+    ...
+End Sub
+```
+
+- The Visual Basic compiler passes the parameter name to the helper (`[CallerArgumentExpression]`), so the exception's `ParamName` is `"addresses"`, as with `NameOf`.
+- A file can be compiled by several projects: a multi-targeted project (`<TargetFrameworks>net48;net8.0</TargetFrameworks>`) or the same file linked into a .NET Framework project. The helper is written only when **every** one of them has it; otherwise the fix writes the `If` block, so it never breaks the .NET Framework build.
+- `ThrowIfNullOrEmpty` and `ThrowIfNullOrWhiteSpace` throw `ArgumentNullException` for `Nothing` and `ArgumentException` for an empty or white-space string (the `If` block throws `ArgumentNullException` with a custom message in both cases).
+- `Enum` parameters have no throw helper: they always get the `If` block.
+
 Details:
 
 - `InvalidEnumArgumentException` stores the value as an `Integer`. For enumerations whose values do not fit in one (`As Long`, `As UInteger`, `As ULong`), the fix throws `ArgumentOutOfRangeException(NameOf(value), value, $"The value is not defined in the {NameOf(T)} enumeration.")`.
@@ -105,7 +138,7 @@ Details:
 > A guard clause **changes the behavior** for invalid arguments: the method throws at the start instead of failing later (or returning a wrong result). This is why the rule is Info and the fix is never applied silently. After the fix, rule [DCA012](DCA012_Missing_Exception_Documentation.md) reports the new exceptions that the XML documentation does not list yet, and its own fix adds them.
 
 > [!TIP]
-> The `Is Nothing` guard clause has the exact form that the throw-helper rules recognize: rule [DCA011](DCA011_Throw_Helper_Migration.md) (.NET Framework, in an `#If NETCOREAPP` block) and the built-in CA1510 (modern .NET) offer to convert it into `ArgumentNullException.ThrowIfNull(value)`. The `String` guard clauses keep their custom message, so they are not converted.
+> In .NET Framework projects, the `Is Nothing` guard clause has the exact form that rule [DCA011](DCA011_Throw_Helper_Migration.md) recognizes: it offers to add `ArgumentNullException.ThrowIfNull(value)` in an `#If NETCOREAPP` block, for code that will be migrated. The `String` guard clauses keep their custom message, so they are not converted.
 
 ## 🔕 How to disable
 

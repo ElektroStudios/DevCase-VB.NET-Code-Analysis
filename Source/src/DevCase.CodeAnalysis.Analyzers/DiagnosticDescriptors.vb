@@ -63,6 +63,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Private Const CategoryPerformance As String = "Performance"
 
+        ''' <summary>
+        ''' The diagnostic category used by naming rules.
+        ''' </summary>
+        Private Const CategoryNaming As String = "Naming"
+
 #End Region
 
 #Region " Fields "
@@ -667,7 +672,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
-            description:="String.Join and StringBuilder.Append accept a Char. On modern .NET the Char overload is used; on .NET Framework, where String.Join has no Char overload, the character literal is converted to the same constant string at compile time. The result is identical on every target framework.")
+            description:="String.Join, Split, Replace and Contains, StringBuilder.Append, Insert, Replace and AppendJoin, and TextWriter and Console Write/WriteLine have a Char overload that produces the same result. On .NET Framework, where String.Join has no Char overload, the character literal is converted to the same constant string at compile time.")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.UnvalidatedParameter"/>.
@@ -692,6 +697,30 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
             description:="GetAwaiter() and ConfigureAwait() do not wait for a task: they only prepare it to be awaited. When their result is discarded, the statement does nothing, the method returns before the task completes, and any exception of the task is lost.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.MisusedSenderParameter"/>.
+        ''' </summary>
+        Public Shared ReadOnly MisusedSenderParameter As New DiagnosticDescriptor(
+            id:=DiagnosticIds.MisusedSenderParameter,
+            title:="Parameter named 'sender' outside an event handler",
+            messageFormat:="Parameter 'sender' of '{0}' is not the sender of an event; rename it to '{1}'",
+            category:=DevCaseDescriptors.CategoryNaming,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="By convention, 'sender' is the object that raises an event, typed Object, followed by the event arguments. In other methods the name hides what the argument really is; a name based on its type describes it.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.MethodCallWithoutParentheses"/>.
+        ''' </summary>
+        Public Shared ReadOnly MethodCallWithoutParentheses As New DiagnosticDescriptor(
+            id:=DiagnosticIds.MethodCallWithoutParentheses,
+            title:="Method call without parentheses",
+            messageFormat:="Add parentheses to the call of method '{0}'",
+            category:=DevCaseDescriptors.CategoryStyle,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Visual Basic allows calling a method without parentheses, which makes the call look like a property or field access. Writing the parentheses shows that code runs (and may have side effects or be expensive), and is the form used by the documentation and by other .NET languages.")
 
 #End Region
 

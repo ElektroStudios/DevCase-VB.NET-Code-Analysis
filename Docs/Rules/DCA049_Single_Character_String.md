@@ -1,48 +1,59 @@
 # 🔤 DCA049 — Single-character string where a `Char` can be used
 
-Reports single-character string literals passed as the separator of `String.Join`, or to `StringBuilder.Append`, where a character literal (`"x"c`) can be used.
+Reports single-character string literals passed to framework methods that have an equivalent `Char` overload, where a character literal (`"x"c`) can be used.
 
 - **Severity:** Info
 - **Category:** Performance
-- **Code fix:** ✔️ Replaces the string literal with the character literal
-- **Equivalent to:** Microsoft [CA1834](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1834) *"Use StringBuilder.Append(char) for single character strings"* (only for `StringBuilder.Append`; this rule also covers `String.Join`, on every target framework)
+- **Code fix:** ✔️ Replaces the string literals of the call with character literals
+- **Equivalent to:** Microsoft [CA1834](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1834) *"Use StringBuilder.Append(char) for single character strings"* (only for `StringBuilder.Append`; this rule covers more methods, on every target framework)
 
 ---
 
 ## 💡 Why
 
-A single character is a `Char`, not a `String`:
+A single character is a `Char`, not a `String`. The `Char` overloads of these methods do not have to read a separator or a value character by character, and they say what the code means.
 
-- On **modern .NET**, `String.Join(Char, ...)` and `StringBuilder.Append(Char)` are the overloads designed for it: they do not read a string separator character by character.
-- On **.NET Framework**, `String.Join` has no `Char` overload. The character literal is converted to `String` by Visual Basic, and that conversion of a constant is done **at compile time**: the compiled program passes exactly the same constant string as before. The code compiles and behaves the same way on every target framework, without an `#If` block, and it already uses the `Char` overload when the project moves to modern .NET.
+On **.NET Framework**, `String.Join` has no `Char` overload. The character literal is converted to `String` by Visual Basic, and that conversion of a constant is done **at compile time**: the compiled program passes exactly the same constant string as before. So the code compiles and behaves the same way on every target framework, without an `#If` block, and it already uses the `Char` overload when the project moves to modern .NET.
 
 ## 🔎 Detection
 
-| Call | Reported argument |
-|---|---|
-| `String.Join(",", ...)` (every overload) | The separator |
-| `sb.Append("x")` (`StringBuilder.Append(String)` with one argument) | The value |
+Only methods whose `Char` overload produces **exactly the same result** are analyzed:
 
-Before reporting, the call is bound again with the character literal, to be certain that it compiles and calls a method with the same name on the same type.
+| Method | .NET Framework | Modern .NET |
+|---|:---:|:---:|
+| `String.Join(",", ...)` | ✔️ (same overload, constant string) | ✔️ |
+| `s.Replace("a", "b")` (both values must be single characters) | ✔️ | ✔️ |
+| `s.Split(",")`, `s.Split(",", options)` | ➖ (no `String` overload) | ✔️ |
+| `s.Contains("x")`, `s.Contains("x", comparison)` | ➖ (no `Char` overload) | ✔️ |
+| `sb.Append("x")`, `sb.Insert(index, "x")`, `sb.Replace("a", "b")` | ✔️ | ✔️ |
+| `sb.AppendJoin(",", ...)` | ➖ (no method) | ✔️ |
+| `writer.Write("x")`, `writer.WriteLine("x")` (`TextWriter`, `StreamWriter`, `StringWriter`...), `Console.Write("x")`, `Console.WriteLine("x")` | ✔️ | ✔️ |
+
+Before reporting, the call is bound again with the character literals, to be certain that it compiles and calls the `Char` overload of the same method.
 
 Not reported:
 
 | Case | Reason |
 |---|---|
+| Methods without a `Char` overload: `sb.AppendLine("x")`, `File.WriteAllText(path, "x")`, `String.Concat("x", s)`... | A character literal would be converted back to the same string: nothing changes |
+| `s.IndexOf("x")`, `s.LastIndexOf("x")`, `s.StartsWith("x")`, `s.EndsWith("x")` | **Different behavior**: the `String` overloads compare with the current culture, the `Char` overloads ordinally (for `StartsWith`/`EndsWith` with `StringComparison.Ordinal` on .NET Framework, see [DCA013](DCA013_NetFramework_API_Migration.md)) |
+| `s.Replace("a", "bc")` | Only one of the values is a single character: there is no `Replace(Char, String)` |
+| Format strings: `Console.WriteLine("x", value)`, `sb.AppendFormat("x", value)` | There is no `Char` overload with arguments |
 | Strings with zero or several characters (`""`, `", "`) | They are not a single character |
 | Constants and variables (`String.Join(Separator, parts)`) | Only literals can be rewritten without changing their declaration |
 | Named arguments (`String.Join(separator:=",", ...)`) | Kept as written |
 | Control characters and surrogates | They cannot be written as a readable character literal |
-| `sb.Append("x", 0, 1)` and other overloads | There is no equivalent `Char` overload |
-| `s.Contains("x")`, `s.StartsWith("x", ...)` | On .NET Framework there is no `Char` overload with the same behavior; rule [DCA013](DCA013_NetFramework_API_Migration.md) handles them with an `#If NETCOREAPP` block |
 
 ## ❌ Non-compliant
 
 ```vb
 Return String.Join("&", parts)
 
+Dim path As String = text.Replace("\", "/")
+
 Dim sb As New StringBuilder()
 sb.Append(",")
+writer.WriteLine(";")
 ```
 
 ## ✔️ Compliant
@@ -50,13 +61,16 @@ sb.Append(",")
 ```vb
 Return String.Join("&"c, parts)
 
+Dim path As String = text.Replace("\"c, "/"c)
+
 Dim sb As New StringBuilder()
 sb.Append(","c)
+writer.WriteLine(";"c)
 ```
 
 ## 🔧 Code fix
 
-Replaces the string literal with the character literal. The quotation mark is written as `""""c`. No `#If` block is needed: the result compiles on .NET Framework and on modern .NET (verified by tests on both).
+Replaces every single-character string literal of the call with the character literal (both values of `Replace` at once). The quotation mark is written as `""""c`. No `#If` block is needed: the result compiles on .NET Framework and on modern .NET (verified by tests on both).
 
 ## 🔕 How to disable
 

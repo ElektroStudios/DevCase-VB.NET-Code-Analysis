@@ -47,12 +47,18 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' A source with every reported form.
         ''' </summary>
         Private Const ReportedSource As String = "
+Imports System.IO
 Imports System.Text
 Public Class C
-    Public Function Run(parts As String(), list As List(Of String), a As String, b As String) As String
+    Public Function Run(parts As String(), list As List(Of String), a As String, b As String, s As String, writer As StreamWriter) As String
         Dim sb As New StringBuilder()
         sb.Append([|""x""|])
-        Return String.Join([|""&""|], parts) & String.Join([|"";""|], list) & String.Join([|""-""|], a, b) & String.Join([|""""""""|], parts) & sb.ToString()
+        sb.Insert(0, [|""-""|])
+        sb.Replace([|""a""|], ""b"")
+        Console.Write([|"" ""|])
+        writer.WriteLine([|"";""|])
+        Dim t As String = s.Replace([|""\""|], ""/"")
+        Return String.Join([|""&""|], parts) & String.Join([|"";""|], list) & String.Join([|""-""|], a, b) & String.Join([|""""""""|], parts) & sb.ToString() & t
     End Function
 End Class
 "
@@ -61,12 +67,33 @@ End Class
         ''' The fixed version of <see cref="ReportedSource"/>, without markup.
         ''' </summary>
         Private Const FixedSource As String = "
+Imports System.IO
 Imports System.Text
 Public Class C
-    Public Function Run(parts As String(), list As List(Of String), a As String, b As String) As String
+    Public Function Run(parts As String(), list As List(Of String), a As String, b As String, s As String, writer As StreamWriter) As String
         Dim sb As New StringBuilder()
         sb.Append(""x""c)
-        Return String.Join(""&""c, parts) & String.Join("";""c, list) & String.Join(""-""c, a, b) & String.Join(""""""""c, parts) & sb.ToString()
+        sb.Insert(0, ""-""c)
+        sb.Replace(""a""c, ""b""c)
+        Console.Write("" ""c)
+        writer.WriteLine("";""c)
+        Dim t As String = s.Replace(""\""c, ""/""c)
+        Return String.Join(""&""c, parts) & String.Join("";""c, list) & String.Join(""-""c, a, b) & String.Join(""""""""c, parts) & sb.ToString() & t
+    End Function
+End Class
+"
+
+        ''' <summary>
+        ''' A source with the forms that only modern .NET reports (their Char overloads do not exist on .NET Framework).
+        ''' </summary>
+        Private Const ModernSource As String = "
+Imports System.Text
+Public Class C
+    Public Function Run(parts As String(), s As String) As Boolean
+        Dim fields As String() = s.Split([|"",""|])
+        Dim sb As New StringBuilder()
+        sb.AppendJoin([|"";""|], parts)
+        Return s.Contains([|""x""|]) OrElse s.Contains([|""y""|], StringComparison.OrdinalIgnoreCase) OrElse fields.Length > sb.Length
     End Function
 End Class
 "
@@ -104,31 +131,63 @@ End Class
         End Function
 
         ''' <summary>
-        ''' Verifies that rule DCA049 does not report longer or empty strings, non-literal arguments, named arguments,
-        ''' other overloads or other methods.
+        ''' Verifies that rule DCA049 does not report longer or empty strings, non-literal or named arguments, overloads without 
+        ''' an equivalent Char overload (AppendLine, format strings, Replace with a longer value), methods whose Char overload 
+        ''' compares differently (IndexOf, StartsWith), other methods, and, on .NET Framework, the Char overloads that only exist 
+        ''' on modern .NET (Contains).
         ''' </summary>
+        '''
+        ''' <param name="targetNetFramework">
+        ''' <see langword="True"/> to compile against .NET Framework 4.8.
+        ''' </param>
         '''
         ''' <returns>
         ''' A <see cref="Task"/> that represents the asynchronous test.
         ''' </returns>
-        <Fact>
-        Public Async Function DoesNotReport_OtherArguments() As Task
-            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+        <Theory>
+        <InlineData(False)>
+        <InlineData(True)>
+        Public Async Function DoesNotReport_OtherArguments(targetNetFramework As Boolean) As Task
+            Dim netFrameworkOnly As String = If(targetNetFramework, "Dim contained As Boolean = s.Contains(""x"")", String.Empty)
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, $"
+Imports System.IO
 Imports System.Text
 Public Class C
     Private Const Separator As String = "",""
-    Public Function Run(parts As String(), s As String) As String
+    Public Function Run(parts As String(), s As String, path As String) As String
         Dim sb As New StringBuilder()
         sb.Append(""ab"")
         sb.Append("""")
         sb.Append(""x"", 0, 1)
         sb.Append(""x""c)
         sb.AppendLine(""x"")
-        Dim found As Boolean = s.Contains(""x"")
-        Return String.Join("", "", parts) & String.Join("""", parts) & String.Join(Separator, parts) & String.Join(separator:=""&"", value:=parts, startIndex:=0, count:=1) & String.Concat(""x"", s) & found.ToString()
+        sb.AppendFormat(""x"", 1)
+        Console.WriteLine(""x"", 1)
+        File.WriteAllText(path, ""x"")
+        Dim index As Integer = s.IndexOf(""x"")
+        Dim starts As Boolean = s.StartsWith(""x"")
+        Dim replaced As String = s.Replace(""a"", ""bc"")
+        {netFrameworkOnly}
+        Return String.Join("", "", parts) & String.Join("""", parts) & String.Join(Separator, parts) & String.Join(separator:=""&"", value:=parts, startIndex:=0, count:=1) & String.Concat(""x"", s) & index.ToString() & starts.ToString() & replaced
     End Function
 End Class
-").ConfigureAwait(True)
+", targetNetFramework:=targetNetFramework).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA049 reports, on modern .NET, the calls whose Char overload only exists there 
+        ''' (String.Split, String.Contains, StringBuilder.AppendJoin), and that the fix compiles.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Reports_ModernOverloads() As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, ModernSource).ConfigureAwait(True)
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, ModernSource, ModernSource.
+                Replace("[|"",""|]", """,""c", StringComparison.Ordinal).Replace("[|"";""|]", """;""c", StringComparison.Ordinal).
+                Replace("[|""x""|]", """x""c", StringComparison.Ordinal).Replace("[|""y""|]", """y""c", StringComparison.Ordinal)).ConfigureAwait(True)
         End Function
 
         ''' <summary>

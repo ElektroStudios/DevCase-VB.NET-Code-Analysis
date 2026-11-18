@@ -79,3 +79,12 @@ Rule ID | Category | Severity | Notes
 DCA049 | Performance | Info | SingleCharacterStringAnalyzer
 DCA050 | Design | Info | UnvalidatedParameterAnalyzer
 DCA051 | Reliability | Warning | DiscardedAwaiterAnalyzer
+
+## Release 1.0.4
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+DCA052 | Naming | Info | SenderParameterAnalyzer
+DCA053 | Style | Info | MethodCallParenthesesAnalyzer

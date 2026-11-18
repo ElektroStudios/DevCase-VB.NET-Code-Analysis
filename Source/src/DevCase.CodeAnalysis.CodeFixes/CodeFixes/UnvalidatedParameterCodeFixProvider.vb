@@ -43,6 +43,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
     '''   throwing <see cref="ArgumentNullException"/>.</description></item>
     '''   <item><term>Other reference types</term><description><c>If p Is Nothing Then Throw New ArgumentNullException(NameOf(p))</c>.</description></item>
     ''' </list>
+    ''' When every project that compiles the document has the throw helper of the variant (.NET 6 or later; the check covers 
+    ''' multi-targeted projects and linked files), it is written instead of the <see langword="If"/> block: 
+    ''' <c>ArgumentNullException.ThrowIfNull(p)</c>, <c>ArgumentException.ThrowIfNullOrEmpty(p)</c> (.NET 7) or 
+    ''' <c>ArgumentException.ThrowIfNullOrWhiteSpace(p)</c> (.NET 8). The Enum guard clause has no throw helper.
     ''' The guard clause is written after the <c>MyBase.New</c> / <c>Me.New</c> call of a constructor and among the guard clauses
     ''' that already start the body, in parameter order. Fix All inserts the guard clauses of every parameter of a method in parameter order.
     ''' </remarks>
@@ -127,7 +131,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
                     Dim selected As String = [variant]
                     context.RegisterCodeFix(
                         CodeAction.Create(UnvalidatedParameterCodeFixProvider.GetTitle(selected, name, diagnostic),
-                                          Function(ct As CancellationToken) UnvalidatedParameterCodeFixProvider.FixAsync(document, diagnostic, selected, ct),
+                                          Function(ct As CancellationToken) UnvalidatedParameterCodeFixProvider.FixSingleAsync(document, diagnostic, selected, ct),
                                           equivalenceKey:=$"{NameOf(UnvalidatedParameterCodeFixProvider)}.{selected}"),
                         diagnostic)
                 Next [variant]
@@ -279,11 +283,120 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
                 ThenBy(Function(d As Diagnostic) d.Location.SourceSpan.Start).
                 ToList()
 
+            Dim useHelper As Boolean = Await UnvalidatedParameterCodeFixProvider.IsThrowHelperAvailableAsync(document, [variant], context.CancellationToken).ConfigureAwait(False)
             Dim current As Document = document
             For Each diagnostic As Diagnostic In ordered
-                current = Await UnvalidatedParameterCodeFixProvider.FixAsync(current, diagnostic, [variant], context.CancellationToken).ConfigureAwait(False)
+                current = Await UnvalidatedParameterCodeFixProvider.FixAsync(current, diagnostic, [variant], useHelper, context.CancellationToken).ConfigureAwait(False)
             Next diagnostic
             Return current
+        End Function
+
+        ''' <summary>
+        ''' Applies the code fix to one diagnostic, using the throw helper of the variant when every project that compiles 
+        ''' the document has it.
+        ''' </summary>
+        '''
+        ''' <param name="document">
+        ''' The document to fix.
+        ''' </param>
+        '''
+        ''' <param name="diagnostic">
+        ''' The diagnostic to fix.
+        ''' </param>
+        '''
+        ''' <param name="variant">
+        ''' The guard clause variant.
+        ''' </param>
+        '''
+        ''' <param name="cancellationToken">
+        ''' The token to monitor for cancellation requests.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The fixed document.
+        ''' </returns>
+        Private Shared Async Function FixSingleAsync(document As Document, diagnostic As Diagnostic, [variant] As String,
+                                                     cancellationToken As CancellationToken) As Task(Of Document)
+
+            Dim useHelper As Boolean = Await UnvalidatedParameterCodeFixProvider.IsThrowHelperAvailableAsync(document, [variant], cancellationToken).ConfigureAwait(False)
+            Return Await UnvalidatedParameterCodeFixProvider.FixAsync(document, diagnostic, [variant], useHelper, cancellationToken).ConfigureAwait(False)
+        End Function
+
+        ''' <summary>
+        ''' Gets the name of the throw helper method of a guard clause variant: <c>ArgumentNullException.ThrowIfNull</c> (.NET 6), 
+        ''' <c>ArgumentException.ThrowIfNullOrEmpty</c> (.NET 7) or <c>ArgumentException.ThrowIfNullOrWhiteSpace</c> (.NET 8).
+        ''' </summary>
+        '''
+        ''' <param name="variant">
+        ''' The guard clause variant.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The method name, or <see langword="Nothing"/> for the Enum variant, which has no throw helper.
+        ''' </returns>
+        Private Shared Function GetThrowHelperMethod([variant] As String) As String
+
+            Select Case [variant]
+                Case UnvalidatedParameterCodeFixProvider.NothingVariant
+                    Return "ThrowIfNull"
+                Case UnvalidatedParameterCodeFixProvider.NullOrEmptyVariant
+                    Return "ThrowIfNullOrEmpty"
+                Case UnvalidatedParameterCodeFixProvider.NullOrWhiteSpaceVariant
+                    Return "ThrowIfNullOrWhiteSpace"
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        ''' <summary>
+        ''' Determines whether the throw helper of a guard clause variant exists in every project that compiles the document.
+        ''' </summary>
+        '''
+        ''' <param name="document">
+        ''' The document to fix.
+        ''' </param>
+        '''
+        ''' <param name="variant">
+        ''' The guard clause variant.
+        ''' </param>
+        '''
+        ''' <param name="cancellationToken">
+        ''' The token to monitor for cancellation requests.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> if the helper can be used; otherwise, <see langword="False"/>.
+        ''' </returns>
+        '''
+        ''' <remarks>
+        ''' A file can be compiled by several projects: a multi-targeted project (<c>net48;net8.0</c>) or linked files. 
+        ''' The helper is only written when it exists in all of them, so the fix never breaks the .NET Framework build.
+        ''' </remarks>
+        Private Shared Async Function IsThrowHelperAvailableAsync(document As Document, [variant] As String, cancellationToken As CancellationToken) As Task(Of Boolean)
+
+            Dim method As String = UnvalidatedParameterCodeFixProvider.GetThrowHelperMethod([variant])
+            If method Is Nothing Then
+                Return False
+            End If
+
+            Dim typeName As String = If([variant].Equals(UnvalidatedParameterCodeFixProvider.NothingVariant, StringComparison.Ordinal),
+                                        "System.ArgumentNullException", "System.ArgumentException")
+            Dim solution As Solution = document.Project.Solution
+            Dim ids As ImmutableArray(Of DocumentId) = If(String.IsNullOrEmpty(document.FilePath), ImmutableArray(Of DocumentId).Empty,
+                                                          solution.GetDocumentIdsWithFilePath(document.FilePath))
+            If Not ids.Contains(document.Id) Then
+                ids = ids.Add(document.Id)
+            End If
+
+            For Each id As DocumentId In ids
+                Dim compilation As Compilation = Await solution.GetProject(id.ProjectId).GetCompilationAsync(cancellationToken).ConfigureAwait(False)
+                Dim type As INamedTypeSymbol = compilation?.GetTypeByMetadataName(typeName)
+                If type Is Nothing OrElse Not type.GetMembers(method).OfType(Of IMethodSymbol)().
+                       Any(Function(m As IMethodSymbol) m.IsStatic AndAlso m.DeclaredAccessibility = Accessibility.Public) Then
+                    Return False
+                End If
+            Next id
+            Return True
         End Function
 
         ''' <summary>
@@ -323,6 +436,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' The guard clause variant.
         ''' </param>
         '''
+        ''' <param name="useHelper">
+        ''' <see langword="True"/> to write the throw helper of the variant (see <see cref="IsThrowHelperAvailableAsync"/>) 
+        ''' instead of an <see langword="If"/> block.
+        ''' </param>
+        '''
         ''' <param name="cancellationToken">
         ''' The token to monitor for cancellation requests.
         ''' </param>
@@ -334,7 +452,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' <exception cref="InvalidOperationException">
         ''' Thrown when the diagnostic no longer points to a parameter of a method with a body.
         ''' </exception>
-        Private Shared Async Function FixAsync(document As Document, diagnostic As Diagnostic, [variant] As String,
+        Private Shared Async Function FixAsync(document As Document, diagnostic As Diagnostic, [variant] As String, useHelper As Boolean,
                                                cancellationToken As CancellationToken) As Task(Of Document)
 
             Dim root As SyntaxNode = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
@@ -372,7 +490,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             Dim eol As String = UtilAnalyzerSyntax.GetEndOfLine(root.SyntaxTree)
             Dim indentation As String = If(statements.Count = 0, $"{UtilAnalyzerSyntax.GetLineIndentation(block.EndBlockStatement.GetFirstToken())}    ",
                                            UtilAnalyzerSyntax.GetLineIndentation(statements(0).GetFirstToken()))
-            Dim guard As String = String.Join(eol, UnvalidatedParameterCodeFixProvider.BuildGuard([variant], parameter.Identifier.Identifier.Text, diagnostic, indentation))
+            Dim guard As String = String.Join(eol, UnvalidatedParameterCodeFixProvider.BuildGuard([variant], parameter.Identifier.Identifier.Text, diagnostic, indentation, useHelper))
 
             Dim position As Integer
             Dim insertion As String
@@ -409,13 +527,25 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' The indentation of the guard clause.
         ''' </param>
         '''
+        ''' <param name="useHelper">
+        ''' <see langword="True"/> to write the throw helper of the variant (e.g. <c>ArgumentNullException.ThrowIfNull(value)</c>).
+        ''' </param>
+        '''
         ''' <returns>
         ''' The lines, without line breaks.
         ''' </returns>
-        Private Shared Function BuildGuard([variant] As String, name As String, diagnostic As Diagnostic, indentation As String) As String()
+        Private Shared Function BuildGuard([variant] As String, name As String, diagnostic As Diagnostic, indentation As String, useHelper As Boolean) As String()
 
             Dim inner As String = $"{indentation}    "
             Dim argumentNull As String = diagnostic.Properties(UnvalidatedParameterAnalyzer.ArgumentNullExceptionPropertyKey)
+            Dim helperMethod As String = UnvalidatedParameterCodeFixProvider.GetThrowHelperMethod([variant])
+            If useHelper AndAlso helperMethod IsNot Nothing Then
+                ' The Visual Basic compiler fills the paramName parameter ([CallerArgumentExpression]) with the parameter name.
+                Dim helperType As String = If([variant].Equals(UnvalidatedParameterCodeFixProvider.NothingVariant, StringComparison.Ordinal), argumentNull,
+                                              diagnostic.Properties(UnvalidatedParameterAnalyzer.ArgumentExceptionPropertyKey))
+                Return {$"{indentation}{helperType}.{helperMethod}({name})"}
+            End If
+
             Select Case [variant]
                 Case UnvalidatedParameterCodeFixProvider.EnumVariant
                     Dim enumType As String = diagnostic.Properties(UnvalidatedParameterAnalyzer.EnumTypePropertyKey)
