@@ -1,6 +1,15 @@
 # DevCase VB.NET Code Analysis Change Log 📋
 
-## v1.0.5 *(current)* 🆕
+## v1.0.6 *(current)* 🆕
+Rule testing solution:
+ - New `RuleTesting` folder with `DCA Rule Testing Project.slnx`: a .NET Framework 4.8 project with one file per rule (`DCA001.vb` … `DCA058.vb`) and a .NET 10 project with one file per rule that also runs on modern .NET. Each file triggers only the rule of its name, and its XML documentation says what is reported and what the code fix writes. A new test compiles both projects as Visual Studio does (project options, imports, references, `MyType`, `.editorconfig`) and checks that every file reports its rule and no other. See *Try every rule* in the README.
+
+Changes (alignment with Microsoft's built-in rules):
+ - DCA006: runs only in .NET Framework projects, and its severity is now **Info** instead of Warning. On modern .NET, the built-in rule CA1050 (*Declare types in namespaces*, a suggestion) already reports the same types.
+ - DCA046: runs only in .NET Framework projects, and its severity is now **Info** instead of Warning. On modern .NET, the built-in rule CA2219 (*Do not raise exceptions in exception clauses*, a suggestion) already reports the same statements.
+ - DCA049: on modern .NET, `StringBuilder.Append` and `String.Contains` are no longer reported: the built-in rules CA1834 and CA1847 already report them. They are still reported on .NET Framework, and the other methods on every framework.
+
+## v1.0.5 🔖
 New rules:
  - DCA054 (Warning): code in a class marked with `<ComImport>`. Visual Basic accepts constructors, methods, properties and field initializers in a COM coclass without an error or a warning, but compiles them without a body: their code never runs (C# rejects it with CS0669/CS0423). The fix removes `Shared Sub New` and a `Public Sub New()` without parameters, which changes nothing; other members are only reported.
  - DCA055 (Info, .NET Framework only, equivalent of CA1825): zero-length array allocation (`New String() {}`, `New String(-1) {}`, `{}`) → `Array.Empty(Of String)()`. Not reported in attribute arguments, `ParamArray` arrays, multidimensional arrays, or projects without `Array.Empty` (.NET Framework 4.5.2 or earlier).

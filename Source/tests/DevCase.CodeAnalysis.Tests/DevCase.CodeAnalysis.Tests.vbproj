@@ -16,10 +16,13 @@
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="$(RoslynVersion)" />
     <!-- .NET Framework 4.8 reference assemblies, used to analyze test sources as a .NET Framework compilation (DCA011). -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    <!-- Windows Desktop (Windows Forms) reference assemblies, used to compile the .NET 10 project of the rule testing solution (RuleTesting folder). -->
+    <PackageReference Include="Microsoft.WindowsDesktop.App.Ref" Version="10.0.0" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
     <AssemblyMetadata Include="Net48ReferenceAssembliesPath" Value="$(PkgMicrosoft_NETFramework_ReferenceAssemblies_net48)/build/.NETFramework/v4.8" />
+    <AssemblyMetadata Include="WindowsDesktopReferenceAssembliesPath" Value="$(PkgMicrosoft_WindowsDesktop_App_Ref)/ref/net10.0" />
   </ItemGroup>
 
   <ItemGroup>

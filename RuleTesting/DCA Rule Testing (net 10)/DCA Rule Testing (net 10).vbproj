@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- An application, not a class library: the End statement of DCA032.vb is not allowed in class libraries. -->
+    <OutputType>Exe</OutputType>
+    <StartupObject>DCA_Rule_Testing.Program</StartupObject>
+    <RootNamespace></RootNamespace>
+    <MyType>Empty</MyType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- Windows Forms: rules DCA028 (Sub Main without STAThread) and DCA035 (Application.DoEvents in a loop). -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyTitle>DCA Rule Testing (net 10)</AssemblyTitle>
+    <!-- XML documentation, as in the .NET Framework project: rules DCA008 and DCA012 read the documentation comments. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

@@ -73,6 +73,27 @@ Public Class C
         End Try
     End Sub
 End Class
+", targetNetFramework:=True).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA046 does not run in a modern .NET project, where the built-in rule CA2219 applies.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function DoesNotReport_OnModernNet() As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Public Class C
+    Public Sub M()
+        Try
+        Finally
+            Throw New InvalidOperationException()
+        End Try
+    End Sub
+End Class
 ").ConfigureAwait(True)
         End Function
 

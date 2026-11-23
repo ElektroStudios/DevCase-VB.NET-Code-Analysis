@@ -46,6 +46,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' <see cref="String"/>, a constant conversion done at compile time, so the same overload receives the same constant string.
     ''' Literals of control characters and surrogates are not reported.
     ''' </para>
+    ''' <para>
+    ''' <c>StringBuilder.Append</c> and <c>String.Contains</c> are analyzed only in .NET Framework compilations: on modern .NET, 
+    ''' the built-in rules CA1834 and CA1847 already report them.
+    ''' </para>
     ''' </remarks>
     <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Public NotInheritable Class SingleCharacterStringAnalyzer : Inherits DiagnosticAnalyzer
@@ -68,6 +72,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             "System.String.Join", "System.String.Split", "System.String.Replace", "System.String.Contains",
             "System.Text.StringBuilder.Append", "System.Text.StringBuilder.Insert", "System.Text.StringBuilder.Replace", "System.Text.StringBuilder.AppendJoin",
             "System.IO.TextWriter.Write", "System.IO.TextWriter.WriteLine", "System.Console.Write", "System.Console.WriteLine")
+
+        ''' <summary>
+        ''' The analyzed methods that the built-in rules of modern .NET already report: <c>StringBuilder.Append</c> (CA1834) and 
+        ''' <c>String.Contains</c> (CA1847). They are analyzed only in .NET Framework compilations, so that a call is never reported twice.
+        ''' </summary>
+        Private Shared ReadOnly MethodsCoveredOnModernNet As ImmutableHashSet(Of String) = ImmutableHashSet.Create(StringComparer.Ordinal,
+            "System.Text.StringBuilder.Append", "System.String.Contains")
 
 #End Region
 
@@ -154,6 +165,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             Dim syntax As InvocationExpressionSyntax = TryCast(invocation.Syntax, InvocationExpressionSyntax)
             If syntax Is Nothing OrElse syntax.ArgumentList Is Nothing OrElse method.MethodKind <> MethodKind.Ordinary OrElse
                Not SingleCharacterStringAnalyzer.IsAnalyzedMethod(method) Then
+                Exit Sub
+            End If
+
+            ' Modern .NET: CA1834 and CA1847 already report StringBuilder.Append and String.Contains.
+            If SingleCharacterStringAnalyzer.MethodsCoveredOnModernNet.Contains(SingleCharacterStringAnalyzer.GetQualifiedName(method)) AndAlso
+               Not UtilAnalyzerSemantic.IsNetFramework(context.Compilation) Then
                 Exit Sub
             End If
 

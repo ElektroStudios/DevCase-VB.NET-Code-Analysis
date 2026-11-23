@@ -29,6 +29,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' Not reported: a <see langword="Throw"/> inside the <see langword="Try"/> section of a nested <see langword="Try"/> block with 
     ''' <see langword="Catch"/> blocks (it is handled inside the <see langword="Finally"/> block), and a <see langword="Throw"/> 
     ''' inside a lambda declared in the <see langword="Finally"/> block (it runs later, if ever).
+    ''' <para></para>
+    ''' The rule runs only for .NET Framework compilations: modern .NET projects get the same suggestion from the built-in rule 
+    ''' CA2219 (<i>Do not raise exceptions in exception clauses</i>).
     ''' </remarks>
     <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Public NotInheritable Class ThrowInFinallyAnalyzer : Inherits DiagnosticAnalyzer
@@ -65,12 +68,28 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ThrowInFinallyAnalyzer.AnalyzeThrow), SyntaxKind.ThrowStatement)
+            context.RegisterCompilationStartAction(AddressOf ThrowInFinallyAnalyzer.OnCompilationStart)
         End Sub
 
 #End Region
 
 #Region " Private Methods "
+
+        ''' <summary>
+        ''' Registers the analysis for .NET Framework compilations.
+        ''' </summary>
+        '''
+        ''' <param name="context">
+        ''' The compilation start analysis context.
+        ''' </param>
+        Private Shared Sub OnCompilationStart(context As CompilationStartAnalysisContext)
+
+            If Not UtilAnalyzerSemantic.IsNetFramework(context.Compilation) Then
+                Exit Sub ' Modern .NET: the built-in rule CA2219 already reports these statements.
+            End If
+
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ThrowInFinallyAnalyzer.AnalyzeThrow), SyntaxKind.ThrowStatement)
+        End Sub
 
         ''' <summary>
         ''' Reports a <see langword="Throw"/> statement that leaves a <see langword="Finally"/> block.

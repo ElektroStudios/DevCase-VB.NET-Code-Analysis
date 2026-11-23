@@ -84,7 +84,8 @@ End Class
 "
 
         ''' <summary>
-        ''' A source with the forms that only modern .NET reports (their Char overloads do not exist on .NET Framework).
+        ''' A source with the forms that only modern .NET reports (their Char overloads do not exist on .NET Framework). 
+        ''' <c>String.Contains</c> is not reported there: the built-in rule CA1847 already reports it.
         ''' </summary>
         Private Const ModernSource As String = "
 Imports System.Text
@@ -93,10 +94,20 @@ Public Class C
         Dim fields As String() = s.Split([|"",""|])
         Dim sb As New StringBuilder()
         sb.AppendJoin([|"";""|], parts)
-        Return s.Contains([|""x""|]) OrElse s.Contains([|""y""|], StringComparison.OrdinalIgnoreCase) OrElse fields.Length > sb.Length
+        Return s.Contains(""x"") OrElse s.Contains(""y"", StringComparison.OrdinalIgnoreCase) OrElse fields.Length > sb.Length
     End Function
 End Class
 "
+
+        ''' <summary>
+        ''' <see cref="ReportedSource"/> as reported on modern .NET: <c>StringBuilder.Append</c> is left to the built-in rule CA1834.
+        ''' </summary>
+        Private Shared ReadOnly ModernReportedSource As String = ReportedSource.Replace("sb.Append([|""x""|])", "sb.Append(""x"")", StringComparison.Ordinal)
+
+        ''' <summary>
+        ''' <see cref="FixedSource"/> as fixed on modern .NET, where <c>StringBuilder.Append</c> is not reported.
+        ''' </summary>
+        Private Shared ReadOnly ModernFixedSource As String = FixedSource.Replace("sb.Append(""x""c)", "sb.Append(""x"")", StringComparison.Ordinal)
 
 #End Region
 
@@ -127,7 +138,7 @@ End Class
         <InlineData(False)>
         <InlineData(True)>
         Public Async Function Reports_SingleCharacterStrings(targetNetFramework As Boolean) As Task
-            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, ReportedSource, targetNetFramework:=targetNetFramework).ConfigureAwait(True)
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, If(targetNetFramework, ReportedSource, ModernReportedSource), targetNetFramework:=targetNetFramework).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -176,7 +187,7 @@ End Class
 
         ''' <summary>
         ''' Verifies that rule DCA049 reports, on modern .NET, the calls whose Char overload only exists there 
-        ''' (String.Split, String.Contains, StringBuilder.AppendJoin), and that the fix compiles.
+        ''' (String.Split, StringBuilder.AppendJoin), and that the fix compiles.
         ''' </summary>
         '''
         ''' <returns>
@@ -186,8 +197,7 @@ End Class
         Public Async Function Reports_ModernOverloads() As Task
             Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, ModernSource).ConfigureAwait(True)
             Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, ModernSource, ModernSource.
-                Replace("[|"",""|]", """,""c", StringComparison.Ordinal).Replace("[|"";""|]", """;""c", StringComparison.Ordinal).
-                Replace("[|""x""|]", """x""c", StringComparison.Ordinal).Replace("[|""y""|]", """y""c", StringComparison.Ordinal)).ConfigureAwait(True)
+                Replace("[|"",""|]", """,""c", StringComparison.Ordinal).Replace("[|"";""|]", """;""c", StringComparison.Ordinal)).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -205,7 +215,8 @@ End Class
         <InlineData(False)>
         <InlineData(True)>
         Public Async Function Fix_WritesCharacterLiterals(targetNetFramework As Boolean) As Task
-            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, ReportedSource, FixedSource, targetNetFramework:=targetNetFramework).ConfigureAwait(True)
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, If(targetNetFramework, ReportedSource, ModernReportedSource),
+                                                      If(targetNetFramework, FixedSource, ModernFixedSource), targetNetFramework:=targetNetFramework).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -218,8 +229,41 @@ End Class
         <Fact>
         Public Async Function FixAll_FixesEveryLiteral() As Task
             Dim fixedText As String = Await AnalyzerTestHost.ApplyFixAllInDocumentAsync(Analyzer, Provider, ReportedSource.Replace("[|", String.Empty, StringComparison.Ordinal).Replace("|]", String.Empty, StringComparison.Ordinal),
-                                                                                         NameOf(SingleCharacterStringCodeFixProvider)).ConfigureAwait(True)
+                                                                                         NameOf(SingleCharacterStringCodeFixProvider), targetNetFramework:=True).ConfigureAwait(True)
             AnalyzerTestHost.AssertTextEqual(FixedSource, fixedText)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA049 leaves <c>StringBuilder.Append</c> and <c>String.Contains</c> to the built-in rules CA1834 and 
+        ''' CA1847 on modern .NET, so that the same literal is never reported twice, and still reports <c>StringBuilder.Append</c> 
+        ''' on .NET Framework (which has no <c>String.Contains(Char)</c>).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function CallsCoveredByMicrosoftRules_ReportedOnlyOnNetFramework() As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Imports System.Text
+Public Class C
+    Public Function Run(s As String) As Boolean
+        Dim sb As New StringBuilder()
+        sb.Append(""x"")
+        Return s.Contains(""x"") OrElse sb.Length = 0
+    End Function
+End Class
+").ConfigureAwait(True)
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Imports System.Text
+Public Class C
+    Public Function Run(s As String) As Boolean
+        Dim sb As New StringBuilder()
+        sb.Append([|""x""|])
+        Return s.Contains(""x"") OrElse sb.Length = 0
+    End Function
+End Class
+", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>

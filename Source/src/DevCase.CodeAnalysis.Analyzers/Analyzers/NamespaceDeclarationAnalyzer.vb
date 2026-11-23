@@ -34,6 +34,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' Types marked with <c>DesignerGenerated</c> and partial types with a part in a generated file are excluded: 
     ''' moving only the hand-written part into a namespace would split the partial type in two, 
     ''' and moving a form would break the references emitted by the designer (e.g. <c>Application.Designer.vb</c>).
+    ''' <para></para>
+    ''' The rule runs only for .NET Framework compilations: modern .NET projects get the same suggestion from the built-in rule 
+    ''' CA1050 (<i>Declare types in namespaces</i>).
     ''' </remarks>
     <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Public NotInheritable Class NamespaceDeclarationAnalyzer : Inherits DiagnosticAnalyzer
@@ -70,12 +73,28 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSymbolAction(UtilAnalyzerFiles.SkipExcludedSymbols(AddressOf NamespaceDeclarationAnalyzer.AnalyzeNamedType), SymbolKind.NamedType)
+            context.RegisterCompilationStartAction(AddressOf NamespaceDeclarationAnalyzer.OnCompilationStart)
         End Sub
 
 #End Region
 
 #Region " Private Methods "
+
+        ''' <summary>
+        ''' Registers the analysis for .NET Framework compilations.
+        ''' </summary>
+        '''
+        ''' <param name="context">
+        ''' The compilation start analysis context.
+        ''' </param>
+        Private Shared Sub OnCompilationStart(context As CompilationStartAnalysisContext)
+
+            If Not UtilAnalyzerSemantic.IsNetFramework(context.Compilation) Then
+                Exit Sub ' Modern .NET: the built-in rule CA1050 already reports these types.
+            End If
+
+            context.RegisterSymbolAction(UtilAnalyzerFiles.SkipExcludedSymbols(AddressOf NamespaceDeclarationAnalyzer.AnalyzeNamedType), SymbolKind.NamedType)
+        End Sub
 
         ''' <summary>
         ''' Analyzes a named type symbol.

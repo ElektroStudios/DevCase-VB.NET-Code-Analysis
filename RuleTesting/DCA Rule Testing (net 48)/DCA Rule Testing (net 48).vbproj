@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E43019FD-2A37-49F1-8F01-C0FC9ABEF869}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <StartupObject>DCA_Rule_Testing.Program</StartupObject>
+    <RootNamespace>
+    </RootNamespace>
+    <AssemblyName>DCA Rule Testing %28net 48%29</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <MyType>Console</MyType>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>DCA Rule Testing %28net 48%29.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>DCA Rule Testing %28net 48%29.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionExplicit>On</OptionExplicit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionCompare>Binary</OptionCompare>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionStrict>Off</OptionStrict>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionInfer>On</OptionInfer>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DCA001.vb" />
+    <Compile Include="DCA002.vb" />
+    <Compile Include="DCA003.vb" />
+    <Compile Include="DCA004.vb" />
+    <Compile Include="DCA005.vb" />
+    <Compile Include="DCA006.vb" />
+    <Compile Include="DCA007.vb" />
+    <Compile Include="DCA008.vb" />
+    <Compile Include="DCA009.vb" />
+    <Compile Include="DCA010.vb" />
+    <Compile Include="DCA011.vb" />
+    <Compile Include="DCA012.vb" />
+    <Compile Include="DCA013.vb" />
+    <Compile Include="DCA014.vb" />
+    <Compile Include="DCA015.vb" />
+    <Compile Include="DCA016.vb" />
+    <Compile Include="DCA017.vb" />
+    <Compile Include="DCA018.vb" />
+    <Compile Include="DCA019.vb" />
+    <Compile Include="DCA020.vb" />
+    <Compile Include="DCA021.vb" />
+    <Compile Include="DCA022.vb" />
+    <Compile Include="DCA023.vb" />
+    <Compile Include="DCA024.vb" />
+    <Compile Include="DCA025.vb" />
+    <Compile Include="DCA026.vb" />
+    <Compile Include="DCA027.vb" />
+    <Compile Include="DCA028.vb" />
+    <Compile Include="DCA029.vb" />
+    <Compile Include="DCA030.vb" />
+    <Compile Include="DCA031.vb" />
+    <Compile Include="DCA032.vb" />
+    <Compile Include="DCA033.vb" />
+    <Compile Include="DCA034.vb" />
+    <Compile Include="DCA035.vb" />
+    <Compile Include="DCA036.vb" />
+    <Compile Include="DCA037.vb" />
+    <Compile Include="DCA038.vb" />
+    <Compile Include="DCA039.vb" />
+    <Compile Include="DCA040.vb" />
+    <Compile Include="DCA041.vb" />
+    <Compile Include="DCA042.vb" />
+    <Compile Include="DCA043.vb" />
+    <Compile Include="DCA044.vb" />
+    <Compile Include="DCA045.vb" />
+    <Compile Include="DCA046.vb" />
+    <Compile Include="DCA047.vb" />
+    <Compile Include="DCA048.vb" />
+    <Compile Include="DCA049.vb" />
+    <Compile Include="DCA050.vb" />
+    <Compile Include="DCA051.vb" />
+    <Compile Include="DCA052.vb" />
+    <Compile Include="DCA053.vb" />
+    <Compile Include="DCA054.vb" />
+    <Compile Include="DCA055.vb" />
+    <Compile Include="DCA056.vb" />
+    <Compile Include="DCA057.vb" />
+    <Compile Include="DCA058.vb" />
+    <Compile Include="Program.vb" />
+    <Compile Include="My Project\AssemblyInfo.vb" />
+    <Compile Include="My Project\Application.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Application.myapp</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="My Project\Resources.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="My Project\Settings.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="My Project\Resources.resx">
+      <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="My Project\Application.myapp">
+      <Generator>MyApplicationCodeGenerator</Generator>
+      <LastGenOutput>Application.Designer.vb</LastGenOutput>
+    </None>
+    <None Include="My Project\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <CustomToolNamespace>My</CustomToolNamespace>
+      <LastGenOutput>Settings.Designer.vb</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+</Project>

@@ -5,7 +5,7 @@ Reports single-character string literals passed to framework methods that have a
 - **Severity:** Info
 - **Category:** Performance
 - **Code fix:** ✔️ Replaces the string literals of the call with character literals
-- **Equivalent to:** Microsoft [CA1834](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1834) *"Use StringBuilder.Append(char) for single character strings"* (only for `StringBuilder.Append`; this rule covers more methods, on every target framework)
+- **Equivalent to:** Microsoft [CA1834](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1834) *"Use StringBuilder.Append(char) for single character strings"* and [CA1847](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1847) *"Use string.Contains(char) instead of string.Contains(string) with single characters"* (only for `StringBuilder.Append` and `String.Contains` on modern .NET; this rule covers more methods, on every target framework)
 
 ---
 
@@ -24,10 +24,13 @@ Only methods whose `Char` overload produces **exactly the same result** are anal
 | `String.Join(",", ...)` | ✔️ (same overload, constant string) | ✔️ |
 | `s.Replace("a", "b")` (both values must be single characters) | ✔️ | ✔️ |
 | `s.Split(",")`, `s.Split(",", options)` | ➖ (no `String` overload) | ✔️ |
-| `s.Contains("x")`, `s.Contains("x", comparison)` | ➖ (no `Char` overload) | ✔️ |
-| `sb.Append("x")`, `sb.Insert(index, "x")`, `sb.Replace("a", "b")` | ✔️ | ✔️ |
+| `s.Contains("x")`, `s.Contains("x", comparison)` | ➖ (no `Char` overload) | ➖ (reported by CA1847) |
+| `sb.Append("x")` | ✔️ | ➖ (reported by CA1834) |
+| `sb.Insert(index, "x")`, `sb.Replace("a", "b")` | ✔️ | ✔️ |
 | `sb.AppendJoin(",", ...)` | ➖ (no method) | ✔️ |
 | `writer.Write("x")`, `writer.WriteLine("x")` (`TextWriter`, `StreamWriter`, `StringWriter`...), `Console.Write("x")`, `Console.WriteLine("x")` | ✔️ | ✔️ |
+
+On modern .NET, `StringBuilder.Append` and `String.Contains` are left to the built-in rules CA1834 and CA1847 (since version 1.0.6), so the same literal is never reported twice.
 
 Before reporting, the call is bound again with the character literals, to be certain that it compiles and calls the `Char` overload of the same method. Named arguments are supported: `String.Join(separator:=",", value:=parts)` → `String.Join(separator:=","c, value:=parts)` (the `Char` overloads use the same parameter names).
 

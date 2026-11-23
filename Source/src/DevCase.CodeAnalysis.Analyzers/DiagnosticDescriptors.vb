@@ -140,9 +140,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             title:="Type declared in the global namespace",
             messageFormat:="Type '{0}' is declared in the global namespace; declare it inside a Namespace block",
             category:=DevCaseDescriptors.CategoryDesign,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
-            description:="Top-level types must not live in the global namespace: declare them inside an explicit Namespace block. Not reported when the project RootNamespace is set, because the types already belong to it.")
+            description:="Top-level types must not live in the global namespace: declare them inside an explicit Namespace block. Not reported when the project RootNamespace is set, because the types already belong to it. Equivalent of CA1050, for .NET Framework projects.")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.MissingXmlDocumentation"/>.
@@ -634,9 +634,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             title:="Exception thrown in a Finally block",
             messageFormat:="An exception thrown in a Finally block replaces the exception that is being propagated",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
-            description:="If the Try block threw an exception, an exception thrown in the Finally block replaces it: the original error and its stack trace are lost.")
+            description:="If the Try block threw an exception, an exception thrown in the Finally block replaces it: the original error and its stack trace are lost. Equivalent of CA2219, for .NET Framework projects.")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.ThrowInFinalize"/>.

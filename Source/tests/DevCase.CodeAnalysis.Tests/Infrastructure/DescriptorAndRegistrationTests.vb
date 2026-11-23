@@ -110,7 +110,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         <Fact>
         Public Sub Severities_MatchTheSpecification()
             Dim errors As String() = {DiagnosticIds.MissingConfigureAwait, DiagnosticIds.TaskResultAccess, DiagnosticIds.RegexWithoutTimeout}
-            Dim infos As String() = {DiagnosticIds.ThrowHelperMigration, DiagnosticIds.NetFrameworkApiMigration, DiagnosticIds.ArrayCreationInsteadOfLiteral,
+            Dim infos As String() = {DiagnosticIds.TypeOutsideNamespace, DiagnosticIds.ThrowInFinally,
+                                     DiagnosticIds.ThrowHelperMigration, DiagnosticIds.NetFrameworkApiMigration, DiagnosticIds.ArrayCreationInsteadOfLiteral,
                                      DiagnosticIds.ArrayRankOnVariable, DiagnosticIds.GoToStatement, DiagnosticIds.DuplicateBranch,
                                      DiagnosticIds.DateTimeNowForTiming, DiagnosticIds.ThrowInPropertyGetter,
                                      DiagnosticIds.SingleCharacterString, DiagnosticIds.UnvalidatedParameter,

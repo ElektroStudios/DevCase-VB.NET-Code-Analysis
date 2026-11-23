@@ -87,6 +87,23 @@ Namespace N
     Public Class Inside
     End Class
 End Namespace
+", targetNetFramework:=True).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA006 does not run in a modern .NET project, where the built-in rule CA1050 applies.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function DoesNotReport_OnModernNet() As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Public Class C
+End Class
+Public Module M
+End Module
 ").ConfigureAwait(True)
         End Function
 
@@ -103,7 +120,7 @@ End Namespace
 <Microsoft.VisualBasic.CompilerServices.DesignerGenerated>
 Partial Public Class Form1
 End Class
-").ConfigureAwait(True)
+", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -149,7 +166,7 @@ Namespace TestProject
 End Namespace
 
 #End Region
-").ConfigureAwait(True)
+", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -177,7 +194,7 @@ End Enum
     End Enum
 
 End Namespace
-", editorConfig:="devcase_analyzers.default_namespace = Contoso.Tools").ConfigureAwait(True)
+", editorConfig:="devcase_analyzers.default_namespace = Contoso.Tools", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -197,7 +214,7 @@ End Class
     End Class
 
 End Namespace
-", editorConfig:="devcase_analyzers.default_namespace = 1 bad name").ConfigureAwait(True)
+", editorConfig:="devcase_analyzers.default_namespace = 1 bad name", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -211,7 +228,7 @@ End Namespace
         Public Async Function Fix_WrapsEveryPartialDeclaration() As Task
             Dim project As Project = AnalyzerTestHost.CreateProject({
                 New TestSource("A.vb", "Partial Public Class P" & vbLf & "End Class" & vbLf),
-                New TestSource("B.vb", "Partial Public Class P" & vbLf & "    Public Sub Run()" & vbLf & "    End Sub" & vbLf & "End Class" & vbLf)})
+                New TestSource("B.vb", "Partial Public Class P" & vbLf & "    Public Sub Run()" & vbLf & "    End Sub" & vbLf & "End Class" & vbLf)}, targetNetFramework:=True)
 
             Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True)
             Assert.Single(diagnostics)
@@ -244,7 +261,7 @@ End Namespace
         <Fact>
         Public Async Function DoesNotReport_WhenProjectRootNamespaceIsSet() As Task
             ' The type already lives in "MyApp"; wrapping it would produce "MyApp.MyApp.C".
-            Dim project As Project = AnalyzerTestHost.CreateProject({New TestSource("Test0.vb", "Public Class C" & vbLf & "End Class" & vbLf)}, rootNamespace:="MyApp")
+            Dim project As Project = AnalyzerTestHost.CreateProject({New TestSource("Test0.vb", "Public Class C" & vbLf & "End Class" & vbLf)}, targetNetFramework:=True, rootNamespace:="MyApp")
             Assert.Empty(Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True))
         End Function
 
@@ -262,7 +279,7 @@ Namespace Global
     Public Class C
     End Class
 End Namespace
-").ConfigureAwait(True)
+", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -292,7 +309,7 @@ Namespace Contoso.Data
     End Class
 
 End Namespace
-").ConfigureAwait(True)
+", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
         ''' <summary>

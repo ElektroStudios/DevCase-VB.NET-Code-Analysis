@@ -106,3 +106,12 @@ DCA058 | Performance | Info | StringBuilderOverloadAnalyzer
 Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
 --------|--------------|--------------|--------------|--------------|-------
 DCA003 | Reliability | Warning | Reliability | Error | SilentGuardClauseAnalyzer
+
+## Release 1.0.6
+
+### Changed Rules
+
+Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
+--------|--------------|--------------|--------------|--------------|-------
+DCA006 | Design | Info | Design | Warning | NamespaceDeclarationAnalyzer
+DCA046 | Reliability | Info | Reliability | Warning | ThrowInFinallyAnalyzer

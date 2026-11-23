@@ -1,9 +1,10 @@
 # 📦 DCA006 — Type in the global namespace
 
-Reports top-level classes, modules, structures, interfaces, enumerations and delegates that are not declared inside a `Namespace` block **and therefore end up in the global namespace**.
+**.NET Framework only.** Reports top-level classes, modules, structures, interfaces, enumerations and delegates that are not declared inside a `Namespace` block **and therefore end up in the global namespace**.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Design
+- **Equivalent to:** Microsoft [CA1050](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1050) *"Declare types in namespaces"*
 - **Code fix:** ✔️ Wraps the type in a `Namespace` block whose name is deduced from the project (never hardcoded)
 - **Configuration:** `devcase_analyzers.default_namespace = My.Namespace` (optional)
 
@@ -12,6 +13,8 @@ Reports top-level classes, modules, structures, interfaces, enumerations and del
 ## 💡 Why
 
 In Visual Basic, a type without a `Namespace` block lives in the project `RootNamespace`. When that root namespace is empty (common in .NET Framework projects where it was removed, or in projects that declare every namespace explicitly), the type falls into the **global namespace**: it pollutes IntelliSense for every consumer and can collide with types of other assemblies.
+
+On modern .NET, the built-in rule CA1050 already reports these types, so this rule stays silent there (since version 1.0.6). Its severity is Info, the same as CA1050 (*suggestion*); before 1.0.6 it was a Warning.
 
 ## 🔎 Detection
 

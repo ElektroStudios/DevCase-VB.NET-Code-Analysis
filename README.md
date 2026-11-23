@@ -100,7 +100,7 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA003`](Docs/Rules/DCA003_Silent_Guard_Clause.md) | 🤫 [Silent guard clause](Docs/Rules/DCA003_Silent_Guard_Clause.md) | Warning | Reliability | ✔️ |
 | [`DCA004`](Docs/Rules/DCA004_Missing_Option_Statements.md) | 📜 [Missing `Option` statements](Docs/Rules/DCA004_Missing_Option_Statements.md) | Warning | Style | ✔️ |
 | [`DCA005`](Docs/Rules/DCA005_Missing_Explicit_Constructor.md) | 🏗️ [Missing explicit constructor](Docs/Rules/DCA005_Missing_Explicit_Constructor.md) | Warning | Design | ✔️ |
-| [`DCA006`](Docs/Rules/DCA006_Type_Outside_Namespace.md) | 📦 [Type in the global namespace](Docs/Rules/DCA006_Type_Outside_Namespace.md) | Warning | Design | ✔️ |
+| [`DCA006`](Docs/Rules/DCA006_Type_Outside_Namespace.md) | 📦 [Type in the global namespace *(.NET Framework)*](Docs/Rules/DCA006_Type_Outside_Namespace.md) | Info | Design | ✔️ |
 | [`DCA007`](Docs/Rules/DCA007_Missing_XML_Documentation.md) | 📝 [Public member without XML documentation](Docs/Rules/DCA007_Missing_XML_Documentation.md) | Warning | Documentation | ✔️ |
 | [`DCA008`](Docs/Rules/DCA008_XML_Parameter_Mismatch.md) | 🧾 [`<param>` tags do not match the parameters](Docs/Rules/DCA008_XML_Parameter_Mismatch.md) | Warning | Documentation | ✔️ |
 | [`DCA009`](Docs/Rules/DCA009_Missing_StringComparison.md) | 🔤 [String comparison argument omitted](Docs/Rules/DCA009_Missing_StringComparison.md) | Warning | Globalization | ✔️ (×2) |
@@ -140,7 +140,7 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA043`](Docs/Rules/DCA043_Identical_Operands.md) | 🟰 [Identical expressions on both sides of a binary operator](Docs/Rules/DCA043_Identical_Operands.md) | Warning | Reliability | ❌ |
 | [`DCA044`](Docs/Rules/DCA044_DateTime_Now_For_Timing.md) | ⏲️ [`DateTime.Now` used to measure elapsed time](Docs/Rules/DCA044_DateTime_Now_For_Timing.md) | Info | Reliability | ❌ |
 | [`DCA045`](Docs/Rules/DCA045_Insecure_Temp_File.md) | 🗃️ [`Path.GetTempFileName` creates a predictable temporary file](Docs/Rules/DCA045_Insecure_Temp_File.md) | Warning | Security | ✔️ |
-| [`DCA046`](Docs/Rules/DCA046_Throw_In_Finally.md) | 🧨 [Exception thrown in a `Finally` block](Docs/Rules/DCA046_Throw_In_Finally.md) | Warning | Reliability | ❌ |
+| [`DCA046`](Docs/Rules/DCA046_Throw_In_Finally.md) | 🧨 [Exception thrown in a `Finally` block *(.NET Framework)*](Docs/Rules/DCA046_Throw_In_Finally.md) | Info | Reliability | ❌ |
 | [`DCA047`](Docs/Rules/DCA047_Throw_In_Finalize.md) | ☠️ [Exception thrown in `Finalize`](Docs/Rules/DCA047_Throw_In_Finalize.md) | Warning | Reliability | ❌ |
 | [`DCA048`](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | 🫳 [Exception thrown in a property getter](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | Info | Design | ❌ |
 | [`DCA049`](Docs/Rules/DCA049_Single_Character_String.md) | 🔤 [Single-character string where a `Char` can be used](Docs/Rules/DCA049_Single_Character_String.md) | Info | Performance | ✔️ |
@@ -155,6 +155,32 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA058`](Docs/Rules/DCA058_StringBuilder_Argument_Converted_To_String.md) | 🧩 [`StringBuilder` argument converted to a string *(.NET Framework)*](Docs/Rules/DCA058_StringBuilder_Argument_Converted_To_String.md) | Info | Performance | ✔️ |
 
 Click a rule to see its purpose, detection details, edge cases and VB.NET code examples.
+
+Rules marked *(.NET Framework)* run only in .NET Framework projects: on modern .NET, Microsoft's built-in rules report the same code (for example CA1050 for DCA006, CA1825 for DCA055), so nothing is reported twice. Rules that replicate a Microsoft rule use its severity (*suggestion*, which is **Info** here).
+
+---
+
+## 🔬 Try every rule
+
+The [`RuleTesting`](RuleTesting) folder contains a solution, [`DCA Rule Testing Project.slnx`](RuleTesting/DCA%20Rule%20Testing%20Project.slnx), with two Visual Basic projects:
+
+| Project | Target | Files |
+|---|---|---|
+| `DCA Rule Testing (net 48)` | .NET Framework 4.8 | `DCA001.vb` … `DCA058.vb`: one file per rule |
+| `DCA Rule Testing (net 10)` | .NET 10 (`net10.0-windows`) | One file per rule, except the rules that run only on .NET Framework (DCA006, DCA011, DCA013, DCA046, DCA055, DCA056, DCA058) |
+
+Each `DCAnnn.vb` file triggers **only the rule of its name**, and its XML documentation says what is reported and what the code fix writes. To try them:
+
+1. Install the extension (see [Getting Started](#-getting-started)).
+2. Open `DCA Rule Testing Project.slnx` in Visual Studio, and open the *Error List* (`Ctrl+\`, `E`) with *Build + IntelliSense* selected. Info-level rules are in the *Messages* tab.
+3. Open a file, for example `DCA052.vb`, and set the filter of the Error List to *Current Document*: it shows only DCA052. Place the cursor on the reported code and press `Ctrl+.` to preview and apply the code fix.
+
+A few details of the solution:
+
+- Its [`.editorconfig`](RuleTesting/.editorconfig) enables DCA010, which is disabled by default.
+- The projects are applications, not class libraries, because the `End` statement of `DCA032.vb` is not allowed in class libraries. `Program.vb` is the entry point and triggers no rule.
+- The *My Project* files of the .NET Framework project (`AssemblyInfo.vb`, `Application.Designer.vb`, `Resources.Designer.vb`, `Settings.Designer.vb`) show the [excluded files](#-excluded-files): no rule reports them.
+- A test of the solution compiles both projects as Visual Studio does and checks that every file reports its rule and nothing else, so the files stay in sync with the rules.
 
 ---
 
@@ -185,7 +211,7 @@ Click a rule to see its purpose, detection details, edge cases and VB.NET code e
 To debug the analyzers, set `DevCase.CodeAnalysis.Vsix` as the startup project and press **F5**: an experimental instance of Visual Studio starts with the extension loaded.
 
 > [!NOTE]
-> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA011, DCA013, DCA030, DCA031, DCA034, DCA042, DCA044, DCA048, DCA049, DCA050, DCA052, DCA053, DCA055, DCA056, DCA057, DCA058) appear in the *Messages* tab of the Error List and as gray dots under the code.
+> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA006, DCA011, DCA013, DCA030, DCA031, DCA034, DCA042, DCA044, DCA046, DCA048, DCA049, DCA050, DCA052, DCA053, DCA055, DCA056, DCA057, DCA058) appear in the *Messages* tab of the Error List and as gray dots under the code.
 
 ## ⚙️ Configuration
 
@@ -263,7 +289,8 @@ The test project (`xUnit v3`) builds in-memory VB.NET projects and:
 - compiles the .NET Framework rules against the real **.NET Framework 4.8 reference assemblies**, and the modern branch of their fixes against .NET;
 - **enforces every DCA rule on its own code at build time**: the CodeFixes and Tests projects reference the analyzers as analyzers, the Analyzers project is checked by a self-analysis test, and Visual Studio's code style suggestions are raised to warnings in the repository `.editorconfig`, so the solution builds with 0 warnings;
 - verifies that every suppression mechanism documented in the rules (`.editorconfig`, `#Disable Warning`, `SuppressMessage`) works;
-- runs **all the analyzers on their own source code** (dogfooding) and checks that the code base contains no recursion.
+- runs **all the analyzers on their own source code** (dogfooding) and checks that the code base contains no recursion;
+- compiles the two projects of the [rule testing solution](#-try-every-rule) as Visual Studio does, and checks that every `DCAnnn.vb` file reports its rule and no other.
 
 ```bash
 dotnet test tests/DevCase.CodeAnalysis.Tests
@@ -277,6 +304,8 @@ src/DevCase.CodeAnalysis.CodeFixes   netstandard2.0   Code fix providers
 src/DevCase.CodeAnalysis.Vsix        net472           VSIX container (VS 2022 + VS 2026, amd64 + arm64)
 tests/DevCase.CodeAnalysis.Tests     net10.0          xUnit v3 tests
 ```
+
+The [`RuleTesting`](RuleTesting) folder, at the root of the repository, holds the rule testing solution (one file per rule, for .NET Framework 4.8 and .NET 10). It is not part of `DevCase.CodeAnalysis.sln`: its projects need the extension installed in Visual Studio.
 
 ---
 

@@ -1,0 +1,10 @@
+root = true
+
+# Settings of the DCA rule testing solution (they replace the .editorconfig files of the parent folders).
+
+[*.vb]
+indent_style = space
+indent_size = 4
+
+# DCA010 (<Flags> enum member without bit-shift syntax) is disabled by default; it is enabled here so that DCA010.vb reports it.
+devcase_analyzers.dca010_enabled = true

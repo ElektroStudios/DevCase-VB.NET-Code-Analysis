@@ -140,10 +140,10 @@ End Class
 
 Public Class B
 End Class
-", NameOf(NamespaceDeclarationCodeFixProvider)).ConfigureAwait(True)
+", NameOf(NamespaceDeclarationCodeFixProvider), targetNetFramework:=True).ConfigureAwait(True)
 
             Assert.Equal(1, fixedText.Split("Namespace TestProject", StringSplitOptions.None).Length - 1)
-            Await AnalyzerTestHost.AssertCompilesAsync(AnalyzerTestHost.CreateProject(fixedText), "fixed source").ConfigureAwait(True)
+            Await AnalyzerTestHost.AssertCompilesAsync(AnalyzerTestHost.CreateProject(fixedText, targetNetFramework:=True), "fixed source").ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -257,10 +257,11 @@ End Class
                 (New StringComparisonAnalyzer(), New StringComparisonCodeFixProvider(), $"{NameOf(StringComparisonCodeFixProvider)}.Ordinal")}
 
             For Each stage As (Analyzer As DiagnosticAnalyzer, Provider As CodeFixProvider, Key As String) In pipeline
-                text = Await AnalyzerTestHost.ApplyFixAllInDocumentAsync(stage.Analyzer, stage.Provider, text, stage.Key).ConfigureAwait(True)
+                text = Await AnalyzerTestHost.ApplyFixAllInDocumentAsync(stage.Analyzer, stage.Provider, text, stage.Key, targetNetFramework:=True).ConfigureAwait(True)
             Next stage
 
-            Dim project As Project = AnalyzerTestHost.CreateProject(text)
+            ' .NET Framework: DCA006 runs only there (CA1050 covers modern .NET).
+            Dim project As Project = AnalyzerTestHost.CreateProject(text, targetNetFramework:=True)
             Await AnalyzerTestHost.AssertCompilesAsync(project, "fully fixed source").ConfigureAwait(True)
 
             Dim structural As DiagnosticAnalyzer() = pipeline.Select(Function(s As (Analyzer As DiagnosticAnalyzer, Provider As CodeFixProvider, Key As String)) s.Analyzer).ToArray()
