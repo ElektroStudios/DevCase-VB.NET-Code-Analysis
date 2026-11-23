@@ -180,7 +180,7 @@ A few details of the solution:
 - Its [`.editorconfig`](RuleTesting/.editorconfig) enables DCA010, which is disabled by default.
 - The projects are applications, not class libraries, because the `End` statement of `DCA032.vb` is not allowed in class libraries. `Program.vb` is the entry point and triggers no rule.
 - The *My Project* files of the .NET Framework project (`AssemblyInfo.vb`, `Application.Designer.vb`, `Resources.Designer.vb`, `Settings.Designer.vb`) show the [excluded files](#-excluded-files): no rule reports them.
-- A test of the solution compiles both projects as Visual Studio does and checks that every file reports its rule and nothing else, so the files stay in sync with the rules.
+- A test of the solution compiles both projects as Visual Studio does and checks that every file reports its rule and nothing else, so the files stay in sync with the rules. Another test applies every code fix to these files and checks that the result compiles and keeps its `#Region` and `#If` directives.
 
 ---
 
@@ -290,7 +290,8 @@ The test project (`xUnit v3`) builds in-memory VB.NET projects and:
 - **enforces every DCA rule on its own code at build time**: the CodeFixes and Tests projects reference the analyzers as analyzers, the Analyzers project is checked by a self-analysis test, and Visual Studio's code style suggestions are raised to warnings in the repository `.editorconfig`, so the solution builds with 0 warnings;
 - verifies that every suppression mechanism documented in the rules (`.editorconfig`, `#Disable Warning`, `SuppressMessage`) works;
 - runs **all the analyzers on their own source code** (dogfooding) and checks that the code base contains no recursion;
-- compiles the two projects of the [rule testing solution](#-try-every-rule) as Visual Studio does, and checks that every `DCAnnn.vb` file reports its rule and no other.
+- compiles the two projects of the [rule testing solution](#-try-every-rule) as Visual Studio does, and checks that every `DCAnnn.vb` file reports its rule and no other;
+- applies **every code fix** (each of its actions, with *Fix All in Document*) to those `DCAnnn.vb` files, as they are and decorated with preprocessor directives around every type, member and statement (complete and enclosing `#Region` blocks, `#If True Then` blocks, disabled `#If False Then` code), and checks that the project still compiles without warnings, that **no preprocessor directive is lost** (except those inside the body of a member that the fix removes), and that `#Region` / `#End Region` stay balanced.
 
 ```bash
 dotnet test tests/DevCase.CodeAnalysis.Tests

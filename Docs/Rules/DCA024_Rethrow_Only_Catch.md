@@ -53,6 +53,7 @@ Not reported:
 - Blocks with a `When` filter: the filter may have side effects (logging) or be part of the logic.
 - `Throw New SomeException("...", ex)`: wrapping the exception is meaningful.
 - Blocks with other statements.
+- Blocks with conditional code in their body (`#If DEBUG Then` ... `#End If` before or after the `Throw`): in another configuration, the block does more than rethrow the exception.
 
 ## ❌ Non-compliant
 
@@ -83,6 +84,30 @@ The `Try` statement is **not** unwrapped, and no fix is offered, when:
 
 - Its body contains `Exit Try`, which would be invalid outside the block.
 - It declares a local variable whose name is also declared elsewhere in the enclosing block. The `Try` block is its own scope, so unwrapping would cause a name conflict.
+
+The preprocessor directives are kept. An `#If` block at the end of the `Try` body, whose `#End If` line is just before the `Catch` keyword, stays around the same statements when the `Try` statement is unwrapped, and its code is re-indented with the rest of the body (also when the condition is false and the code is disabled):
+
+```vb
+Try
+    Save()
+#If DEBUG Then
+    Log("Saved")
+#End If
+Catch ex As Exception
+    Throw
+End Try
+```
+
+becomes:
+
+```vb
+Save()
+#If DEBUG Then
+Log("Saved")
+#End If
+```
+
+In the same way, the `#If` / `#End If` lines before a removed `Catch` block (the end of the conditional code of the previous block) stay before `End Try`.
 
 ## 🔕 How to disable
 

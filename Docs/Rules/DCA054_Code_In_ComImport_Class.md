@@ -76,6 +76,45 @@ Removes the constructor, with its comments, when that changes nothing:
 
 Other members are only reported: a method, a property, or a constructor with parameters or another accessibility is part of the public surface of the class, and removing it would break the code that uses it.
 
+The preprocessor directives around the constructor are kept. When the constructor is the only member of a region, the region stays, empty, so `#Region` and `#End Region` remain balanced:
+
+```vb
+<ComImport>
+<Guid("F8383852-FCD3-11d1-A6B9-006097DF5BD4")>
+<ClassInterface(ClassInterfaceType.None)>
+Public Class ProgressDialog
+
+#Region " Constructors "
+
+    ''' <summary>
+    ''' Initializes a new instance of the <see cref="ProgressDialog"/> class.
+    ''' </summary>
+    Public Sub New()
+        Console.WriteLine("Created")
+    End Sub
+
+#End Region
+
+End Class
+```
+
+becomes:
+
+```vb
+<ComImport>
+<Guid("F8383852-FCD3-11d1-A6B9-006097DF5BD4")>
+<ClassInterface(ClassInterfaceType.None)>
+Public Class ProgressDialog
+
+#Region " Constructors "
+
+#End Region
+
+End Class
+```
+
+The same applies to an `#If` block around the constructor. The directives inside its body (an `#If DEBUG Then` block, for example) are part of its code, and are removed with it.
+
 > [!NOTE]
 > **Why Warning and not Error?** The compiler accepts the code, and an empty `Public Sub New()` is harmless dead code. A Warning is visible without breaking existing builds; projects that want it to stop the build can raise its severity (`dotnet_diagnostic.DCA054.severity = error` in `.editorconfig`).
 

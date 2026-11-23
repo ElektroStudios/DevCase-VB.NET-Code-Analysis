@@ -129,7 +129,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         End Function
 
         ''' <summary>
-        ''' Removes the constructor reported by the specified diagnostic, with its comments.
+        ''' Removes the constructor reported by the specified diagnostic, with its comments and XML documentation, 
+        ''' but not the preprocessor directives around it (<c>#Region</c>, <c>#End Region</c>, <c>#If</c>...).
         ''' </summary>
         '''
         ''' <param name="document">
@@ -158,7 +159,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             If constructor Is Nothing Then
                 Throw New InvalidOperationException("The diagnostic does not point to a removable constructor.")
             End If
-            Return document.WithSyntaxRoot(root.RemoveNode(constructor, SyntaxRemoveOptions.KeepNoTrivia))
+            ' The #Region / #End Region directives around the constructor stay (an empty region is kept, never broken).
+            Return document.WithSyntaxRoot(UtilCodeFix.RemoveNodeKeepingDirectives(root, constructor))
         End Function
 
 #End Region

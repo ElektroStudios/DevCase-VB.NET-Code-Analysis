@@ -246,6 +246,181 @@ End Class
 ").ConfigureAwait(True)
         End Function
 
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA024 keeps the conditional code of the unwrapped <c>Try</c> body: the 
+        ''' <c>#If</c> blocks at its start and at its end (whose <c>#End If</c> line precedes the <c>Catch</c> keyword) stay 
+        ''' around the same statements, re-indented, whether the condition is true (statements) or false (disabled code).
+        ''' </summary>
+        '''
+        ''' <param name="debug">
+        ''' The value of the <c>DEBUG</c> constant of the source.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData(True)>
+        <InlineData(False)>
+        Public Async Function Fix_KeepsTheConditionalCodeOfTheBody(debug As Boolean) As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, $"#Const DEBUG = {debug}
+Public Class C
+    Public Sub M()
+        Dim before As Integer = 0
+        Try
+#If DEBUG Then
+            Console.WriteLine(""Start"")
+#End If
+            Console.WriteLine(before)
+#If DEBUG Then
+            Console.WriteLine(""End"")
+#End If
+        Catch ex As Exception
+            Throw
+        End Try
+    End Sub
+End Class
+", $"#Const DEBUG = {debug}
+Public Class C
+    Public Sub M()
+        Dim before As Integer = 0
+#If DEBUG Then
+        Console.WriteLine(""Start"")
+#End If
+        Console.WriteLine(before)
+#If DEBUG Then
+        Console.WriteLine(""End"")
+#End If
+    End Sub
+End Class
+").ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA024 keeps the conditional code of a <c>Try</c> body that only has an 
+        ''' <c>#If</c> block (no statement when the condition is false).
+        ''' </summary>
+        '''
+        ''' <param name="debug">
+        ''' The value of the <c>DEBUG</c> constant of the source.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData(True)>
+        <InlineData(False)>
+        Public Async Function Fix_KeepsTheConditionalCodeOfAnEmptyBody(debug As Boolean) As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, $"#Const DEBUG = {debug}
+Public Class C
+    Public Sub M()
+        Dim before As Integer = 0
+        Try
+#If DEBUG Then
+            Console.WriteLine(before)
+#End If
+        Catch ex As Exception
+            Throw
+        End Try
+        Console.WriteLine(before)
+    End Sub
+End Class
+", $"#Const DEBUG = {debug}
+Public Class C
+    Public Sub M()
+        Dim before As Integer = 0
+#If DEBUG Then
+        Console.WriteLine(before)
+#End If
+        Console.WriteLine(before)
+    End Sub
+End Class
+").ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA024 keeps the conditional code at the end of the previous <c>Catch</c> block 
+        ''' (whose <c>#End If</c> line precedes the removed <c>Catch</c> keyword).
+        ''' </summary>
+        '''
+        ''' <param name="debug">
+        ''' The value of the <c>DEBUG</c> constant of the source.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData(True)>
+        <InlineData(False)>
+        Public Async Function Fix_KeepsTheConditionalCodeOfThePreviousCatch(debug As Boolean) As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, $"#Const DEBUG = {debug}
+Public Class C
+    Public Sub M()
+        Try
+            Console.WriteLine(1)
+        Catch ex As IO.IOException
+#If DEBUG Then
+            Console.WriteLine(ex.Message)
+#End If
+        Catch ex As Exception
+            Throw
+        End Try
+    End Sub
+End Class
+", $"#Const DEBUG = {debug}
+Public Class C
+    Public Sub M()
+        Try
+            Console.WriteLine(1)
+        Catch ex As IO.IOException
+#If DEBUG Then
+            Console.WriteLine(ex.Message)
+#End If
+        End Try
+    End Sub
+End Class
+").ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA024 does not report a <c>Catch</c> block with conditional code: in another configuration 
+        ''' (<c>#If DEBUG Then</c>) the block does more than rethrow the exception.
+        ''' </summary>
+        '''
+        ''' <param name="body">
+        ''' The body of the <c>Catch</c> block.
+        ''' </param>
+        '''
+        ''' <param name="debug">
+        ''' The value of the <c>DEBUG</c> constant of the source.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData("#If DEBUG Then" & vbLf & "            Console.WriteLine(ex.Message)" & vbLf & "#End If" & vbLf & "            Throw", True)>
+        <InlineData("#If DEBUG Then" & vbLf & "            Console.WriteLine(ex.Message)" & vbLf & "#End If" & vbLf & "            Throw", False)>
+        <InlineData("            Throw" & vbLf & "#If DEBUG Then" & vbLf & "            Console.WriteLine(ex.Message)" & vbLf & "#End If", True)>
+        <InlineData("            Throw" & vbLf & "#If DEBUG Then" & vbLf & "            Console.WriteLine(ex.Message)" & vbLf & "#End If", False)>
+        <InlineData("#If DEBUG Then" & vbLf & "            Throw" & vbLf & "#Else" & vbLf & "            Console.WriteLine(ex.Message)" & vbLf & "#End If", True)>
+        <InlineData("#If DEBUG Then" & vbLf & "            Throw" & vbLf & "#Else" & vbLf & "            Console.WriteLine(ex.Message)" & vbLf & "#End If", False)>
+        Public Async Function DoesNotReport_CatchBlockWithConditionalCode(body As String, debug As Boolean) As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, $"#Const DEBUG = {debug}
+Public Class C
+    Public Sub M()
+        Try
+            Console.WriteLine(1)
+        Catch ex As Exception
+{body}
+        End Try
+    End Sub
+End Class
+").ConfigureAwait(True)
+        End Function
+
 #End Region
 
     End Class

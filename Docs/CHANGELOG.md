@@ -1,6 +1,16 @@
 # DevCase VB.NET Code Analysis Change Log 📋
 
-## v1.0.6 *(current)* 🆕
+## v1.0.7 *(current)* 🆕
+Fixes (code fixes that removed preprocessor directives):
+ - DCA054: the code fix removed the directives before the constructor. When the constructor was the only member of a region, as in `DCA054.vb` of the rule testing solution, the `#Region` line was removed and its `#End Region` was left alone (error BC30680). The directives before a removed constructor (`#Region`, `#End Region`, `#If`..., with the comments and conditional code between them) now stay, and a region whose only member was the constructor stays, empty. The directives inside the body of the constructor are still removed with it.
+ - DCA024: when the `Try` statement was unwrapped, the `#If` / `#End If` lines before the removed `Catch` and `End Try` keywords were lost. A body that ended with an `#If DEBUG Then ... #End If` block was left with an `#If` without its `#End If` (error BC30012), and the code of a body that only had conditional code was removed. These directives, and the code between them, now stay after the unwrapped statements, and disabled code (an `#If` block whose condition is false) is re-indented with the body. The `#If` / `#End If` lines before a removed `Catch` block now stay before `End Try`, and a `Try` statement removed because its body was empty keeps the directives that preceded it.
+ - DCA024: a `Catch` block with conditional code in its body (`#If DEBUG Then Log(ex) #End If`, before or after the `Throw`) is no longer reported: in another configuration it does more than rethrow the exception.
+
+Tests:
+ - New test that applies every code fix (each of its actions, with *Fix All in Document*) to the `DCAnnn.vb` files of the rule testing solution, for .NET Framework 4.8 and .NET 10, in three variants: the files as they are, with complete and enclosing `#Region` blocks around every type and member, and with `#If True Then` blocks and disabled `#If False Then` code around every type, member and statement. It checks that the project still compiles without warnings, that no directive is lost (except those inside the body of a member that the fix removes), that `#Region` / `#End Region` stay balanced, and that the diagnostics of the rule are fixed. The other code fixes already kept every directive.
+ - New DCA054 tests (the case of `DCA054.vb`, and complete regions, regions and `#If` blocks around the constructors, with the fix and with Fix All) and DCA024 tests (conditional code at the start and end of the body, in an empty body, at the end of the previous `Catch` block, and `Catch` blocks with conditional code, with `DEBUG` defined and not defined).
+
+## v1.0.6 🔖
 Rule testing solution:
  - New `RuleTesting` folder with `DCA Rule Testing Project.slnx`: a .NET Framework 4.8 project with one file per rule (`DCA001.vb` … `DCA058.vb`) and a .NET 10 project with one file per rule that also runs on modern .NET. Each file triggers only the rule of its name, and its XML documentation says what is reported and what the code fix writes. A new test compiles both projects as Visual Studio does (project options, imports, references, `MyType`, `.editorconfig`) and checks that every file reports its rule and no other. See *Try every rule* in the README.
 

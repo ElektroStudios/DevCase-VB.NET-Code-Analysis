@@ -8,7 +8,9 @@ Option Infer Off
 
 #Region " Imports "
 
+Imports System.Collections.Generic
 Imports System.Collections.Immutable
+Imports System.Linq
 
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.Diagnostics
@@ -28,7 +30,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' <remarks>
     ''' Only the trailing group of rethrow-only blocks of a <see langword="Try"/> statement is reported (one diagnostic per statement): 
     ''' a rethrow-only block followed by another <see langword="Catch"/> block is meaningful, because it prevents the later block from 
-    ''' handling that exception type. Blocks with a <see langword="When"/> filter are not reported. 
+    ''' handling that exception type. Blocks with a <see langword="When"/> filter are not reported, and neither are blocks with 
+    ''' conditional code (<c>#If DEBUG Then</c>), which may do more than rethrow in another configuration. 
     ''' <c>Throw ex</c> (where <c>ex</c> is the caught exception) is reported too: it rethrows the same exception, and also discards its 
     ''' original stack trace, so removing the block is strictly better.
     ''' </remarks>
@@ -132,11 +135,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' 
         ''' <returns>
         ''' <see langword="True"/> if the block has no filter and its only statement is <c>Throw</c> or <c>Throw ex</c> 
-        ''' (the caught exception variable); otherwise, <see langword="False"/>.
+        ''' (the caught exception variable), without conditional code; otherwise, <see langword="False"/>.
         ''' </returns>
         Private Shared Function IsRethrowOnly(catchBlock As CatchBlockSyntax) As Boolean
 
-            If catchBlock.CatchStatement.WhenClause IsNot Nothing OrElse catchBlock.Statements.Count <> 1 Then
+            If catchBlock.CatchStatement.WhenClause IsNot Nothing OrElse catchBlock.Statements.Count <> 1 OrElse
+               RethrowOnlyCatchAnalyzer.HasConditionalCode(catchBlock) Then
                 Return False
             End If
             Dim throwStatement As ThrowStatementSyntax = TryCast(catchBlock.Statements(0), ThrowStatementSyntax)
@@ -154,6 +158,28 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             Dim catchName As IdentifierNameSyntax = catchBlock.CatchStatement.IdentifierName
             Return thrownName IsNot Nothing AndAlso catchName IsNot Nothing AndAlso
                    thrownName.Identifier.ValueText.Equals(catchName.Identifier.ValueText, StringComparison.OrdinalIgnoreCase)
+        End Function
+
+        ''' <summary>
+        ''' Determines whether the body of a <see langword="Catch"/> block has preprocessor directives or conditional code 
+        ''' (<c>#If DEBUG Then ... #End If</c>): in another configuration the block may do more than rethrow.
+        ''' </summary>
+        ''' 
+        ''' <param name="catchBlock">
+        ''' The <see langword="Catch"/> block.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> if a directive or disabled code follows the <see langword="Catch"/> statement, up to the next 
+        ''' <see langword="Catch"/>, <see langword="Finally"/> or <see langword="End Try"/>; otherwise, <see langword="False"/>.
+        ''' </returns>
+        Private Shared Function HasConditionalCode(catchBlock As CatchBlockSyntax) As Boolean
+
+            ' The directives before the Catch keyword belong to the previous block; those before the next keyword, to this one.
+            Dim body As IEnumerable(Of SyntaxTrivia) = catchBlock.CatchStatement.GetTrailingTrivia().
+                Concat(catchBlock.Statements.SelectMany(Function(s As StatementSyntax) s.DescendantTrivia())).
+                Concat(catchBlock.GetLastToken().GetNextToken().LeadingTrivia)
+            Return body.Any(Function(t As SyntaxTrivia) t.IsDirective OrElse t.IsKind(SyntaxKind.DisabledTextTrivia))
         End Function
 
 #End Region

@@ -453,6 +453,87 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         End Function
 
         ''' <summary>
+        ''' Gets the part of a leading trivia list that belongs to the code before the node: everything up to the last preprocessor 
+        ''' directive (<c>#Region</c>, <c>#End Region</c>, <c>#If</c>... with the blank lines, comments and conditional code 
+        ''' around them). What follows the last directive (blank lines, comments, XML documentation and indentation) belongs to the node.
+        ''' </summary>
+        '''
+        ''' <param name="leadingTrivia">
+        ''' The leading trivia of a node or token.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The trivia up to the last directive (in Visual Basic, a directive includes its line break), or an empty list if there is none.
+        ''' </returns>
+        Friend Shared Function GetDirectiveSegment(leadingTrivia As SyntaxTriviaList) As SyntaxTriviaList
+
+            Dim lastDirective As Integer = -1
+            For index As Integer = 0 To leadingTrivia.Count - 1
+                If leadingTrivia(index).IsDirective Then
+                    lastDirective = index
+                End If
+            Next index
+            Return If(lastDirective < 0, SyntaxFactory.TriviaList(), SyntaxFactory.TriviaList(leadingTrivia.Take(lastDirective + 1)))
+        End Function
+
+        ''' <summary>
+        ''' Removes a node (a member or a statement) without removing the preprocessor directives around it: the directives of its 
+        ''' leading trivia (for example the <c>#Region</c> that the node opens, or the <c>#End Region</c> that closes the previous 
+        ''' region) move to the token that follows the node, and the directives inside the node that are not balanced within it are kept.
+        ''' </summary>
+        '''
+        ''' <remarks>
+        ''' <see cref="SyntaxRemoveOptions.KeepNoTrivia"/> removes every directive of the leading trivia, which breaks the regions 
+        ''' (<c>#End Region</c> without <c>#Region</c>), and <see cref="SyntaxRemoveOptions.KeepUnbalancedDirectives"/> alone still 
+        ''' removes a complete region that precedes the node (<c>#Region " Fields "</c> / <c>#End Region</c>). The XML documentation, 
+        ''' comments and blank lines after the last directive belong to the node and are removed with it.
+        ''' </remarks>
+        '''
+        ''' <typeparam name="TRoot">
+        ''' The type of the root node.
+        ''' </typeparam>
+        '''
+        ''' <param name="root">
+        ''' The root node that contains <paramref name="node"/>.
+        ''' </param>
+        '''
+        ''' <param name="node">
+        ''' The node to remove.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The new root.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="root"/> or <paramref name="node"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function RemoveNodeKeepingDirectives(Of TRoot As SyntaxNode)(root As TRoot, node As SyntaxNode) As TRoot
+
+            If root Is Nothing Then
+                Throw New ArgumentNullException(NameOf(root))
+            End If
+            If node Is Nothing Then
+                Throw New ArgumentNullException(NameOf(node))
+            End If
+
+            Dim kept As SyntaxTriviaList = UtilCodeFix.GetDirectiveSegment(node.GetLeadingTrivia())
+            If kept.Count = 0 Then
+                Return root.RemoveNode(node, SyntaxRemoveOptions.KeepUnbalancedDirectives)
+            End If
+
+            ' The directives move to the next token (never inside the removed node), in their original order.
+            Dim annotation As New SyntaxAnnotation()
+            Dim nextToken As SyntaxToken = node.GetLastToken(includeZeroWidth:=True).GetNextToken(includeZeroWidth:=True)
+            Dim updated As TRoot = root.ReplaceSyntax(
+                {node}, Function(original As SyntaxNode, rewritten As SyntaxNode) rewritten.WithLeadingTrivia(rewritten.GetLeadingTrivia().Skip(kept.Count)).
+                                                                                   WithAdditionalAnnotations(annotation),
+                {nextToken}, Function(original As SyntaxToken, rewritten As SyntaxToken) rewritten.WithLeadingTrivia(kept.AddRange(rewritten.LeadingTrivia)),
+                Array.Empty(Of SyntaxTrivia)(), Function(original As SyntaxTrivia, rewritten As SyntaxTrivia) rewritten)
+            Return updated.RemoveNode(updated.GetAnnotatedNodes(annotation).Single(), SyntaxRemoveOptions.KeepUnbalancedDirectives)
+        End Function
+
+        ''' <summary>
         ''' Renames the parameter whose identifier is reported by a diagnostic, in the whole solution 
         ''' (references, <see langword="NameOf"/>, named arguments of callers and XML documentation included).
         ''' </summary>

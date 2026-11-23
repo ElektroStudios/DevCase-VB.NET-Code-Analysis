@@ -372,7 +372,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
-            description:="A Catch block whose only statement is 'Throw' has no effect: the exception propagates exactly as it would without it. 'Throw ex' with the caught exception is reported too: it also discards the original stack trace. Catch blocks that only rethrow are reported only when no other Catch block follows them, because otherwise they prevent a later block from handling that exception. Equivalent to SonarQube rule S2737.")
+            description:="A Catch block whose only statement is 'Throw' has no effect: the exception propagates exactly as it would without it. 'Throw ex' with the caught exception is reported too: it also discards the original stack trace. Catch blocks that only rethrow are reported only when no other Catch block follows them, because otherwise they prevent a later block from handling that exception. Catch blocks with a When filter or with conditional code (#If ... #End If) are not reported. Equivalent to SonarQube rule S2737.")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.RedundantNullCheckBeforeTypeOf"/>.
