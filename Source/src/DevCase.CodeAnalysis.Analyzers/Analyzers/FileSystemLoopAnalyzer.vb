@@ -90,7 +90,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf FileSystemLoopAnalyzer.AnalyzeForEach, SyntaxKind.ForEachBlock)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf FileSystemLoopAnalyzer.AnalyzeForEach), SyntaxKind.ForEachBlock)
         End Sub
 
 #End Region

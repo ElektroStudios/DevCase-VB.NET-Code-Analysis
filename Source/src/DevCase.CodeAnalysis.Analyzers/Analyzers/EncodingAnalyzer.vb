@@ -259,7 +259,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub
             End If
 
-            context.RegisterOperationAction(
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(
                 Sub(c As OperationAnalysisContext)
                     Dim invocation As IInvocationOperation = DirectCast(c.Operation, IInvocationOperation)
                     Dim method As IMethodSymbol = invocation.TargetMethod
@@ -267,15 +267,15 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                         Exit Sub
                     End If
                     EncodingAnalyzer.Analyze(c, method, $"{method.ContainingType.Name}.{method.Name}", encodingType)
-                End Sub, OperationKind.Invocation)
+                End Sub), OperationKind.Invocation)
 
-            context.RegisterOperationAction(
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(
                 Sub(c As OperationAnalysisContext)
                     Dim creation As IObjectCreationOperation = DirectCast(c.Operation, IObjectCreationOperation)
                     If creation.Constructor IsNot Nothing Then
                         EncodingAnalyzer.Analyze(c, creation.Constructor, $"New {creation.Constructor.ContainingType.Name}", encodingType)
                     End If
-                End Sub, OperationKind.ObjectCreation)
+                End Sub), OperationKind.ObjectCreation)
         End Sub
 
         ''' <summary>

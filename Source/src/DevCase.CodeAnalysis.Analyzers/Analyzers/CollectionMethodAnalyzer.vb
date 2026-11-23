@@ -94,7 +94,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf CollectionMethodAnalyzer.AnalyzeInvocation, SyntaxKind.InvocationExpression)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf CollectionMethodAnalyzer.AnalyzeInvocation), SyntaxKind.InvocationExpression)
         End Sub
 
 #End Region
@@ -151,8 +151,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub
             End If
 
+            ' Positional or named (Any(predicate:=...)): the fix writes it positionally, because the List method 
+            ' names its parameter differently (Exists(match), TrueForAll(match)).
             Dim argument As ArgumentSyntax = invocation.ArgumentList.Arguments(0)
-            If argument.IsNamed OrElse TypeOf argument Is OmittedArgumentSyntax Then
+            If TypeOf argument Is OmittedArgumentSyntax Then
                 Exit Sub
             End If
             Dim predicate As ExpressionSyntax = UtilAnalyzerSyntax.SkipParentheses(argument.GetExpression())

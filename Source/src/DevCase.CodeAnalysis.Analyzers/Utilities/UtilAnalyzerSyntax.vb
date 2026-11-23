@@ -690,8 +690,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Function
 
         ''' <summary>
-        ''' Determines whether a file path follows a well-known naming convention for generated source files
-        ''' (<c>*.Designer.vb</c>, <c>*.g.vb</c>, <c>*.g.i.vb</c>, <c>*.generated.vb</c>).
+        ''' Determines whether a file path is one of the files that the analyzers ignore (generated files such as 
+        ''' <c>*.Designer.vb</c>, <c>*.g.vb</c> or <c>*.generated.vb</c>, and <c>AssemblyInfo.vb</c> or <c>GlobalSuppressions.vb</c>; 
+        ''' see <see cref="UtilAnalyzerFiles.ExcludedFileNamePatterns"/>).
         ''' </summary>
         '''
         ''' <param name="filePath">
@@ -703,13 +704,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </returns>
         Friend Shared Function IsGeneratedFilePath(filePath As String) As Boolean
 
-            If String.IsNullOrEmpty(filePath) Then
-                Return False
-            End If
-
-            Dim fileName As String = IO.Path.GetFileNameWithoutExtension(filePath)
-            Dim suffixes As String() = {".designer", ".g", ".g.i", ".generated"}
-            Return Array.Exists(suffixes, Function(s As String) fileName.EndsWith(s, StringComparison.OrdinalIgnoreCase))
+            Return UtilAnalyzerFiles.IsExcludedFilePath(filePath)
         End Function
 
         ''' <summary>

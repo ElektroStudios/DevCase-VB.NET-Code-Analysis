@@ -97,8 +97,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub ' The compilation does not reference the TPL; nothing can be reported.
             End If
 
-            context.RegisterSyntaxNodeAction(
-                Sub(nodeContext As SyntaxNodeAnalysisContext) TaskResultAnalyzer.AnalyzeMemberAccess(nodeContext, taskOfT, valueTaskOfT),
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(
+                Sub(nodeContext As SyntaxNodeAnalysisContext) TaskResultAnalyzer.AnalyzeMemberAccess(nodeContext, taskOfT, valueTaskOfT)),
                 SyntaxKind.SimpleMemberAccessExpression)
         End Sub
 

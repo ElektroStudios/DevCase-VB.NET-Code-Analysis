@@ -79,7 +79,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Sub(c As CompilationStartAnalysisContext)
                     Dim monitorType As INamedTypeSymbol = c.Compilation.GetTypeByMetadataName("System.Threading.Monitor")
                     If monitorType IsNot Nothing Then
-                        c.RegisterOperationAction(Sub(o As OperationAnalysisContext) MonitorEnterAnalyzer.AnalyzeInvocation(o, monitorType),
+                        c.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(Sub(o As OperationAnalysisContext) MonitorEnterAnalyzer.AnalyzeInvocation(o, monitorType)),
                                                   OperationKind.Invocation)
                     End If
                 End Sub)

@@ -68,10 +68,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeIfBlock, SyntaxKind.MultiLineIfBlock)
-            context.RegisterSyntaxNodeAction(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeSingleLineIf, SyntaxKind.SingleLineIfStatement)
-            context.RegisterSyntaxNodeAction(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeSelectBlock, SyntaxKind.SelectBlock)
-            context.RegisterSyntaxNodeAction(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeTernary, SyntaxKind.TernaryConditionalExpression)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeIfBlock), SyntaxKind.MultiLineIfBlock)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeSingleLineIf), SyntaxKind.SingleLineIfStatement)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeSelectBlock), SyntaxKind.SelectBlock)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf AllBranchesIdenticalAnalyzer.AnalyzeTernary), SyntaxKind.TernaryConditionalExpression)
         End Sub
 
 #End Region

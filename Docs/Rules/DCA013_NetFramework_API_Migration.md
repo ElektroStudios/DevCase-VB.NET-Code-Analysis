@@ -39,6 +39,8 @@ Deliberately **not** included, because they are not exact equivalents:
 
 Every entry is verified through the semantic model (declaring type, overload and constant arguments). A usage is reported only when its statement owns its lines (only white-space or a trailing comment around it) and is not already inside an `#If` block.
 
+Arguments are matched **by parameter**, so named arguments in any order are recognized (`text.StartsWith(comparisonType:=StringComparison.Ordinal, value:="y")`, `map.Add(value:=1, key:=k)`). When the new API names its parameters differently, the new call is written with positional arguments (`BitConverter.ToString(value:=bytes)` → `Convert.ToHexString(bytes)`, whose parameter is `inArray`).
+
 ## 🔧 Code fix
 
 The whole statement is duplicated; every migratable usage of that statement is converted at once, and the most restrictive symbol is used:

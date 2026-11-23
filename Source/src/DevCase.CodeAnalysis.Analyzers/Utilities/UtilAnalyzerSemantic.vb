@@ -113,6 +113,33 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Function
 
         ''' <summary>
+        ''' Determines whether a type is marked with <see cref="System.Runtime.InteropServices.ComImportAttribute"/>.
+        ''' </summary>
+        '''
+        ''' <param name="type">
+        ''' The type to evaluate.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> if the type is a COM import (the runtime creates the COM object, and the Visual Basic compiler 
+        ''' discards the body of every member); otherwise, <see langword="False"/>.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="type"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function IsComImport(type As INamedTypeSymbol) As Boolean
+
+            If type Is Nothing Then
+                Throw New ArgumentNullException(NameOf(type))
+            End If
+
+            Return type.GetAttributes().Any(Function(a As AttributeData) a.AttributeClass IsNot Nothing AndAlso a.AttributeClass.ContainingNamespace IsNot Nothing AndAlso
+                                                                       a.AttributeClass.Name.Equals("ComImportAttribute", StringComparison.Ordinal) AndAlso
+                                                                       a.AttributeClass.ContainingNamespace.ToDisplayString().Equals("System.Runtime.InteropServices", StringComparison.Ordinal))
+        End Function
+
+        ''' <summary>
         ''' Determines whether a type is marked with the Windows Forms <c>DesignerGenerated</c> attribute.
         ''' </summary>
         '''
@@ -192,6 +219,33 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             Return type.DeclaringSyntaxReferences.Any(
                 Function(r As SyntaxReference) UtilAnalyzerSyntax.IsGeneratedFilePath(r.SyntaxTree.FilePath))
+        End Function
+
+        ''' <summary>
+        ''' Determines whether a compilation targets the .NET Framework, whose core library is <c>mscorlib</c>.
+        ''' </summary>
+        '''
+        ''' <param name="compilation">
+        ''' The compilation.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> for .NET Framework compilations; <see langword="False"/> for .NET (Core), .NET Standard 
+        ''' (<c>netstandard</c>) and compilations without a core library.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="compilation"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function IsNetFramework(compilation As Compilation) As Boolean
+
+            If compilation Is Nothing Then
+                Throw New ArgumentNullException(NameOf(compilation))
+            End If
+
+            Dim objectType As INamedTypeSymbol = compilation.GetSpecialType(SpecialType.System_Object)
+            Return objectType IsNot Nothing AndAlso objectType.ContainingAssembly IsNot Nothing AndAlso
+                   objectType.ContainingAssembly.Name.Equals("mscorlib", StringComparison.OrdinalIgnoreCase)
         End Function
 
 #End Region

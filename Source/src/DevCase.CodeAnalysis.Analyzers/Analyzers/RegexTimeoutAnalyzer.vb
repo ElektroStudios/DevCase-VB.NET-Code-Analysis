@@ -218,21 +218,21 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub ' The project does not reference System.Text.RegularExpressions.
             End If
 
-            context.RegisterOperationAction(
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(
                 Sub(c As OperationAnalysisContext)
                     Dim invocation As IInvocationOperation = DirectCast(c.Operation, IInvocationOperation)
                     If invocation.TargetMethod.IsStatic AndAlso SymbolEqualityComparer.Default.Equals(invocation.TargetMethod.ContainingType, regexType) Then
                         RegexTimeoutAnalyzer.Analyze(c, invocation.TargetMethod, invocation.Arguments, $"Regex.{invocation.TargetMethod.Name}", timeSpanType, optionsType)
                     End If
-                End Sub, OperationKind.Invocation)
+                End Sub), OperationKind.Invocation)
 
-            context.RegisterOperationAction(
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(
                 Sub(c As OperationAnalysisContext)
                     Dim creation As IObjectCreationOperation = DirectCast(c.Operation, IObjectCreationOperation)
                     If creation.Constructor IsNot Nothing AndAlso SymbolEqualityComparer.Default.Equals(creation.Constructor.ContainingType, regexType) Then
                         RegexTimeoutAnalyzer.Analyze(c, creation.Constructor, creation.Arguments, "New Regex", timeSpanType, optionsType)
                     End If
-                End Sub, OperationKind.ObjectCreation)
+                End Sub), OperationKind.ObjectCreation)
         End Sub
 
         ''' <summary>

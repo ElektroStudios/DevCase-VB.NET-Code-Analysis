@@ -79,8 +79,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' </summary>
         <Fact>
         Public Sub AnalyzerAndProviderCounts_MatchTheRuleSet()
-            Assert.Equal(53, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
-            Assert.Equal(35, DescriptorAndRegistrationTests.GetProviderTypes().Count)
+            Assert.Equal(58, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
+            Assert.Equal(40, DescriptorAndRegistrationTests.GetProviderTypes().Count)
         End Sub
 
         ''' <summary>
@@ -97,7 +97,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 Dim analyzer As DiagnosticAnalyzer = DirectCast(Activator.CreateInstance(analyzerType), DiagnosticAnalyzer)
                 Dim descriptor As DiagnosticDescriptor = Assert.Single(analyzer.SupportedDiagnostics)
                 Assert.True(ids.Add(descriptor.Id), $"Duplicated id {descriptor.Id}")
-                Assert.Matches("^DCA0(0[1-9]|[1-4][0-9]|5[0-3])$", descriptor.Id)
+                Assert.Matches("^DCA0(0[1-9]|[1-4][0-9]|5[0-8])$", descriptor.Id)
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Title.ToString()))
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Description.ToString()))
                 Assert.True(descriptor.IsEnabledByDefault)
@@ -109,12 +109,14 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' </summary>
         <Fact>
         Public Sub Severities_MatchTheSpecification()
-            Dim errors As String() = {DiagnosticIds.MissingConfigureAwait, DiagnosticIds.TaskResultAccess, DiagnosticIds.SilentGuardClause, DiagnosticIds.RegexWithoutTimeout}
+            Dim errors As String() = {DiagnosticIds.MissingConfigureAwait, DiagnosticIds.TaskResultAccess, DiagnosticIds.RegexWithoutTimeout}
             Dim infos As String() = {DiagnosticIds.ThrowHelperMigration, DiagnosticIds.NetFrameworkApiMigration, DiagnosticIds.ArrayCreationInsteadOfLiteral,
                                      DiagnosticIds.ArrayRankOnVariable, DiagnosticIds.GoToStatement, DiagnosticIds.DuplicateBranch,
                                      DiagnosticIds.DateTimeNowForTiming, DiagnosticIds.ThrowInPropertyGetter,
                                      DiagnosticIds.SingleCharacterString, DiagnosticIds.UnvalidatedParameter,
-                                     DiagnosticIds.MisusedSenderParameter, DiagnosticIds.MethodCallWithoutParentheses}
+                                     DiagnosticIds.MisusedSenderParameter, DiagnosticIds.MethodCallWithoutParentheses,
+                                     DiagnosticIds.ZeroLengthArrayAllocation, DiagnosticIds.AnyInsteadOfEmptinessCheck,
+                                     DiagnosticIds.CollectionNameOnEnumerableParameter, DiagnosticIds.StringBuilderArgumentConvertedToString}
             For Each analyzerType As Type In DescriptorAndRegistrationTests.GetAnalyzerTypes()
                 Dim analyzer As DiagnosticAnalyzer = DirectCast(Activator.CreateInstance(analyzerType), DiagnosticAnalyzer)
                 Dim descriptor As DiagnosticDescriptor = analyzer.SupportedDiagnostics(0)
@@ -212,8 +214,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 {DevCaseDescriptors.SingleCharacterString, {"""&""c", "String.Join"}},
                 {DevCaseDescriptors.UnvalidatedParameter, {"directory", "UtilPaths.ContainsDirectory"}},
                 {DevCaseDescriptors.DiscardedAwaiter, {"GetAwaiter"}},
-                {DevCaseDescriptors.MisusedSenderParameter, {"UtilDrawing.ToPen", "brush"}},
-                {DevCaseDescriptors.MethodCallWithoutParentheses, {"ToArray"}}}
+                {DevCaseDescriptors.MisusedSenderParameter, {"UtilDrawing.ToPen", " to 'source'"}},
+                {DevCaseDescriptors.MethodCallWithoutParentheses, {"ToArray"}},
+                {DevCaseDescriptors.ComImportClassCode, {"Sub New", "ProgressDialog"}},
+                {DevCaseDescriptors.ZeroLengthArrayAllocation, {"String"}},
+                {DevCaseDescriptors.AnyInsteadOfEmptinessCheck, {"Count", "Queue(Of Integer)"}},
+                {DevCaseDescriptors.CollectionNameOnEnumerableParameter, {"collection", "UtilCollections.AddRange", " to 'sequence'"}},
+                {DevCaseDescriptors.StringBuilderArgumentConvertedToString, {"Append", "Char, Integer"}}}
 
             For Each pair As KeyValuePair(Of DiagnosticDescriptor, Object()) In samples
                 Dim message As String = Diagnostic.Create(pair.Key, Location.None, pair.Value).GetMessage(Globalization.CultureInfo.InvariantCulture)

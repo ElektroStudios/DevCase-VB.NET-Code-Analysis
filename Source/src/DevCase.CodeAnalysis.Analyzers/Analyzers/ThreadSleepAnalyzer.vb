@@ -82,7 +82,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Sub(c As CompilationStartAnalysisContext)
                     Dim threadType As INamedTypeSymbol = c.Compilation.GetTypeByMetadataName("System.Threading.Thread")
                     If threadType IsNot Nothing Then
-                        c.RegisterOperationAction(Sub(o As OperationAnalysisContext) ThreadSleepAnalyzer.AnalyzeInvocation(o, threadType),
+                        c.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(Sub(o As OperationAnalysisContext) ThreadSleepAnalyzer.AnalyzeInvocation(o, threadType)),
                                                   OperationKind.Invocation)
                     End If
                 End Sub)

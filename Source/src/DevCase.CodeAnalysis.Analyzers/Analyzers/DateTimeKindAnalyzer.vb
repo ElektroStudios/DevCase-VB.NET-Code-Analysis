@@ -77,7 +77,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterOperationAction(AddressOf DateTimeKindAnalyzer.AnalyzeObjectCreation, OperationKind.ObjectCreation)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf DateTimeKindAnalyzer.AnalyzeObjectCreation), OperationKind.ObjectCreation)
         End Sub
 
 #End Region

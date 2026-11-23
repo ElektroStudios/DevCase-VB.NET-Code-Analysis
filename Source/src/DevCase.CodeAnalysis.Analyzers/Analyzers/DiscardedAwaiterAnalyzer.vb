@@ -80,7 +80,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterOperationAction(AddressOf DiscardedAwaiterAnalyzer.AnalyzeExpressionStatement, OperationKind.ExpressionStatement)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf DiscardedAwaiterAnalyzer.AnalyzeExpressionStatement), OperationKind.ExpressionStatement)
         End Sub
 
 #End Region

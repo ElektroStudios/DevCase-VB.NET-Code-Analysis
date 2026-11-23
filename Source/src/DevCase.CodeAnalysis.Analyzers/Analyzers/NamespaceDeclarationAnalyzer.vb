@@ -70,7 +70,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSymbolAction(AddressOf NamespaceDeclarationAnalyzer.AnalyzeNamedType, SymbolKind.NamedType)
+            context.RegisterSymbolAction(UtilAnalyzerFiles.SkipExcludedSymbols(AddressOf NamespaceDeclarationAnalyzer.AnalyzeNamedType), SymbolKind.NamedType)
         End Sub
 
 #End Region

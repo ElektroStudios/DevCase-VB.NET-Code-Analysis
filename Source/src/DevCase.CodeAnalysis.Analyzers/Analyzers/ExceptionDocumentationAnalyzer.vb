@@ -91,7 +91,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf ExceptionDocumentationAnalyzer.AnalyzeMember,
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ExceptionDocumentationAnalyzer.AnalyzeMember),
                                              SyntaxKind.SubBlock, SyntaxKind.FunctionBlock, SyntaxKind.ConstructorBlock,
                                              SyntaxKind.OperatorBlock, SyntaxKind.PropertyBlock, SyntaxKind.EventBlock)
         End Sub

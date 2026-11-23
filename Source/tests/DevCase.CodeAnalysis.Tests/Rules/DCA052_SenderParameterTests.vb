@@ -8,6 +8,8 @@ Option Infer Off
 
 #Region " Imports "
 
+Imports System.Collections.Generic
+Imports System.Linq
 Imports System.Threading.Tasks
 
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
@@ -55,13 +57,17 @@ Public Class HTMLDocument
 End Class
 Public Structure Point
 End Structure
+Public Class Holder
+    Public Property Value As Integer
+End Class
 "
 
 
         ''' <summary>
-        ''' The names expected for the parameters of <see cref="Reports_SenderOutsideEventHandlers"/>, in source order.
+        ''' The names expected for the parameters of <see cref="Reports_SenderOutsideEventHandlers"/>, in source order
+        ''' (an empty string when every candidate name is used and the parameter is reported without a code fix).
         ''' </summary>
-        Private Shared ReadOnly ExpectedNames As String() = {"brush", "address", "points", "value", "document", "brush2"}
+        Private Shared ReadOnly ExpectedNames As String() = {"source", "source", "source", "source", "source", "value", "value", "input", "value", ""}
 
 #End Region
 
@@ -87,7 +93,7 @@ End Structure
         ''' </returns>
         <Fact>
         Public Async Function Reports_SenderOutsideEventHandlers() As Task
-            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, $"{Declarations}
+            Dim source As String = $"{Declarations}
 Public Class C
     Public Function ToPen([|sender|] As SolidBrush) As Pen
         Return New Pen(sender.Color)
@@ -100,32 +106,59 @@ Public Class C
     End Sub
     Public Sub Parse([|Sender|] As HTMLDocument)
     End Sub
-    Public Sub Merge([|sender|] As SolidBrush, brush As SolidBrush)
+    Public Sub Merge([|sender|] As SolidBrush, source As SolidBrush)
+    End Sub
+    Public Function Source([|sender|] As Holder) As Integer
+        Return sender.Value
+    End Function
+    Public Sub Fill([|sender|] As Holder)
+        Dim source As New Holder()
+        Dim value As Integer = sender.Value
+        source.Value = value
+    End Sub
+    Public Sub Copy([|sender|] As Holder, target As Holder)
+        Dim source As Holder = target
+        source.Value = sender.Value
+    End Sub
+    Public Sub Busy([|sender|] As SolidBrush, source As Integer, value As Integer, input As Integer, instance As Integer, item As Integer)
+    End Sub
+End Class
+"
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, source).ConfigureAwait(True)
+
+            Dim project As Microsoft.CodeAnalysis.Project = AnalyzerTestHost.CreateProject(source.Replace("[|", String.Empty, StringComparison.Ordinal).Replace("|]", String.Empty, StringComparison.Ordinal))
+            Dim diagnostics As List(Of Microsoft.CodeAnalysis.Diagnostic) =
+                (Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True)).
+                OrderBy(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.Location.SourceSpan.Start).ToList()
+            Dim names As IEnumerable(Of String) = diagnostics.Select(
+                Function(d As Microsoft.CodeAnalysis.Diagnostic)
+                    Dim name As String = Nothing
+                    Return If(d.Properties.TryGetValue(SenderParameterAnalyzer.NewNamePropertyKey, name), name, String.Empty)
+                End Function)
+            Assert.Equal(ExpectedNames, names, StringComparer.Ordinal)
+
+            Dim messages As List(Of String) = diagnostics.Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).ToList()
+            Assert.Equal("Parameter 'sender' of 'C.ToPen' is not the sender of an event; rename it to 'source'", messages(0))
+            Assert.Equal("Parameter 'sender' of 'C.Busy' is not the sender of an event; rename it", messages(messages.Count - 1))
+        End Function
+
+        ''' <summary>
+        ''' Verifies that no code fix is offered when every candidate name is already used in the method 
+        ''' (no generated names such as <c>source2</c>).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Fix_NotOfferedWhenEveryNameIsUsed() As Task
+            Dim actions As List(Of Microsoft.CodeAnalysis.CodeActions.CodeAction) = Await AnalyzerTestHost.GetRegisteredActionsAsync(Analyzer, Provider, $"{Declarations}
+Public Class C
+    Public Sub Busy(sender As SolidBrush, source As Integer, value As Integer, input As Integer, instance As Integer, item As Integer)
     End Sub
 End Class
 ").ConfigureAwait(True)
-
-            Dim project As Microsoft.CodeAnalysis.Project = AnalyzerTestHost.CreateProject($"{Declarations}
-Public Class C
-    Public Function ToPen(sender As SolidBrush) As Pen
-        Return New Pen(sender.Color)
-    End Function
-    Public Sub Send(sender As IMailAddress)
-    End Sub
-    Public Sub Draw(sender As Point())
-    End Sub
-    Public Sub Show(sender As String)
-    End Sub
-    Public Sub Parse(sender As HTMLDocument)
-    End Sub
-    Public Sub Merge(sender As SolidBrush, brush As SolidBrush)
-    End Sub
-End Class
-")
-            Dim names As IEnumerable(Of String) = (Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, Analyzer).ConfigureAwait(True)).
-                OrderBy(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.Location.SourceSpan.Start).
-                Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.Properties(SenderParameterAnalyzer.NewNamePropertyKey))
-            Assert.Equal(ExpectedNames, names, StringComparer.Ordinal)
+            Assert.Empty(actions)
         End Function
 
         ''' <summary>
@@ -196,16 +229,16 @@ End Class
 ", $"{Declarations}
 Public Class C
     ''' <summary>Converts a brush.</summary>
-    ''' <param name=""brush"">The brush.</param>
-    ''' <returns>A pen with the color of <paramref name=""brush""/>.</returns>
-    Public Function ToPen(brush As SolidBrush) As Pen
-        If brush Is Nothing Then
-            Throw New ArgumentNullException(NameOf(brush))
+    ''' <param name=""source"">The brush.</param>
+    ''' <returns>A pen with the color of <paramref name=""source""/>.</returns>
+    Public Function ToPen(source As SolidBrush) As Pen
+        If source Is Nothing Then
+            Throw New ArgumentNullException(NameOf(source))
         End If
-        Return New Pen(brush.Color)
+        Return New Pen(source.Color)
     End Function
     Public Function Use() As Pen
-        Return Me.ToPen(brush:=New SolidBrush())
+        Return Me.ToPen(source:=New SolidBrush())
     End Function
 End Class
 ").ConfigureAwait(True)

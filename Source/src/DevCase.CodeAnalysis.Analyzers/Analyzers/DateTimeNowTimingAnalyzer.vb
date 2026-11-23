@@ -68,8 +68,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterOperationAction(AddressOf DateTimeNowTimingAnalyzer.AnalyzeBinary, OperationKind.Binary)
-            context.RegisterOperationAction(AddressOf DateTimeNowTimingAnalyzer.AnalyzeInvocation, OperationKind.Invocation)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf DateTimeNowTimingAnalyzer.AnalyzeBinary), OperationKind.Binary)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf DateTimeNowTimingAnalyzer.AnalyzeInvocation), OperationKind.Invocation)
         End Sub
 
 #End Region

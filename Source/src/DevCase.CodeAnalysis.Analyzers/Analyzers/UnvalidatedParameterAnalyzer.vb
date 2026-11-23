@@ -114,6 +114,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Friend Const ArgumentExceptionPropertyKey As String = "ArgumentException"
 
+        ''' <summary>
+        ''' The nullable state "not null" of the <c>NullableAttribute</c> and <c>NullableContextAttribute</c> emitted by compilers.
+        ''' </summary>
+        Private Const NotNullState As Byte = 1
+
 #End Region
 
 #Region " Fields "
@@ -144,6 +149,15 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             "System.Diagnostics.Debug.Write", "System.Diagnostics.Debug.WriteLine", "System.Diagnostics.Debug.WriteIf", "System.Diagnostics.Debug.WriteLineIf",
             "System.Diagnostics.Debug.Print", "System.Diagnostics.Trace.Write", "System.Diagnostics.Trace.WriteLine", "System.Diagnostics.Trace.WriteIf",
             "System.Diagnostics.Trace.WriteLineIf", "Microsoft.VisualBasic.Information.IsNothing")
+
+        ''' <summary>
+        ''' Framework properties (<c>Namespace.Type.Property</c>) whose setter rejects <see langword="Nothing"/>, 
+        ''' for .NET Framework assemblies, which have no nullable annotations.
+        ''' </summary>
+        Private Shared ReadOnly NullRejectingSetters As ImmutableHashSet(Of String) = ImmutableHashSet.Create(StringComparer.Ordinal,
+            "System.Threading.Thread.CurrentCulture", "System.Threading.Thread.CurrentUICulture",
+            "System.Globalization.CultureInfo.CurrentCulture", "System.Globalization.CultureInfo.CurrentUICulture",
+            "System.Console.Title", "System.Environment.CurrentDirectory")
 
         ''' <summary>
         ''' Framework types whose methods all accept <see langword="Nothing"/> arguments (Visual Basic string functions treat it as an empty string).
@@ -185,7 +199,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf UnvalidatedParameterAnalyzer.AnalyzeMethod,
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf UnvalidatedParameterAnalyzer.AnalyzeMethod),
                                              SyntaxKind.SubBlock, SyntaxKind.FunctionBlock, SyntaxKind.ConstructorBlock)
         End Sub
 
@@ -574,7 +588,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
         ''' <summary>
         ''' Determines whether a use of a reference parameter consumes it, so that <see langword="Nothing"/> makes it fail: 
-        ''' a member access or invocation on it, an argument of a method or constructor, the collection of a <see langword="For Each"/>, 
+        ''' a member access or invocation on it, an argument of a method or constructor, the value assigned to a framework property 
+        ''' whose setter rejects <see langword="Nothing"/> (see <see cref="RejectsNothingInSetter"/>), the collection of a <see langword="For Each"/>, 
         ''' the lock of a <see langword="SyncLock"/>, or the operand of <see langword="Await"/>.
         ''' </summary>
         ''' 
@@ -611,10 +626,174 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                     Return isCallArgument AndAlso Not UnvalidatedParameterAnalyzer.AcceptsNothing(parent, context)
                 Case TypeOf parent Is ForEachStatementSyntax
                     Return DirectCast(parent, ForEachStatementSyntax).Expression Is use
+                Case TypeOf parent Is AssignmentStatementSyntax, TypeOf parent Is NamedFieldInitializerSyntax
+                    ' Assigned to a framework property whose setter rejects Nothing (Thread.CurrentThread.CurrentCulture = culture).
+                    Dim [property] As IPropertySymbol = UnvalidatedParameterAnalyzer.GetAssignedProperty(use, context)
+                    Return [property] IsNot Nothing AndAlso UnvalidatedParameterAnalyzer.RejectsNothingInSetter([property])
                 Case Else
                     Return TypeOf parent Is SyncLockStatementSyntax OrElse TypeOf parent Is AwaitExpressionSyntax
             End Select
         End Function
+
+        ''' <summary>
+        ''' Gets the property assigned with a use of a parameter: <c>target.Property = parameter</c>, or 
+        ''' <c>New T With {.Property = parameter}</c>.
+        ''' </summary>
+        ''' 
+        ''' <param name="use">
+        ''' The identifier that refers to the parameter.
+        ''' </param>
+        ''' 
+        ''' <param name="context">
+        ''' The syntax node analysis context.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' The assigned property, or <see langword="Nothing"/> when the parameter is not the value assigned to a property.
+        ''' </returns>
+        Private Shared Function GetAssignedProperty(use As IdentifierNameSyntax, context As SyntaxNodeAnalysisContext) As IPropertySymbol
+
+            Dim parent As SyntaxNode = use.Parent
+            Dim target As ExpressionSyntax = Nothing
+            If parent.IsKind(SyntaxKind.SimpleAssignmentStatement) AndAlso DirectCast(parent, AssignmentStatementSyntax).Right Is use Then
+                target = DirectCast(parent, AssignmentStatementSyntax).Left
+            ElseIf TypeOf parent Is NamedFieldInitializerSyntax AndAlso DirectCast(parent, NamedFieldInitializerSyntax).Expression Is use Then
+                target = DirectCast(parent, NamedFieldInitializerSyntax).Name
+            End If
+            Return If(target Is Nothing, Nothing, TryCast(context.SemanticModel.GetSymbolInfo(target, context.CancellationToken).Symbol, IPropertySymbol))
+        End Function
+
+        ''' <summary>
+        ''' Determines whether the setter of a framework property rejects <see langword="Nothing"/>.
+        ''' </summary>
+        ''' 
+        ''' <param name="property">
+        ''' The assigned property.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> when the property is declared in a referenced assembly, is not indexed, and its setter 
+        ''' rejects <see langword="Nothing"/>; otherwise, <see langword="False"/>.
+        ''' </returns>
+        ''' 
+        ''' <remarks>
+        ''' A setter rejects <see langword="Nothing"/> when the property is listed in <see cref="NullRejectingSetters"/> 
+        ''' (.NET Framework assemblies have no nullable annotations), or when, on modern .NET, its nullable annotation is 
+        ''' "not null" and neither the property nor the value of its setter has the <c>AllowNull</c> attribute 
+        ''' (<c>Thread.CurrentCulture</c> rejects <see langword="Nothing"/>; <c>TextWriter.NewLine</c>, <c>Exception.HelpLink</c> accept it). 
+        ''' Properties without nullable information (most of Windows Forms on .NET Framework, such as <c>Control.Text</c>) 
+        ''' are not considered to reject <see langword="Nothing"/>. Properties declared in source are not analyzed: 
+        ''' assigning them only stores the value.
+        ''' </remarks>
+        Private Shared Function RejectsNothingInSetter([property] As IPropertySymbol) As Boolean
+
+            If [property].SetMethod Is Nothing OrElse [property].IsIndexer OrElse [property].Parameters.Length <> 0 OrElse
+               Not [property].Locations.All(Function(l As Location) l.IsInMetadata) Then
+                Return False
+            End If
+
+            Dim type As INamedTypeSymbol = [property].ContainingType.OriginalDefinition
+            If UnvalidatedParameterAnalyzer.NullRejectingSetters.Contains($"{type.ContainingNamespace.ToDisplayString()}.{type.MetadataName}.{[property].Name}") Then
+                Return True
+            End If
+
+            Dim allowsNull As Boolean = UnvalidatedParameterAnalyzer.HasAttribute([property], "AllowNullAttribute") OrElse
+                                        ([property].SetMethod.Parameters.Length > 0 AndAlso
+                                         UnvalidatedParameterAnalyzer.HasAttribute([property].SetMethod.Parameters(0), "AllowNullAttribute"))
+            Return Not allowsNull AndAlso UnvalidatedParameterAnalyzer.GetNullableState([property]) = UnvalidatedParameterAnalyzer.NotNullState
+        End Function
+
+        ''' <summary>
+        ''' Gets the nullable state that a referenced assembly declares for a property, from its <c>NullableAttribute</c> 
+        ''' or the nearest <c>NullableContextAttribute</c> (setter, property, containing types).
+        ''' </summary>
+        ''' 
+        ''' <param name="property">
+        ''' The property.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' 0 (no information), 1 (not null) or 2 (nullable).
+        ''' </returns>
+        Private Shared Function GetNullableState([property] As IPropertySymbol) As Byte
+
+            Dim own As Byte? = UnvalidatedParameterAnalyzer.GetFirstByte([property], "NullableAttribute")
+            If own.HasValue Then
+                Return own.Value
+            End If
+
+            Dim owners As New List(Of ISymbol) From {[property].SetMethod, [property]}
+            Dim type As INamedTypeSymbol = [property].ContainingType
+            While type IsNot Nothing
+                owners.Add(type)
+                type = type.ContainingType
+            End While
+
+            For Each owner As ISymbol In owners
+                Dim context As Byte? = UnvalidatedParameterAnalyzer.GetFirstByte(owner, "NullableContextAttribute")
+                If context.HasValue Then
+                    Return context.Value
+                End If
+            Next owner
+            Return 0
+        End Function
+
+        ''' <summary>
+        ''' Gets the first byte of a <c>System.Runtime.CompilerServices</c> nullable attribute of a symbol 
+        ''' (its constructor takes a <see cref="Byte"/> or a <see cref="Byte"/> array).
+        ''' </summary>
+        ''' 
+        ''' <param name="symbol">
+        ''' The symbol.
+        ''' </param>
+        ''' 
+        ''' <param name="attributeName">
+        ''' <c>NullableAttribute</c> or <c>NullableContextAttribute</c>.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' The first byte, or <see langword="Nothing"/> if the symbol has no such attribute.
+        ''' </returns>
+        Private Shared Function GetFirstByte(symbol As ISymbol, attributeName As String) As Byte?
+
+            For Each attribute As AttributeData In symbol.GetAttributes()
+                If attribute.AttributeClass Is Nothing OrElse Not attribute.AttributeClass.Name.Equals(attributeName, StringComparison.Ordinal) OrElse
+                   attribute.ConstructorArguments.Length <> 1 Then
+                    Continue For
+                End If
+
+                Dim argument As TypedConstant = attribute.ConstructorArguments(0)
+                Dim value As Object = If(argument.Kind = TypedConstantKind.Array,
+                                         If(argument.Values.IsDefaultOrEmpty, Nothing, argument.Values(0).Value),
+                                         argument.Value)
+                If TypeOf value Is Byte Then
+                    Return DirectCast(value, Byte)
+                End If
+            Next attribute
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' Determines whether a symbol has an attribute with the specified name.
+        ''' </summary>
+        ''' 
+        ''' <param name="symbol">
+        ''' The symbol.
+        ''' </param>
+        ''' 
+        ''' <param name="attributeName">
+        ''' The attribute class name, with the <c>Attribute</c> suffix.
+        ''' </param>
+        ''' 
+        ''' <returns>
+        ''' <see langword="True"/> if the symbol has the attribute; otherwise, <see langword="False"/>.
+        ''' </returns>
+        Private Shared Function HasAttribute(symbol As ISymbol, attributeName As String) As Boolean
+
+            Return symbol.GetAttributes().Any(Function(a As AttributeData) a.AttributeClass IsNot Nothing AndAlso
+                                                                         a.AttributeClass.Name.Equals(attributeName, StringComparison.Ordinal))
+        End Function
+
 
         ''' <summary>
         ''' Determines whether the parameter that receives an argument accepts <see langword="Nothing"/> (see <see cref="IsConsumed"/>).
@@ -658,7 +837,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Function
 
         ''' <summary>
-        ''' Determines whether a parameter is passed, as a positional argument, to a method declared in the same compilation 
+        ''' Determines whether a parameter is passed, as a positional or named argument, to a method declared in the same compilation 
         ''' that validates the corresponding parameter (for example, a private helper that throws <see cref="ArgumentNullException"/>).
         ''' </summary>
         ''' 
@@ -681,16 +860,24 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Private Shared Function IsValidatedByCallee(use As IdentifierNameSyntax, context As SyntaxNodeAnalysisContext) As Boolean
 
             Dim argument As SimpleArgumentSyntax = TryCast(use.Parent, SimpleArgumentSyntax)
-            Dim list As ArgumentListSyntax = If(argument Is Nothing OrElse argument.IsNamed, Nothing, TryCast(argument.Parent, ArgumentListSyntax))
+            Dim list As ArgumentListSyntax = If(argument Is Nothing, Nothing, TryCast(argument.Parent, ArgumentListSyntax))
             Dim invocation As InvocationExpressionSyntax = If(list Is Nothing, Nothing, TryCast(list.Parent, InvocationExpressionSyntax))
             Dim callee As IMethodSymbol = If(invocation Is Nothing, Nothing,
                                              TryCast(context.SemanticModel.GetSymbolInfo(invocation, context.CancellationToken).Symbol, IMethodSymbol))
-            Dim index As Integer = If(list Is Nothing, -1, list.Arguments.IndexOf(argument))
-            If callee Is Nothing OrElse index < 0 OrElse index >= callee.Parameters.Length OrElse callee.Parameters(index).IsParams Then
+            If callee Is Nothing Then
                 Return False
             End If
 
-            Dim name As String = callee.Parameters(index).Name
+            ' The receiving parameter: by name for a named argument (Helper(key:=key)), by position otherwise.
+            Dim index As Integer = list.Arguments.IndexOf(argument)
+            Dim receiving As IParameterSymbol = If(argument.IsNamed,
+                callee.Parameters.FirstOrDefault(Function(p As IParameterSymbol) p.Name.Equals(argument.NameColonEquals.Name.Identifier.ValueText, StringComparison.OrdinalIgnoreCase)),
+                If(index >= 0 AndAlso index < callee.Parameters.Length, callee.Parameters(index), Nothing))
+            If receiving Is Nothing OrElse receiving.IsParams Then
+                Return False
+            End If
+
+            Dim name As String = receiving.Name
             Dim definition As IMethodSymbol = If(callee.ReducedFrom, callee).OriginalDefinition
             For Each reference As SyntaxReference In definition.DeclaringSyntaxReferences
                 Dim block As MethodBlockBaseSyntax = reference.GetSyntax(context.CancellationToken).FirstAncestorOrSelf(Of MethodBlockBaseSyntax)()

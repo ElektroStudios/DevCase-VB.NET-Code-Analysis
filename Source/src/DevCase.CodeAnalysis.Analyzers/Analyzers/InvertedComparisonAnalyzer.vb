@@ -72,7 +72,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterOperationAction(AddressOf InvertedComparisonAnalyzer.AnalyzeUnary, OperationKind.UnaryOperator)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf InvertedComparisonAnalyzer.AnalyzeUnary), OperationKind.UnaryOperator)
         End Sub
 
 #End Region

@@ -32,7 +32,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
     ''' is exactly the created array type: the initializer of a variable, field or property declared with <c>As</c>, the right side of an 
     ''' assignment, or the <see langword="Return"/> statement of a method (not of a lambda, whose return type may be inferred). 
     ''' Arguments are not reported (an array literal may select another overload), and neither are expressions with bounds 
-    ''' (<c>New Integer(9) {}</c>), multidimensional or jagged arrays.
+    ''' (<c>New Integer(9) {}</c>), multidimensional or jagged arrays, nor empty arrays (<c>New Integer() {}</c>), which should not be 
+    ''' allocated at all (<c>Array.Empty(Of Integer)()</c>, rule <see cref="DiagnosticIds.ZeroLengthArrayAllocation"/>).
     ''' </remarks>
     <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Public NotInheritable Class ArrayLiteralAnalyzer : Inherits DiagnosticAnalyzer
@@ -69,7 +70,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf ArrayLiteralAnalyzer.AnalyzeArrayCreation, SyntaxKind.ArrayCreationExpression)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ArrayLiteralAnalyzer.AnalyzeArrayCreation), SyntaxKind.ArrayCreationExpression)
         End Sub
 
 #End Region
@@ -86,9 +87,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Private Shared Sub AnalyzeArrayCreation(context As SyntaxNodeAnalysisContext)
 
             Dim creation As ArrayCreationExpressionSyntax = DirectCast(context.Node, ArrayCreationExpressionSyntax)
+            ' An empty array (New Integer() {}) is not reported: it must not be allocated at all (Array.Empty, rule DCA055 or CA1825).
             If creation.ArrayBounds IsNot Nothing OrElse creation.RankSpecifiers.Count <> 1 OrElse creation.RankSpecifiers(0).Rank <> 1 OrElse
                creation.AttributeLists.Count > 0 OrElse TypeOf creation.Type Is ArrayTypeSyntax OrElse
-               Not ArrayLiteralAnalyzer.IsTargetTyped(creation) Then
+               creation.Initializer.Initializers.Count = 0 OrElse Not ArrayLiteralAnalyzer.IsTargetTyped(creation) Then
                 Exit Sub
             End If
 

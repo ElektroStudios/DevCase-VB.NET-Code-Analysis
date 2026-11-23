@@ -68,7 +68,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf ArrayRankOnNameAnalyzer.AnalyzeIdentifier, SyntaxKind.ModifiedIdentifier)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ArrayRankOnNameAnalyzer.AnalyzeIdentifier), SyntaxKind.ModifiedIdentifier)
         End Sub
 
 #End Region

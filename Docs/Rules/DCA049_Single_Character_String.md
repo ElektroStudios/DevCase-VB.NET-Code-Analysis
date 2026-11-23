@@ -29,7 +29,7 @@ Only methods whose `Char` overload produces **exactly the same result** are anal
 | `sb.AppendJoin(",", ...)` | ➖ (no method) | ✔️ |
 | `writer.Write("x")`, `writer.WriteLine("x")` (`TextWriter`, `StreamWriter`, `StringWriter`...), `Console.Write("x")`, `Console.WriteLine("x")` | ✔️ | ✔️ |
 
-Before reporting, the call is bound again with the character literals, to be certain that it compiles and calls the `Char` overload of the same method.
+Before reporting, the call is bound again with the character literals, to be certain that it compiles and calls the `Char` overload of the same method. Named arguments are supported: `String.Join(separator:=",", value:=parts)` → `String.Join(separator:=","c, value:=parts)` (the `Char` overloads use the same parameter names).
 
 Not reported:
 
@@ -41,7 +41,6 @@ Not reported:
 | Format strings: `Console.WriteLine("x", value)`, `sb.AppendFormat("x", value)` | There is no `Char` overload with arguments |
 | Strings with zero or several characters (`""`, `", "`) | They are not a single character |
 | Constants and variables (`String.Join(Separator, parts)`) | Only literals can be rewritten without changing their declaration |
-| Named arguments (`String.Join(separator:=",", ...)`) | Kept as written |
 | Control characters and surrogates | They cannot be written as a readable character literal |
 
 ## ❌ Non-compliant

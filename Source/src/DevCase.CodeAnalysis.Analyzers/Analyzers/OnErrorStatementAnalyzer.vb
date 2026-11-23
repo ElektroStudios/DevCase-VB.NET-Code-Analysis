@@ -60,7 +60,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf OnErrorStatementAnalyzer.AnalyzeOnError,
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf OnErrorStatementAnalyzer.AnalyzeOnError),
                                              SyntaxKind.OnErrorGoToLabelStatement, SyntaxKind.OnErrorGoToZeroStatement,
                                              SyntaxKind.OnErrorGoToMinusOneStatement, SyntaxKind.OnErrorResumeNextStatement)
         End Sub

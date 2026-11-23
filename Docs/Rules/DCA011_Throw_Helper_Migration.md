@@ -15,7 +15,16 @@ When a library targets .NET Framework today but will be multi-targeted or migrat
 
 ## 🔎 Detection
 
-Only guards whose exception receives **exactly** `NameOf(parameter)` are converted (a custom message or a different parameter name would be lost):
+The exception must name the parameter of the guard. Its arguments are matched **by parameter**, so positional and named arguments (`paramName:=NameOf(p)`, in any order) are treated alike:
+
+| Exception argument | Accepted |
+|---|---|
+| `paramName` | `NameOf(p)`, or the literal `"p"` with exactly the parameter name (the helper sets `ParamName` to it) |
+| `message` | Yes: the helper writes its own message (see the note below) |
+| `actualValue` (`ArgumentOutOfRangeException`) | Only when it is the parameter itself: the helper reports that value |
+| `innerException` or anything else | No: the helper cannot reproduce it |
+
+The condition can also use a named argument (`String.IsNullOrEmpty(value:=p)`, `IsNothing(Expression:=p)`).
 
 | Guard | Throw helper |
 |---|---|
@@ -24,15 +33,42 @@ Only guards whose exception receives **exactly** `NameOf(parameter)` are convert
 | `If String.IsNullOrWhiteSpace(p) Then Throw New ArgumentNullException(NameOf(p))` | `ArgumentException.ThrowIfNullOrWhiteSpace(p)` |
 | `If p < 0 Then Throw New ArgumentOutOfRangeException(NameOf(p))` | `ArgumentOutOfRangeException.ThrowIfNegative(p)` |
 | `p <= 0` / `p = 0` | `ThrowIfNegativeOrZero(p)` / `ThrowIfZero(p)` |
-| `p < x`, `p <= x`, `p > x`, `p >= x`, `p = x`, `p <> x` | `ThrowIfLessThan(p, x)`, ..., `ThrowIfNotEqual(p, x)` |
+| `p < x`, `p <= x`, `p > x`, `p >= x`, `p = x`, `p <> x` (`x` can be an expression: `If count > sourceCount - startIndex Then ...`) | `ThrowIfLessThan(p, x)`, ..., `ThrowIfNotEqual(p, x)` (`ThrowIfGreaterThan(count, sourceCount - startIndex)`) |
 
 Consecutive guards form a single run (one diagnostic, one block).
+
+> [!NOTE]
+> A **custom message** is kept in the `#Else` branch (.NET Framework) and replaced by the standard message of the helper in the `#If NETCOREAPP` branch (*"Value cannot be null. (Parameter 'icon')"*). The exception type and its `ParamName` stay the same. For `ThrowIfNullOrEmpty` and `ThrowIfNullOrWhiteSpace` the helper throws `ArgumentNullException` for `Nothing` and `ArgumentException` (its base class) for an empty or white-space string.
+
+For example, a guard with a custom message:
+
+```vb
+If String.IsNullOrEmpty(cultureName) Then
+    Throw New ArgumentNullException(NameOf(cultureName), $"The {NameOf(cultureName)} cannot be null or empty.")
+End If
+```
+
+becomes (the throw helpers have no `message` parameter, so the message can only live in the `#Else` branch):
+
+```vb
+#If NETCOREAPP Then
+ArgumentException.ThrowIfNullOrEmpty(cultureName)
+#Else
+If String.IsNullOrEmpty(cultureName) Then
+    Throw New ArgumentNullException(NameOf(cultureName), $"The {NameOf(cultureName)} cannot be null or empty.")
+End If
+#End If
+```
+
+> [!TIP]
+> **The rule does not appear in Visual Studio?** It runs only in **.NET Framework** projects. A file that belongs to several projects (a linked file, or a multi-targeted project such as `net48;net8.0`) is analyzed with the project selected in the **project context** drop-down list, at the top left of the code editor: select the .NET Framework project there.
 
 ## ✔️ Not reported
 
 ```vb
-If arg1 Is Nothing Then Throw New ArgumentNullException("test")              ' Not NameOf(parameter).
-If value Is Nothing Then Throw New ArgumentNullException(NameOf(value), "Custom message.")
+If arg1 Is Nothing Then Throw New ArgumentNullException("test")              ' Not the name of the parameter.
+If value Is Nothing Then Throw New ArgumentNullException("Missing.", inner)   ' (message, innerException): no parameter name.
+If count < 0 Then Throw New ArgumentOutOfRangeException(NameOf(count), count \ 2, "Negative.") ' Another actual value.
 If name = Nothing Then Throw New ArgumentNullException(NameOf(name))         ' Also true for "" (not ThrowIfNull).
 If value Is Nothing Then Throw New ArgumentException(NameOf(value))          ' Wrong exception type.
 If arg2 < 1 Then Throw New ArgumentNullException(NameOf(arg2))               ' Range check with ArgumentNullException.

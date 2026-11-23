@@ -130,7 +130,9 @@ Public Class C
     Private field As Object
     Public Sub Run(name As String, value As Object, other As Object, ByRef output As Object, count As Integer)
         If name = Nothing Then Throw New ArgumentNullException(NameOf(name))
-        If value Is Nothing Then Throw New ArgumentNullException(NameOf(value), ""Custom message."")
+        If value Is Nothing Then Throw New ArgumentNullException(""Custom message."", New InvalidOperationException())
+        If value Is Nothing Then Throw New ArgumentNullException(""Value"")
+        If count < 0 Then Throw New ArgumentOutOfRangeException(NameOf(count), count \ 2, ""Negative."")
         If value Is Nothing Then Throw New ArgumentNullException(NameOf(other))
         If value Is Nothing Then Throw New ArgumentException(NameOf(value))
         If Me.field Is Nothing Then Throw New ArgumentNullException(NameOf(value))
@@ -183,6 +185,112 @@ Public Class C
 #End If
 
         Return True
+    End Function
+End Class
+", targetNetFramework:=True).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA011 converts the guards whose exception uses named arguments 
+        ''' (<c>paramName:=</c>, in any order), a custom message, a literal parameter name or the parameter as actual value, 
+        ''' and whose condition uses a named argument (<c>String.IsNullOrEmpty(value:=p)</c>).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Fix_NamedArgumentsAndCustomMessages() As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
+Public Class C
+    Public Sub Run(icon As String, command As String, value As Object, text As String, count As Integer)
+        If String.IsNullOrEmpty(icon) Then
+            Throw New ArgumentNullException(NameOf(icon), $""The {NameOf(icon)} cannot be null or empty."")
+        End If
+        If String.IsNullOrWhiteSpace(command) Then
+            Throw New ArgumentNullException(paramName:=NameOf(command))
+        End If
+        If value Is Nothing Then Throw New ArgumentNullException(message:=""Missing."", paramName:=NameOf(value))
+        If String.IsNullOrEmpty(value:=text) Then Throw New ArgumentNullException(""text"")
+        If count < 0 Then Throw New ArgumentOutOfRangeException(NameOf(count), count, ""Negative."")
+        Console.WriteLine(count)
+    End Sub
+End Class
+", "
+Public Class C
+    Public Sub Run(icon As String, command As String, value As Object, text As String, count As Integer)
+#If NETCOREAPP Then
+        ArgumentException.ThrowIfNullOrEmpty(icon)
+        ArgumentException.ThrowIfNullOrWhiteSpace(command)
+        ArgumentNullException.ThrowIfNull(value)
+        ArgumentException.ThrowIfNullOrEmpty(text)
+        ArgumentOutOfRangeException.ThrowIfNegative(count)
+#Else
+        If String.IsNullOrEmpty(icon) Then
+            Throw New ArgumentNullException(NameOf(icon), $""The {NameOf(icon)} cannot be null or empty."")
+        End If
+        If String.IsNullOrWhiteSpace(command) Then
+            Throw New ArgumentNullException(paramName:=NameOf(command))
+        End If
+        If value Is Nothing Then Throw New ArgumentNullException(message:=""Missing."", paramName:=NameOf(value))
+        If String.IsNullOrEmpty(value:=text) Then Throw New ArgumentNullException(""text"")
+        If count < 0 Then Throw New ArgumentOutOfRangeException(NameOf(count), count, ""Negative."")
+#End If
+        Console.WriteLine(count)
+    End Sub
+End Class
+", targetNetFramework:=True).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA011 converts the two reported guards: a custom message built with 
+        ''' <see langword="NameOf"/> (kept in the .NET Framework branch), and a range check against an expression of other 
+        ''' variables (<c>count &gt; sourceCount - startIndex</c> → <c>ThrowIfGreaterThan(count, sourceCount - startIndex)</c>).
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Fix_ReportedGuards_CustomMessageAndRangeExpression() As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
+Public Class C
+    Public Shared Sub SetCulture(cultureName As String)
+        If String.IsNullOrEmpty(cultureName) Then
+            Throw New ArgumentNullException(NameOf(cultureName), $""The {NameOf(cultureName)} cannot be null or empty."")
+        End If
+        Console.WriteLine(cultureName)
+    End Sub
+    Public Shared Function Take(source As String(), startIndex As Integer, count As Integer) As Integer
+        Dim sourceCount As Integer = source.Length
+        If count > sourceCount - startIndex Then
+            Throw New ArgumentOutOfRangeException(NameOf(count))
+        End If
+        Return count
+    End Function
+End Class
+", "
+Public Class C
+    Public Shared Sub SetCulture(cultureName As String)
+#If NETCOREAPP Then
+        ArgumentException.ThrowIfNullOrEmpty(cultureName)
+#Else
+        If String.IsNullOrEmpty(cultureName) Then
+            Throw New ArgumentNullException(NameOf(cultureName), $""The {NameOf(cultureName)} cannot be null or empty."")
+        End If
+#End If
+        Console.WriteLine(cultureName)
+    End Sub
+    Public Shared Function Take(source As String(), startIndex As Integer, count As Integer) As Integer
+        Dim sourceCount As Integer = source.Length
+#If NETCOREAPP Then
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, sourceCount - startIndex)
+#Else
+        If count > sourceCount - startIndex Then
+            Throw New ArgumentOutOfRangeException(NameOf(count))
+        End If
+#End If
+        Return count
     End Function
 End Class
 ", targetNetFramework:=True).ConfigureAwait(True)

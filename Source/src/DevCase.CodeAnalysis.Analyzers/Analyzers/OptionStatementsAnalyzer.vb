@@ -86,7 +86,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxTreeAction(AddressOf OptionStatementsAnalyzer.AnalyzeTree)
+            context.RegisterSyntaxTreeAction(UtilAnalyzerFiles.SkipExcludedTrees(AddressOf OptionStatementsAnalyzer.AnalyzeTree))
         End Sub
 
 #End Region

@@ -32,6 +32,7 @@ Not reported:
 | `Return` inside a lambda | The return type of the lambda may be inferred from the expression |
 | Declarations without `As` (`Option Infer On`) | The literal would infer another element type (`New Long() {1}` → `Integer()`) |
 | Bounds (`New Integer(9) {}`), multidimensional and jagged arrays | They cannot be written as a simple literal |
+| Empty arrays (`New Integer() {}`) | An empty array should not be allocated at all: `Array.Empty(Of Integer)()` (rule [DCA055](DCA055_Zero_Length_Array_Allocation.md) on .NET Framework, CA1825 on modern .NET) |
 
 ## ❌ Non-compliant
 

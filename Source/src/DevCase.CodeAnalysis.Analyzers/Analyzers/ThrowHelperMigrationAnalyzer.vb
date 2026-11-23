@@ -95,7 +95,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub ' Modern .NET: the built-in CA1510-CA1513 rules already cover this.
             End If
 
-            context.RegisterSyntaxNodeAction(AddressOf ThrowHelperMigrationAnalyzer.AnalyzeIf,
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ThrowHelperMigrationAnalyzer.AnalyzeIf),
                                              SyntaxKind.MultiLineIfBlock, SyntaxKind.SingleLineIfStatement)
         End Sub
 

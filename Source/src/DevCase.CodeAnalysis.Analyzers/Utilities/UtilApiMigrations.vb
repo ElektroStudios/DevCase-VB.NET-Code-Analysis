@@ -346,6 +346,51 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Function
 
         ''' <summary>
+        ''' Gets the argument that a parameter receives, whether it is positional or named (<c>value:=x</c>).
+        ''' </summary>
+        '''
+        ''' <param name="argumentList">
+        ''' The argument list of the call.
+        ''' </param>
+        '''
+        ''' <param name="parameter">
+        ''' The parameter of the called method (its <see cref="IParameterSymbol.Ordinal"/> is the position of a positional argument).
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The argument, or <see langword="Nothing"/> when the parameter receives no argument (an omitted optional argument).
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="argumentList"/> or <paramref name="parameter"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function GetArgument(argumentList As ArgumentListSyntax, parameter As IParameterSymbol) As SimpleArgumentSyntax
+
+            If argumentList Is Nothing Then
+                Throw New ArgumentNullException(NameOf(argumentList))
+            End If
+            If parameter Is Nothing Then
+                Throw New ArgumentNullException(NameOf(parameter))
+            End If
+
+            ' Named arguments can appear in any order; a positional argument is at the position of its parameter 
+            ' (Visual Basic does not allow a positional argument out of its position, even after named ones).
+            For index As Integer = 0 To argumentList.Arguments.Count - 1
+                Dim argument As SimpleArgumentSyntax = TryCast(argumentList.Arguments(index), SimpleArgumentSyntax)
+                If argument Is Nothing Then
+                    Continue For
+                End If
+                Dim matches As Boolean = If(argument.IsNamed,
+                                            argument.NameColonEquals.Name.Identifier.ValueText.Equals(parameter.Name, StringComparison.OrdinalIgnoreCase),
+                                            index = parameter.Ordinal)
+                If matches Then
+                    Return argument
+                End If
+            Next index
+            Return Nothing
+        End Function
+
+        ''' <summary>
         ''' Gets the single character of a one-character string literal argument.
         ''' </summary>
         '''
@@ -359,7 +404,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Friend Shared Function GetCharLiteral(argument As ArgumentSyntax) As String
 
             Dim simple As SimpleArgumentSyntax = TryCast(argument, SimpleArgumentSyntax)
-            If simple Is Nothing OrElse simple.IsNamed OrElse Not simple.Expression.IsKind(SyntaxKind.StringLiteralExpression) Then
+            If simple Is Nothing OrElse Not simple.Expression.IsKind(SyntaxKind.StringLiteralExpression) Then
                 Return Nothing
             End If
 
@@ -403,10 +448,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             End If
 
             Dim arguments As SeparatedSyntaxList(Of ArgumentSyntax) = invocation.ArgumentList.Arguments
-            If arguments.Count = 0 Then
-                Return Nothing
-            End If
-            Dim charLiteral As String = UtilApiMigrations.GetCharLiteral(arguments(0))
+            Dim valueArgument As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(invocation.ArgumentList, method.Parameters(0))
+            Dim charLiteral As String = UtilApiMigrations.GetCharLiteral(valueArgument)
             If charLiteral Is Nothing Then
                 Return Nothing
             End If
@@ -414,7 +457,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             Select Case method.Name
                 Case NameOf(String.Contains)
                     If Not method.IsStatic AndAlso method.Parameters.Length = 1 Then
-                        Return New ApiMigration(DirectCast(arguments(0), SimpleArgumentSyntax).Expression, charLiteral, UtilApiMigrations.NetCoreCondition,
+                        ' Only the expression is replaced: a named argument keeps its name, which Contains(Char) also uses ("value").
+                        Return New ApiMigration(valueArgument.Expression, charLiteral, UtilApiMigrations.NetCoreCondition,
                                                 "String.Contains(String)", "String.Contains(Char)")
                     End If
 
@@ -422,7 +466,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                     ' Only the ordinal overload is equivalent (StartsWith(String) is culture-sensitive, StartsWith(Char) is ordinal).
                     If Not method.IsStatic AndAlso method.Parameters.Length = 2 AndAlso arguments.Count = 2 AndAlso
                        method.Parameters(1).Type.ToDisplayString().Equals("System.StringComparison", StringComparison.Ordinal) Then
-                        Dim comparison As SimpleArgumentSyntax = TryCast(arguments(1), SimpleArgumentSyntax)
+                        Dim comparison As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(invocation.ArgumentList, method.Parameters(1))
                         Dim constant As [Optional](Of Object) = If(comparison Is Nothing, Nothing, semanticModel.GetConstantValue(comparison.Expression, cancellationToken))
                         If constant.HasValue AndAlso TypeOf constant.Value Is Integer AndAlso DirectCast(constant.Value, Integer) = UtilApiMigrations.OrdinalComparisonValue Then
                             Return New ApiMigration(invocation.ArgumentList, $"({charLiteral})", UtilApiMigrations.NetCoreCondition,
@@ -460,8 +504,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Return Nothing
             End If
 
-            Dim first As SimpleArgumentSyntax = TryCast(invocation.ArgumentList.Arguments(0), SimpleArgumentSyntax)
-            If first Is Nothing OrElse first.IsNamed Then
+            ' The separator, positional or named ("separator", the same name in the String overload).
+            Dim first As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(invocation.ArgumentList, method.Parameters(0))
+            If first Is Nothing Then
                 Return Nothing
             End If
 
@@ -511,8 +556,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Return Nothing
             End If
 
-            Dim oldValue As [Optional](Of Object) = semanticModel.GetConstantValue(DirectCast(invocation.ArgumentList.Arguments(0), SimpleArgumentSyntax).Expression, cancellationToken)
-            Dim newValueExpression As ExpressionSyntax = DirectCast(invocation.ArgumentList.Arguments(1), SimpleArgumentSyntax).Expression
+            Dim oldArgument As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(invocation.ArgumentList, method.Parameters(0))
+            Dim newArgument As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(invocation.ArgumentList, method.Parameters(1))
+            If oldArgument Is Nothing OrElse newArgument Is Nothing Then
+                Return Nothing
+            End If
+            Dim oldValue As [Optional](Of Object) = semanticModel.GetConstantValue(oldArgument.Expression, cancellationToken)
+            Dim newValueExpression As ExpressionSyntax = newArgument.Expression
             Dim newValue As [Optional](Of Object) = semanticModel.GetConstantValue(newValueExpression, cancellationToken)
             Dim emptyField As IFieldSymbol = TryCast(semanticModel.GetSymbolInfo(newValueExpression, cancellationToken).Symbol, IFieldSymbol)
             Dim newIsEmpty As Boolean = (newValue.HasValue AndAlso String.Empty.Equals(newValue.Value)) OrElse
@@ -525,11 +575,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             Dim memberAccess As MemberAccessExpressionSyntax = TryCast(invocation.Expression, MemberAccessExpressionSyntax)
             Dim inner As InvocationExpressionSyntax = If(memberAccess Is Nothing, Nothing, TryCast(memberAccess.Expression, InvocationExpressionSyntax))
             Dim innerMethod As IMethodSymbol = If(inner Is Nothing, Nothing, TryCast(semanticModel.GetSymbolInfo(inner, cancellationToken).Symbol, IMethodSymbol))
-            Return If(innerMethod Is Nothing OrElse Not innerMethod.Name.Equals("ToString", StringComparison.Ordinal) OrElse
-               Not innerMethod.ContainingType.ToDisplayString().Equals("System.BitConverter", StringComparison.Ordinal) OrElse
-               innerMethod.Parameters.Length <> 1 OrElse inner.ArgumentList.Arguments.Count <> 1,
+            Dim bytes As SimpleArgumentSyntax = If(innerMethod Is Nothing OrElse innerMethod.Parameters.Length <> 1 OrElse inner.ArgumentList Is Nothing, Nothing,
+                                                   UtilApiMigrations.GetArgument(inner.ArgumentList, innerMethod.Parameters(0)))
+            ' Only the expression is written: ToHexString names its parameter "inArray", BitConverter.ToString "value".
+            Return If(bytes Is Nothing OrElse Not innerMethod.Name.Equals("ToString", StringComparison.Ordinal) OrElse
+               Not innerMethod.ContainingType.ToDisplayString().Equals("System.BitConverter", StringComparison.Ordinal),
                 Nothing,
-                New ApiMigration(invocation, $"Convert.ToHexString({inner.ArgumentList.Arguments(0).WithoutTrivia()})", UtilApiMigrations.Net5Condition,
+                New ApiMigration(invocation, $"Convert.ToHexString({bytes.Expression.WithoutTrivia()})", UtilApiMigrations.Net5Condition,
                                     "BitConverter.ToString(Byte()).Replace(""-"", """")", "Convert.ToHexString(Byte())"))
         End Function
 
@@ -731,13 +783,21 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Return Nothing
             End If
 
+            ' The arguments by parameter (positional or named, in any order).
+            Dim containsKey As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(containsCall.ArgumentList, containsMethod.Parameters(0))
+            Dim addKey As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(addCall.ArgumentList, addMethod.Parameters(0))
+            Dim addValue As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(addCall.ArgumentList, addMethod.Parameters(1))
+            If containsKey Is Nothing OrElse addKey Is Nothing OrElse addValue Is Nothing Then
+                Return Nothing
+            End If
+
             ' Same dictionary and same key, compared textually (no guessing about side effects).
             Dim receiver As String = containsAccess.Expression.WithoutTrivia().ToString()
-            Dim key As String = containsCall.ArgumentList.Arguments(0).WithoutTrivia().ToString()
+            Dim key As String = containsKey.Expression.WithoutTrivia().ToString()
             Return If(Not receiver.Equals(addAccess.Expression.WithoutTrivia().ToString(), StringComparison.Ordinal) OrElse
-               Not key.Equals(addCall.ArgumentList.Arguments(0).WithoutTrivia().ToString(), StringComparison.Ordinal),
+               Not key.Equals(addKey.Expression.WithoutTrivia().ToString(), StringComparison.Ordinal),
                 Nothing,
-                New ApiMigration(ifNode, $"{receiver}.TryAdd({key}, {addCall.ArgumentList.Arguments(1).WithoutTrivia()})", UtilApiMigrations.NetCoreCondition,
+                New ApiMigration(ifNode, $"{receiver}.TryAdd({key}, {addValue.Expression.WithoutTrivia()})", UtilApiMigrations.NetCoreCondition,
                                     "If Not Dictionary.ContainsKey(...) Then Dictionary.Add(...)", "Dictionary.TryAdd(...)"))
         End Function
 
@@ -766,11 +826,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             Dim method As IMethodSymbol = If(invocation Is Nothing, Nothing, TryCast(semanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol, IMethodSymbol))
             If method Is Nothing OrElse Not method.Name.Equals("Parse", StringComparison.Ordinal) OrElse
                method.ContainingType.SpecialType <> SpecialType.System_Enum OrElse method.IsGenericMethod OrElse
-               invocation.ArgumentList.Arguments.Count < 2 Then
+               invocation.ArgumentList Is Nothing OrElse invocation.ArgumentList.Arguments.Count < 2 Then
                 Return Nothing
             End If
 
-            Dim typeArgument As SimpleArgumentSyntax = TryCast(invocation.ArgumentList.Arguments(0), SimpleArgumentSyntax)
+            Dim typeArgument As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(invocation.ArgumentList, method.Parameters(0))
             Dim getTypeExpression As GetTypeExpressionSyntax = If(typeArgument Is Nothing, Nothing, TryCast(typeArgument.Expression, GetTypeExpressionSyntax))
             If getTypeExpression Is Nothing Then
                 Return Nothing
@@ -782,7 +842,16 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Return Nothing
             End If
 
-            Dim remaining As String = String.Join(", ", invocation.ArgumentList.Arguments.Skip(1).Select(Function(a As ArgumentSyntax) a.WithoutTrivia().ToString()))
+            ' The other arguments, in parameter order and positional (named arguments may come in any order).
+            Dim others As New List(Of String)()
+            For Each parameter As IParameterSymbol In method.Parameters.Skip(1)
+                Dim argument As SimpleArgumentSyntax = UtilApiMigrations.GetArgument(invocation.ArgumentList, parameter)
+                If argument Is Nothing Then
+                    Return Nothing
+                End If
+                others.Add(argument.Expression.WithoutTrivia().ToString())
+            Next parameter
+            Dim remaining As String = String.Join(", ", others)
             Return New ApiMigration(cast, $"[Enum].Parse(Of {getTypeExpression.Type.WithoutTrivia()})({remaining})", UtilApiMigrations.NetCoreCondition,
                                     "[Enum].Parse(Type, String)", "[Enum].Parse(Of TEnum)(String)")
         End Function

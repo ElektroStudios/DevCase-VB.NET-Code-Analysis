@@ -127,7 +127,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
                 Dim predicate As String = invocation.ArgumentList.Arguments(0).GetExpression().WithoutTrivia().ToFullString()
                 newExpression = SyntaxFactory.ParseExpression($"{arrayName}.{replacement}({receiver}, {predicate})")
             Else
-                newExpression = invocation.WithExpression(access.WithName(SyntaxFactory.IdentifierName(replacement).WithTriviaFrom(access.Name)))
+                ' The predicate is written positionally: List(Of T).Exists and TrueForAll name their parameter "match", 
+                ' while Enumerable.Any and All name it "predicate" (Any(predicate:=f) → Exists(f)).
+                Dim argument As ArgumentSyntax = invocation.ArgumentList.Arguments(0)
+                Dim positional As ArgumentSyntax = SyntaxFactory.SimpleArgument(argument.GetExpression()).WithTriviaFrom(argument)
+                newExpression = invocation.WithExpression(access.WithName(SyntaxFactory.IdentifierName(replacement).WithTriviaFrom(access.Name))).
+                    WithArgumentList(invocation.ArgumentList.WithArguments(invocation.ArgumentList.Arguments.Replace(argument, positional)))
             End If
 
             Return document.WithSyntaxRoot(root.ReplaceNode(invocation, newExpression.WithTriviaFrom(invocation)))

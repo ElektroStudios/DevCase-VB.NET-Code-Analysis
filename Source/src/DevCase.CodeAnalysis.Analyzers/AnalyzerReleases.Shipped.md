@@ -88,3 +88,21 @@ Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 DCA052 | Naming | Info | SenderParameterAnalyzer
 DCA053 | Style | Info | MethodCallParenthesesAnalyzer
+
+## Release 1.0.5
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+DCA054 | Reliability | Warning | ComImportClassCodeAnalyzer
+DCA055 | Performance | Info | ZeroLengthArrayAnalyzer
+DCA056 | Performance | Info | AnyInsteadOfEmptinessCheckAnalyzer
+DCA057 | Naming | Info | EnumerableParameterNameAnalyzer
+DCA058 | Performance | Info | StringBuilderOverloadAnalyzer
+
+### Changed Rules
+
+Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
+--------|--------------|--------------|--------------|--------------|-------
+DCA003 | Reliability | Warning | Reliability | Error | SilentGuardClauseAnalyzer

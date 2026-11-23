@@ -19,6 +19,7 @@ An implicit constructor is always `Public`. Declaring it explicitly makes its ac
 | `Module`, `Structure` | Not classes / no instance constructor to declare. |
 | `Partial` class whose constructor is in another file | Resolved through the type symbol. |
 | Classes marked `<DesignerGenerated>` (Windows Forms) | The compiler synthesizes a constructor that calls `InitializeComponent`; an empty explicit constructor would leave the form blank. |
+| Classes marked `<ComImport>` (COM coclasses such as `ProgressDialog`) | The runtime creates the COM object, and the compiler discards the body of any constructor: an explicit `Sub New` would be dead code. Rule [DCA054](DCA054_Code_In_ComImport_Class.md) reports code in those classes. |
 | A class that only declares `Shared Sub New` | Still reported: that is not an instance constructor. |
 
 Partial classes are reported once, on their first non-generated declaration.

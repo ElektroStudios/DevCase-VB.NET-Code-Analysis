@@ -68,7 +68,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf RedundantNullCheckAnalyzer.AnalyzeLogical, SyntaxKind.AndAlsoExpression, SyntaxKind.OrElseExpression)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf RedundantNullCheckAnalyzer.AnalyzeLogical), SyntaxKind.AndAlsoExpression, SyntaxKind.OrElseExpression)
         End Sub
 
 #End Region
@@ -170,7 +170,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                     method.Name.Equals("IsNothing", StringComparison.Ordinal) AndAlso
                     method.ContainingType.ToDisplayString().Equals("Microsoft.VisualBasic.Information", StringComparison.Ordinal) AndAlso
                     invocation.ArgumentList IsNot Nothing AndAlso invocation.ArgumentList.Arguments.Count = 1 AndAlso
-                    Not invocation.ArgumentList.Arguments(0).IsNamed
+                    TypeOf invocation.ArgumentList.Arguments(0) Is SimpleArgumentSyntax ' Positional or named (Expression:=x).
                 If isIsNothingCall Then
                     target = UtilAnalyzerSyntax.SkipParentheses(invocation.ArgumentList.Arguments(0).GetExpression())
                 End If

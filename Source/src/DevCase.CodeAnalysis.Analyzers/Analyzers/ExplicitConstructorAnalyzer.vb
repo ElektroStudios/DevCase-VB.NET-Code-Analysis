@@ -70,7 +70,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSymbolAction(AddressOf ExplicitConstructorAnalyzer.AnalyzeNamedType, SymbolKind.NamedType)
+            context.RegisterSymbolAction(UtilAnalyzerFiles.SkipExcludedSymbols(AddressOf ExplicitConstructorAnalyzer.AnalyzeNamedType), SymbolKind.NamedType)
         End Sub
 
 #End Region
@@ -95,7 +95,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub
             End If
 
-            If UtilAnalyzerSemantic.IsDesignerGenerated(type) Then
+            ' <ComImport> classes: the Visual Basic compiler discards the body of every member and the runtime creates the COM object, 
+            ' so an explicit constructor would be dead code (rule DCA054 reports code in those classes).
+            If UtilAnalyzerSemantic.IsDesignerGenerated(type) OrElse UtilAnalyzerSemantic.IsComImport(type) Then
                 Exit Sub
             End If
 

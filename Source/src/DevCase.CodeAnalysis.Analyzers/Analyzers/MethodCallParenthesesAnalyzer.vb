@@ -68,7 +68,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterOperationAction(AddressOf MethodCallParenthesesAnalyzer.AnalyzeInvocation, OperationKind.Invocation)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf MethodCallParenthesesAnalyzer.AnalyzeInvocation), OperationKind.Invocation)
         End Sub
 
 #End Region

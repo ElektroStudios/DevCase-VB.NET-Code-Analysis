@@ -103,7 +103,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterOperationAction(AddressOf SingleCharacterStringAnalyzer.AnalyzeInvocation, OperationKind.Invocation)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf SingleCharacterStringAnalyzer.AnalyzeInvocation), OperationKind.Invocation)
         End Sub
 
 #End Region
@@ -185,7 +185,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             Dim speculative As IMethodSymbol = TryCast(invocation.SemanticModel.GetSpeculativeSymbolInfo(syntax.SpanStart, replaced,
                                                                                                          SpeculativeBindingOption.BindAsExpression).Symbol, IMethodSymbol)
-            If Not SingleCharacterStringAnalyzer.IsEquivalentCharOverload(method, speculative, indexes) Then
+            Dim replacedArguments As List(Of SimpleArgumentSyntax) = indexes.ConvertAll(Function(i As Integer) DirectCast(syntax.ArgumentList.Arguments(i), SimpleArgumentSyntax))
+            If Not SingleCharacterStringAnalyzer.IsEquivalentCharOverload(method, speculative, replacedArguments, syntax.ArgumentList) Then
                 Exit Sub
             End If
 
@@ -231,16 +232,21 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' The method called with character literals, or <see langword="Nothing"/> if the call does not bind.
         ''' </param>
         '''
-        ''' <param name="indexes">
-        ''' The indexes of the replaced arguments.
+        ''' <param name="replacedArguments">
+        ''' The replaced arguments, positional or named.
+        ''' </param>
+        '''
+        ''' <param name="argumentList">
+        ''' The argument list of the call.
         ''' </param>
         '''
         ''' <returns>
         ''' <see langword="True"/> when the speculative method has the same name, is declared by the same type or a base type,
-        ''' and receives <see cref="Char"/> values at the replaced positions (or, for <c>String.Join</c> on .NET Framework,
+        ''' and receives <see cref="Char"/> values for the replaced arguments (or, for <c>String.Join</c> on .NET Framework,
         ''' is the same method); otherwise, <see langword="False"/>.
         ''' </returns>
-        Private Shared Function IsEquivalentCharOverload(original As IMethodSymbol, speculative As IMethodSymbol, indexes As List(Of Integer)) As Boolean
+        Private Shared Function IsEquivalentCharOverload(original As IMethodSymbol, speculative As IMethodSymbol,
+                                                         replacedArguments As List(Of SimpleArgumentSyntax), argumentList As ArgumentListSyntax) As Boolean
 
             If speculative Is Nothing OrElse Not speculative.Name.Equals(original.Name, StringComparison.Ordinal) Then
                 Return False
@@ -257,9 +263,14 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             ' String.Join on .NET Framework: the literal is widened to the same constant string, for the same overload.
             Return If(SymbolEqualityComparer.Default.Equals(speculative.OriginalDefinition, original.OriginalDefinition),
                       SingleCharacterStringAnalyzer.GetQualifiedName(original).Equals("System.String.Join", StringComparison.Ordinal),
-                      indexes.TrueForAll(
-                Function(index As Integer)
-                    Dim parameter As IParameterSymbol = If(index < speculative.Parameters.Length, speculative.Parameters(index), speculative.Parameters.LastOrDefault())
+                      replacedArguments.TrueForAll(
+                Function(argument As SimpleArgumentSyntax)
+                    ' A named argument by its name (String.Join(separator:=","c, ...)); a positional one by its position 
+                    ' (the last parameter for the extra elements of a ParamArray).
+                    Dim index As Integer = argumentList.Arguments.IndexOf(argument)
+                    Dim parameter As IParameterSymbol = If(argument.IsNamed,
+                        speculative.Parameters.FirstOrDefault(Function(p As IParameterSymbol) p.Name.Equals(argument.NameColonEquals.Name.Identifier.ValueText, StringComparison.OrdinalIgnoreCase)),
+                        If(index < speculative.Parameters.Length, speculative.Parameters(index), speculative.Parameters.LastOrDefault()))
                     Dim arrayType As IArrayTypeSymbol = TryCast(parameter?.Type, IArrayTypeSymbol)
                     Return parameter IsNot Nothing AndAlso
                            (parameter.Type.SpecialType = SpecialType.System_Char OrElse

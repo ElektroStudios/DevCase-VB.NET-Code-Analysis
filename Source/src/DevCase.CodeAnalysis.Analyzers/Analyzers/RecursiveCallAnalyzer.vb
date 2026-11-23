@@ -68,7 +68,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf RecursiveCallAnalyzer.AnalyzeName, SyntaxKind.IdentifierName, SyntaxKind.GenericName)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf RecursiveCallAnalyzer.AnalyzeName), SyntaxKind.IdentifierName, SyntaxKind.GenericName)
         End Sub
 
 #End Region

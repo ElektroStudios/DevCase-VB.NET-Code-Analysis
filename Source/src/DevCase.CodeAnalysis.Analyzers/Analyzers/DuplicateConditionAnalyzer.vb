@@ -68,8 +68,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf DuplicateConditionAnalyzer.AnalyzeIfBlock, SyntaxKind.MultiLineIfBlock)
-            context.RegisterSyntaxNodeAction(AddressOf DuplicateConditionAnalyzer.AnalyzeSelectBlock, SyntaxKind.SelectBlock)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf DuplicateConditionAnalyzer.AnalyzeIfBlock), SyntaxKind.MultiLineIfBlock)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf DuplicateConditionAnalyzer.AnalyzeSelectBlock), SyntaxKind.SelectBlock)
         End Sub
 
 #End Region

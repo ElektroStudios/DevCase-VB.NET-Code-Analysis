@@ -130,6 +130,48 @@ End Class
         End Function
 
         ''' <summary>
+        ''' Verifies that rule DCA050 reports a parameter assigned to a framework property whose setter rejects <see langword="Nothing"/> 
+        ''' (the reported <c>SetCurrentCulture</c> example, and <c>Console.Title</c>), and not a parameter assigned to a property declared 
+        ''' in source or to a framework property that accepts <see langword="Nothing"/> (<c>[AllowNull]</c>, nullable, or without information).
+        ''' </summary>
+        '''
+        ''' <param name="targetNetFramework">
+        ''' <see langword="True"/> to compile against .NET Framework 4.8.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData(False)>
+        <InlineData(True)>
+        Public Async Function Reports_AssignmentToNullRejectingFrameworkProperty(targetNetFramework As Boolean) As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Imports System.Globalization
+Imports System.Threading
+Public NotInheritable Class UtilCulture
+    Public Shared Sub SetCurrentCulture([|ci|] As CultureInfo)
+
+        Thread.CurrentThread.CurrentCulture = ci
+        Thread.CurrentThread.CurrentUICulture = ci
+    End Sub
+    Public Shared Sub SetTitle([|title|] As String)
+        Console.Title = title
+    End Sub
+    Public Shared Sub Configure([|writer|] As IO.TextWriter, newLine As String, [|ex|] As Exception, link As String, [|holder|] As Holder, value As Object)
+        writer.NewLine = newLine
+        ex.HelpLink = link
+        holder.Value = value
+        Dim other As New Holder With {.Value = value}
+    End Sub
+End Class
+Public NotInheritable Class Holder
+    Public Property Value As Object
+End Class
+", targetNetFramework:=targetNetFramework).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
         ''' Verifies that rule DCA050 does not report validated, optional, ByRef, ParamArray, value-type, nullable, Flags,
         ''' unused or event parameters, nor parameters of non-visible methods, event handlers, comparison methods, entry points,
         ''' constructors that pass the parameter to MyBase.New, and methods that only throw.

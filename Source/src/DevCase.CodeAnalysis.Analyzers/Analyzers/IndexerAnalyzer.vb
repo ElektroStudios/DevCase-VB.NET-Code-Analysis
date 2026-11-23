@@ -84,7 +84,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf IndexerAnalyzer.AnalyzeInvocation, SyntaxKind.InvocationExpression)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf IndexerAnalyzer.AnalyzeInvocation), SyntaxKind.InvocationExpression)
         End Sub
 
 #End Region
@@ -149,8 +149,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                         Exit Sub
                     End If
                 Case "ElementAt"
-                    If argumentCount <> 1 OrElse invocation.ArgumentList.Arguments(0).IsNamed OrElse
-                       TypeOf invocation.ArgumentList.Arguments(0) Is OmittedArgumentSyntax Then
+                    ' Positional or named (ElementAt(index:=0)): the fix writes the index positionally.
+                    If argumentCount <> 1 OrElse TypeOf invocation.ArgumentList.Arguments(0) Is OmittedArgumentSyntax Then
                         Exit Sub
                     End If
                 Case Else

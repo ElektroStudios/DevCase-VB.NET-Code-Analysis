@@ -87,7 +87,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf XmlParameterDocumentationAnalyzer.AnalyzeDeclaration,
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf XmlParameterDocumentationAnalyzer.AnalyzeDeclaration),
                                              SyntaxKind.SubStatement, SyntaxKind.FunctionStatement, SyntaxKind.SubNewStatement,
                                              SyntaxKind.OperatorStatement, SyntaxKind.PropertyStatement, SyntaxKind.EventStatement,
                                              SyntaxKind.DelegateSubStatement, SyntaxKind.DelegateFunctionStatement,

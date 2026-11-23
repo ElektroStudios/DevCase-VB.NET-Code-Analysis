@@ -79,7 +79,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf LockOnWeakIdentityAnalyzer.AnalyzeSyncLock, SyntaxKind.SyncLockStatement)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf LockOnWeakIdentityAnalyzer.AnalyzeSyncLock), SyntaxKind.SyncLockStatement)
         End Sub
 
 #End Region

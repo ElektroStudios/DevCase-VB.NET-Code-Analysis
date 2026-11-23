@@ -85,7 +85,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub ' Modern .NET: the built-in CA rules already suggest these APIs.
             End If
 
-            context.RegisterSyntaxNodeAction(AddressOf NetFrameworkApiMigrationAnalyzer.AnalyzeNode,
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf NetFrameworkApiMigrationAnalyzer.AnalyzeNode),
                                              SyntaxKind.InvocationExpression, SyntaxKind.SimpleMemberAccessExpression,
                                              SyntaxKind.DirectCastExpression, SyntaxKind.CTypeExpression,
                                              SyntaxKind.MultiLineIfBlock, SyntaxKind.SingleLineIfStatement,

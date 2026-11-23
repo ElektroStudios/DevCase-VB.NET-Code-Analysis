@@ -282,6 +282,31 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Const MethodCallWithoutParentheses As String = "DCA053"
 
+        ''' <summary>
+        ''' The identifier of the rule: Code in a ComImport class never runs.
+        ''' </summary>
+        Public Const ComImportClassCode As String = "DCA054"
+
+        ''' <summary>
+        ''' The identifier of the rule: Zero-length array allocation (.NET Framework).
+        ''' </summary>
+        Public Const ZeroLengthArrayAllocation As String = "DCA055"
+
+        ''' <summary>
+        ''' The identifier of the rule: Enumerable.Any() instead of IsEmpty, Count or Length (.NET Framework).
+        ''' </summary>
+        Public Const AnyInsteadOfEmptinessCheck As String = "DCA056"
+
+        ''' <summary>
+        ''' The identifier of the rule: IEnumerable parameter named as a collection.
+        ''' </summary>
+        Public Const CollectionNameOnEnumerableParameter As String = "DCA057"
+
+        ''' <summary>
+        ''' The identifier of the rule: StringBuilder argument converted to a string (.NET Framework).
+        ''' </summary>
+        Public Const StringBuilderArgumentConvertedToString As String = "DCA058"
+
 #End Region
 
 #Region " Constructors "

@@ -53,7 +53,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
 #Region " Test Methods "
 
         ''' <summary>
-        ''' Verifies that rule DCA030 reports array creations whose target type is the same array type, and skips arguments, conversions, bounds and lambdas.
+        ''' Verifies that rule DCA030 reports array creations whose target type is the same array type, and skips arguments, conversions, bounds, empty arrays and lambdas.
         ''' </summary>
         '''
         ''' <returns>
@@ -66,7 +66,7 @@ Public Class C
     Private ReadOnly names As String() = [|New String()|] {""a"", ""b""}
     Public Property Values As Integer() = [|New Integer()|] {1, 2}
     Public Function M() As Integer()
-        Dim empty As Integer() = [|New Integer()|] {}
+        Dim empty As Integer() = New Integer() {}
         empty = [|New Integer()|] {3}
         Dim objects As Object() = New String() {""x""}
         Dim sized As Integer() = New Integer(9) {}

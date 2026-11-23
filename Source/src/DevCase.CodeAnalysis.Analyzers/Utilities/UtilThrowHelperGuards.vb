@@ -14,6 +14,7 @@ Imports System.Linq
 Imports System.Threading
 
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.Operations
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -126,9 +127,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Throw New ArgumentNullException(NameOf(compilation))
             End If
 
-            Dim objectType As INamedTypeSymbol = compilation.GetSpecialType(SpecialType.System_Object)
-            If objectType Is Nothing OrElse objectType.ContainingAssembly Is Nothing OrElse
-               Not objectType.ContainingAssembly.Name.Equals("mscorlib", StringComparison.OrdinalIgnoreCase) Then
+            If Not UtilAnalyzerSemantic.IsNetFramework(compilation) Then
                 Return False
             End If
 
@@ -197,8 +196,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             Dim throwStatement As ThrowStatementSyntax = TryCast(statements(0), ThrowStatementSyntax)
             Dim creation As ObjectCreationExpressionSyntax = If(throwStatement Is Nothing, Nothing, TryCast(throwStatement.Expression, ObjectCreationExpressionSyntax))
-            If creation Is Nothing OrElse creation.ArgumentList Is Nothing OrElse creation.ArgumentList.Arguments.Count <> 1 Then
-                Return Nothing ' Custom messages would be lost by the throw helpers.
+            If creation Is Nothing OrElse creation.ArgumentList Is Nothing Then
+                Return Nothing
             End If
 
             Dim method As IMethodSymbol = UtilGuardClauses.GetEnclosingMethod(statement, semanticModel, cancellationToken)
@@ -206,13 +205,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Return Nothing
             End If
 
-            ' The single argument must be NameOf(<parameter>).
-            Dim argument As SimpleArgumentSyntax = TryCast(creation.ArgumentList.Arguments(0), SimpleArgumentSyntax)
-            Dim nameOfExpression As NameOfExpressionSyntax = If(argument Is Nothing OrElse argument.IsNamed, Nothing, TryCast(argument.Expression, NameOfExpressionSyntax))
-            If nameOfExpression Is Nothing Then
-                Return Nothing
-            End If
-            Dim parameter As IParameterSymbol = UtilGuardClauses.GetParameter(nameOfExpression.Argument, method, semanticModel, cancellationToken)
+            ' The arguments are matched by the parameter that receives them, so positional and named arguments 
+            ' (paramName:=NameOf(p)) are handled alike.
+            Dim parameter As IParameterSymbol = UtilThrowHelperGuards.GetGuardedParameter(creation, method, semanticModel, cancellationToken)
             If parameter Is Nothing Then
                 Return Nothing
             End If
@@ -459,8 +454,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Return Nothing
             End If
 
+            ' A single argument: positional or named (String.IsNullOrEmpty(value:=p)).
             Dim argument As SimpleArgumentSyntax = TryCast(invocation.ArgumentList.Arguments(0), SimpleArgumentSyntax)
-            If argument Is Nothing OrElse argument.IsNamed OrElse
+            If argument Is Nothing OrElse
                Not SymbolEqualityComparer.Default.Equals(UtilGuardClauses.GetParameter(argument.Expression, method, semanticModel, cancellationToken), parameter) Then
                 Return Nothing
             End If
@@ -483,6 +479,85 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                invoked.ContainingType.ToDisplayString().Equals("Microsoft.VisualBasic.Information", StringComparison.Ordinal),
                 $"ArgumentNullException.ThrowIfNull({parameter.Name})",
                 Nothing)
+        End Function
+
+        ''' <summary>
+        ''' Gets the method parameter named by the exception created in a guard, when the exception has no information 
+        ''' that a throw helper cannot reproduce.
+        ''' </summary>
+        '''
+        ''' <param name="creation">
+        ''' The <c>New ArgumentXxxException(...)</c> expression.
+        ''' </param>
+        '''
+        ''' <param name="method">
+        ''' The enclosing method.
+        ''' </param>
+        '''
+        ''' <param name="semanticModel">
+        ''' The semantic model.
+        ''' </param>
+        '''
+        ''' <param name="cancellationToken">
+        ''' The token to monitor for cancellation requests.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The parameter, or <see langword="Nothing"/> if the exception does not match.
+        ''' </returns>
+        '''
+        ''' <remarks>
+        ''' The <c>paramName</c> argument, positional or named, must be <c>NameOf(p)</c> or the string literal <c>"p"</c> 
+        ''' (exactly the parameter name: the throw helpers set <see cref="ArgumentException.ParamName"/> to it). 
+        ''' The only other accepted arguments are <c>message</c>, and <c>actualValue</c> when it is the parameter itself: the 
+        ''' throw helpers write their own message (with the actual value), so a custom message is replaced by the standard one, 
+        ''' while the exception type and <see cref="ArgumentException.ParamName"/> stay the same. An <c>innerException</c>, 
+        ''' or any other argument, is not reproducible.
+        ''' </remarks>
+        Private Shared Function GetGuardedParameter(creation As ObjectCreationExpressionSyntax, method As IMethodSymbol,
+                                                    semanticModel As SemanticModel, cancellationToken As CancellationToken) As IParameterSymbol
+
+            Dim operation As IObjectCreationOperation = TryCast(semanticModel.GetOperation(creation, cancellationToken), IObjectCreationOperation)
+            If operation Is Nothing OrElse operation.Constructor Is Nothing Then
+                Return Nothing
+            End If
+
+            Dim parameter As IParameterSymbol = Nothing
+            Dim actualValue As ExpressionSyntax = Nothing
+            For Each argument As IArgumentOperation In operation.Arguments
+                If argument.Parameter Is Nothing OrElse argument.ArgumentKind <> ArgumentKind.Explicit Then
+                    Return Nothing
+                End If
+
+                Select Case argument.Parameter.Name
+                    Case "paramName"
+                        Dim value As ExpressionSyntax = TryCast(argument.Value.Syntax, ExpressionSyntax)
+                        Dim nameOfExpression As NameOfExpressionSyntax = TryCast(UtilAnalyzerSyntax.SkipParentheses(value), NameOfExpressionSyntax)
+                        If nameOfExpression IsNot Nothing Then
+                            parameter = UtilGuardClauses.GetParameter(nameOfExpression.Argument, method, semanticModel, cancellationToken)
+                        ElseIf argument.Value.ConstantValue.HasValue AndAlso TypeOf argument.Value.ConstantValue.Value Is String Then
+                            Dim literalName As String = DirectCast(argument.Value.ConstantValue.Value, String)
+                            parameter = method.Parameters.FirstOrDefault(Function(p As IParameterSymbol) p.Name.Equals(literalName, StringComparison.Ordinal))
+                        End If
+                        If parameter Is Nothing Then
+                            Return Nothing
+                        End If
+
+                    Case "message"
+                        ' Replaced by the message of the throw helper.
+
+                    Case "actualValue"
+                        actualValue = TryCast(argument.Value.Syntax, ExpressionSyntax)
+
+                    Case Else
+                        Return Nothing
+                End Select
+            Next argument
+
+            ' The range throw helpers report the value of the parameter: a different actual value would be lost.
+            Dim isSameValue As Boolean = actualValue Is Nothing OrElse
+                SymbolEqualityComparer.Default.Equals(UtilGuardClauses.GetParameter(actualValue, method, semanticModel, cancellationToken), parameter)
+            Return If(isSameValue, parameter, Nothing)
         End Function
 
         ''' <summary>

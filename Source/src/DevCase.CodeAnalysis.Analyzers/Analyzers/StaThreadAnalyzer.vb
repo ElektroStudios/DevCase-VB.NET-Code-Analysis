@@ -89,7 +89,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub
             End If
 
-            context.RegisterSymbolAction(Sub(c As SymbolAnalysisContext) StaThreadAnalyzer.AnalyzeMethod(c, staType, mtaType), SymbolKind.Method)
+            context.RegisterSymbolAction(UtilAnalyzerFiles.SkipExcludedSymbols(Sub(c As SymbolAnalysisContext) StaThreadAnalyzer.AnalyzeMethod(c, staType, mtaType)), SymbolKind.Method)
         End Sub
 
         ''' <summary>

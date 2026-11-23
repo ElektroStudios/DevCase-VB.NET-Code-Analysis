@@ -66,8 +66,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf PlusConcatenationAnalyzer.AnalyzeAddExpression, SyntaxKind.AddExpression)
-            context.RegisterSyntaxNodeAction(AddressOf PlusConcatenationAnalyzer.AnalyzeAddAssignment, SyntaxKind.AddAssignmentStatement)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf PlusConcatenationAnalyzer.AnalyzeAddExpression), SyntaxKind.AddExpression)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf PlusConcatenationAnalyzer.AnalyzeAddAssignment), SyntaxKind.AddAssignmentStatement)
         End Sub
 
 #End Region

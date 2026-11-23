@@ -60,7 +60,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf ConfigureAwaitAnalyzer.AnalyzeAwaitExpression, SyntaxKind.AwaitExpression)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ConfigureAwaitAnalyzer.AnalyzeAwaitExpression), SyntaxKind.AwaitExpression)
         End Sub
 
 #End Region

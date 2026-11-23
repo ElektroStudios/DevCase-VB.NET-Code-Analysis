@@ -4,7 +4,7 @@ Reports parameters named `sender` in methods that are not event handlers, such a
 
 - **Severity:** Info
 - **Category:** Naming
-- **Code fix:** ✔️ Renames the parameter after its type (`brush`), in the whole solution
+- **Code fix:** ✔️ Renames the parameter to `source` (or the next free name), in the whole solution
 
 ---
 
@@ -29,7 +29,7 @@ Not reported, because the method can be an event handler or a callback whose sig
 | Methods with another parameter whose type derives from `EventArgs` (`sender As Button, e As EventArgs`) | Event handlers with a typed sender |
 | Methods whose name appears after `AddressOf` anywhere in the project | Handlers of custom events with a typed sender (`Event Changed(sender As MyControl, value As Integer)`), attached with `AddHandler` |
 | `Overrides` and `Implements` methods | The parameter name is defined by the base member |
-| `sender As T` (a type parameter) | No better name can be derived |
+| `sender As T` (a type parameter) | The method is a generic callback |
 
 > [!NOTE]
 > A method used as a handler **only from another project** (with `AddressOf` there) is not known here. That combination, a typed `sender` that is not `Object`, with no `EventArgs` parameter, used from another assembly, is very unusual; suppress the diagnostic if it happens.
@@ -51,32 +51,34 @@ End Function
 ## ✔️ Compliant
 
 ```vb
-Public Function ToPen(brush As Drawing.SolidBrush) As Drawing.Pen
+Public Function ToPen(source As Drawing.SolidBrush) As Drawing.Pen
 
-    If brush Is Nothing Then
-        Throw New ArgumentNullException(NameOf(brush))
+    If source Is Nothing Then
+        Throw New ArgumentNullException(NameOf(source))
     End If
 
-    Return New Drawing.Pen(brush.Color)
+    Return New Drawing.Pen(source.Color)
 
 End Function
 ```
 
+Any descriptive name is compliant (`brush` here): the rule only reports the name `sender`.
+
 ## 🔧 Code fix
 
-Renames the parameter with Visual Studio's rename engine. Every reference in the solution is updated: the body, `NameOf`, named arguments of callers (`ToPen(sender:=b)` → `ToPen(brush:=b)`) and the XML documentation (`<param name="...">`, `<paramref name="..."/>`).
+Renames the parameter with Visual Studio's rename engine. Every reference in the solution is updated: the body, `NameOf`, named arguments of callers (`ToPen(sender:=b)` → `ToPen(source:=b)`) and the XML documentation (`<param name="...">`, `<paramref name="..."/>`).
 
-The new name is derived from the type of the parameter:
+The new name is the first of these names that is not already used in the method:
 
-| Type | Name |
+| Order | Name |
 |---|---|
-| `SolidBrush` | `brush` (the last word of the name) |
-| `HTMLDocument` | `document` |
-| `IMailAddress` (interface) | `address` |
-| `Point()` (array) | `points` |
-| `String`, `Integer`, `Date` and other primitive types | `value` (`values` for arrays) |
+| 1 | `source` |
+| 2 | `value` |
+| 3 | `input` |
+| 4 | `instance` |
+| 5 | `item` |
 
-When the name is already used in the method (another parameter, a local, or a member used without `Me.`), a number is appended (`brush2`), so that no identifier changes what it refers to.
+A name is used when it is another parameter, a local variable, the name of the method (which is also the implicit return variable of a `Function`), a type parameter, or a member or type used without qualification, because renaming the parameter would change what that identifier refers to. Names after a dot (`x.Value`) and names of named arguments (`value:=1`) do not count. When every name is used, the parameter is reported without a code fix (*"rename it"*): no numbered names (`source2`) are generated.
 
 > [!NOTE]
 > Renaming a parameter of a `Public` method is a breaking change only for callers in **other** solutions that use named arguments (`sender:=`).

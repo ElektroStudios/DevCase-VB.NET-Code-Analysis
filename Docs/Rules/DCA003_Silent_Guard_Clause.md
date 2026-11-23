@@ -2,7 +2,7 @@
 
 Reports `If` statements that check a **parameter** and silently leave the member (`Return`, `Return Nothing`, `Exit Sub`, `Exit Function`, `Exit Property`).
 
-- **Severity:** Error
+- **Severity:** Warning
 - **Category:** Reliability
 - **Code fix:** ✔️ Throws `ArgumentNullException`, `ArgumentException` or `ArgumentOutOfRangeException` instead
 
@@ -106,7 +106,8 @@ End If
 
 ## 🔕 How to disable
 
-This rule is reported as an **error** by default. The directives below also suppress analyzer errors; to keep seeing it without blocking the Error List, lower it to `warning` or `suggestion` instead of disabling it.
+> [!NOTE]
+> **Why Warning and not Error?** Until version 1.0.4 this rule was an error. A silent guard clause is a design problem, not code that fails to compile or always fails at run time, and existing code bases can have many of them: as an error, it blocked the Error List of projects that were otherwise correct. It is now a Warning; projects that want it to stop the build can raise it again (`dotnet_diagnostic.DCA003.severity = error` in `.editorconfig`).
 
 Use the narrowest scope that fits, and write down the reason.
 

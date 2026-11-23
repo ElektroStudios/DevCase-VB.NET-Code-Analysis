@@ -104,7 +104,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             title:="Silent guard clause on a parameter",
             messageFormat:="Guard clause on parameter '{0}' exits silently; throw an explicit argument exception instead (fail-fast)",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Error,
+            defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
             description:="A broken precondition must never be hidden by a silent Return or Exit statement. Throw ArgumentNullException, ArgumentException or ArgumentOutOfRangeException instead.")
 
@@ -704,11 +704,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MisusedSenderParameter As New DiagnosticDescriptor(
             id:=DiagnosticIds.MisusedSenderParameter,
             title:="Parameter named 'sender' outside an event handler",
-            messageFormat:="Parameter 'sender' of '{0}' is not the sender of an event; rename it to '{1}'",
+            messageFormat:="Parameter 'sender' of '{0}' is not the sender of an event; rename it{1}",
             category:=DevCaseDescriptors.CategoryNaming,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
-            description:="By convention, 'sender' is the object that raises an event, typed Object, followed by the event arguments. In other methods the name hides what the argument really is; a name based on its type describes it.")
+            description:="By convention, 'sender' is the object that raises an event, typed Object, followed by the event arguments. In other methods the name hides what the argument really is. The suggested name is the first of 'source', 'value', 'input', 'instance' and 'item' that is not already used in the method.")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.MethodCallWithoutParentheses"/>.
@@ -721,6 +721,66 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Visual Basic allows calling a method without parentheses, which makes the call look like a property or field access. Writing the parentheses shows that code runs (and may have side effects or be expensive), and is the form used by the documentation and by other .NET languages.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ComImportClassCode"/>.
+        ''' </summary>
+        Public Shared ReadOnly ComImportClassCode As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ComImportClassCode,
+            title:="Code in a ComImport class never runs",
+            messageFormat:="'{0}' is declared in the ComImport class '{1}': the compiler discards its body, so its code never runs",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="A class marked with <ComImport> is created by the runtime through COM (CoCreateInstance). The Visual Basic compiler accepts constructors, methods and property accessors with code in such a class, but silently compiles them as runtime-implemented members without a body: the code never runs. C# rejects the same code (CS0669, CS0423).")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ZeroLengthArrayAllocation"/>.
+        ''' </summary>
+        Public Shared ReadOnly ZeroLengthArrayAllocation As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ZeroLengthArrayAllocation,
+            title:="Zero-length array allocation",
+            messageFormat:="Use 'Array.Empty(Of {0})()' instead of allocating a zero-length array",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Every 'New T() {}' allocates a new empty array, although an empty array can never change. Array.Empty(Of T)() returns a cached instance shared by the whole application (.NET Framework 4.6 or later). Equivalent of CA1825, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.AnyInsteadOfEmptinessCheck"/>.
+        ''' </summary>
+        Public Shared ReadOnly AnyInsteadOfEmptinessCheck As New DiagnosticDescriptor(
+            id:=DiagnosticIds.AnyInsteadOfEmptinessCheck,
+            title:="Enumerable.Any() instead of IsEmpty, Count or Length",
+            messageFormat:="Use the '{0}' property of '{1}' instead of calling 'Enumerable.Any()'",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Enumerable.Any() without a predicate checks the type of the collection at run time, or creates an enumerator, to know whether it has elements. The IsEmpty, Count and Length properties answer the same question directly and state the intent more clearly. Equivalent of CA1860, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.CollectionNameOnEnumerableParameter"/>.
+        ''' </summary>
+        Public Shared ReadOnly CollectionNameOnEnumerableParameter As New DiagnosticDescriptor(
+            id:=DiagnosticIds.CollectionNameOnEnumerableParameter,
+            title:="IEnumerable parameter named as a collection",
+            messageFormat:="Parameter '{0}' of '{1}' is an IEnumerable, a sequence rather than a collection; rename it{2}",
+            category:=DevCaseDescriptors.CategoryNaming,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="A parameter typed IEnumerable or IEnumerable(Of T) is a sequence: it may be lazy, it may be enumerated only once, and it has no Count or indexer. Names such as 'collection', 'list' or 'array' (or 'col', 'coll', 'lst', 'arr') suggest otherwise. The suggested name is 'sequence' ('seq' for an abbreviation), or 'source', 'value' or 'items' when that name is already used in the member.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.StringBuilderArgumentConvertedToString"/>.
+        ''' </summary>
+        Public Shared ReadOnly StringBuilderArgumentConvertedToString As New DiagnosticDescriptor(
+            id:=DiagnosticIds.StringBuilderArgumentConvertedToString,
+            title:="StringBuilder argument converted to a string",
+            messageFormat:="Use the strongly typed overload 'StringBuilder.{0}({1})' instead of converting the argument to a string",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="StringBuilder.Append and StringBuilder.Insert have overloads for every primitive type, and Append(Char, Integer) repeats a character. Converting the argument with ToString(), or creating the string with New String(Char, Integer), allocates a temporary string that the overload avoids, with the same result. Equivalent of CA1830, for .NET Framework projects.")
 
 #End Region
 

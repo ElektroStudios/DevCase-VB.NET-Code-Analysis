@@ -268,7 +268,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 End If
             Next metadataName
 
-            context.RegisterOperationAction(
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(
                 Sub(c As OperationAnalysisContext)
                     Dim invocation As IInvocationOperation = DirectCast(c.Operation, IInvocationOperation)
                     Dim method As IMethodSymbol = invocation.TargetMethod
@@ -292,7 +292,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
                     c.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.DateTimeParseWithoutProvider, invocation.Syntax.GetLocation(), properties,
                                                          $"{method.ContainingType.Name}.{method.Name}"))
-                End Sub, OperationKind.Invocation)
+                End Sub), OperationKind.Invocation)
         End Sub
 
 #End Region

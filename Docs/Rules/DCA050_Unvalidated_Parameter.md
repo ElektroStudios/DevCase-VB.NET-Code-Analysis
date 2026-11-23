@@ -35,6 +35,22 @@ An argument is not a consumption either when the called method accepts `Nothing`
 
 String **comparisons** (`dir.Equals(directory, StringComparison.OrdinalIgnoreCase)`) are still a consumption: with `Nothing` they silently return `False`, which hides the missing argument instead of reporting it.
 
+An **assignment to a framework property whose setter rejects `Nothing`** is a consumption too, also in an object initializer (`New T With {.Property = p}`). For example, `Thread.CurrentThread.CurrentCulture = ci` throws `ArgumentNullException` when `ci` is `Nothing`, so `ci` is reported:
+
+```vb
+Public Shared Sub SetCurrentCulture(ci As CultureInfo)   ' DCA050: 'ci' is not validated.
+    Thread.CurrentThread.CurrentCulture = ci
+    Thread.CurrentThread.CurrentUICulture = ci
+End Sub
+```
+
+These setters are recognized:
+
+- on modern .NET, from the nullable annotations of the framework: a property declared as not nullable, without `<AllowNull>` on the property or its setter;
+- on .NET Framework, whose assemblies have no nullable annotations, from this list: `Thread.CurrentCulture`, `Thread.CurrentUICulture`, `CultureInfo.CurrentCulture`, `CultureInfo.CurrentUICulture`, `Console.Title` and `Environment.CurrentDirectory`.
+
+Assignments to properties declared in the source code, and to framework properties that accept `Nothing` (`TextWriter.NewLine`, `Exception.HelpLink`, `Control.Text`...), are not consumptions.
+
 A parameter is considered **validated** when any of its uses looks like a validation:
 
 - a condition of `If`, `ElseIf`, `Select Case`, `While` or `Do`;

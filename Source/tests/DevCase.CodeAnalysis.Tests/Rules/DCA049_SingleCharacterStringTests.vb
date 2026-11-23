@@ -131,7 +131,7 @@ End Class
         End Function
 
         ''' <summary>
-        ''' Verifies that rule DCA049 does not report longer or empty strings, non-literal or named arguments, overloads without 
+        ''' Verifies that rule DCA049 does not report longer or empty strings, non-literal arguments, overloads without 
         ''' an equivalent Char overload (AppendLine, format strings, Replace with a longer value), methods whose Char overload 
         ''' compares differently (IndexOf, StartsWith), other methods, and, on .NET Framework, the Char overloads that only exist 
         ''' on modern .NET (Contains).
@@ -168,7 +168,7 @@ Public Class C
         Dim starts As Boolean = s.StartsWith(""x"")
         Dim replaced As String = s.Replace(""a"", ""bc"")
         {netFrameworkOnly}
-        Return String.Join("", "", parts) & String.Join("""", parts) & String.Join(Separator, parts) & String.Join(separator:=""&"", value:=parts, startIndex:=0, count:=1) & String.Concat(""x"", s) & index.ToString() & starts.ToString() & replaced
+        Return String.Join("", "", parts) & String.Join("""", parts) & String.Join(Separator, parts) & String.Concat(""x"", s) & index.ToString() & starts.ToString() & replaced
     End Function
 End Class
 ", targetNetFramework:=targetNetFramework).ConfigureAwait(True)

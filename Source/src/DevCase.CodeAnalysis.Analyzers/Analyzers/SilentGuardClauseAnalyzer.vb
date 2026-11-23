@@ -69,7 +69,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf SilentGuardClauseAnalyzer.AnalyzeIf,
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf SilentGuardClauseAnalyzer.AnalyzeIf),
                                              SyntaxKind.MultiLineIfBlock, SyntaxKind.SingleLineIfStatement)
         End Sub
 

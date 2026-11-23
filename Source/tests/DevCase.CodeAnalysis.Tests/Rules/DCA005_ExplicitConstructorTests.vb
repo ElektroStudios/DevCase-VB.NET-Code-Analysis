@@ -97,6 +97,11 @@ End Structure
 <Microsoft.VisualBasic.CompilerServices.DesignerGenerated>
 Partial Public Class Form1
 End Class
+<Runtime.InteropServices.ComImport>
+<Runtime.InteropServices.Guid(""F8383852-FCD3-11d1-A6B9-006097DF5BD4"")>
+<Runtime.InteropServices.ClassInterface(Runtime.InteropServices.ClassInterfaceType.None)>
+Public Class ProgressDialog
+End Class
 ").ConfigureAwait(True)
         End Function
 

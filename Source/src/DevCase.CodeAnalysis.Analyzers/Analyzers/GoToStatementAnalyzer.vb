@@ -63,7 +63,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf GoToStatementAnalyzer.AnalyzeGoTo, SyntaxKind.GoToStatement)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf GoToStatementAnalyzer.AnalyzeGoTo), SyntaxKind.GoToStatement)
         End Sub
 
 #End Region

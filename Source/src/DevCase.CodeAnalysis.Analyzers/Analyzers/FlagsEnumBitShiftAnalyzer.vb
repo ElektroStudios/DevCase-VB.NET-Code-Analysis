@@ -83,7 +83,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf FlagsEnumBitShiftAnalyzer.AnalyzeEnumBlock, SyntaxKind.EnumBlock)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf FlagsEnumBitShiftAnalyzer.AnalyzeEnumBlock), SyntaxKind.EnumBlock)
         End Sub
 
 #End Region

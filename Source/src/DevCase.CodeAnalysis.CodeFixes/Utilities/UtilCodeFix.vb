@@ -14,6 +14,7 @@ Imports System.Threading
 Imports System.Threading.Tasks
 
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.Rename
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -449,6 +450,67 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             Next span
 
             Return If(edits.Count = 0, changed, changed.WithText(newText.WithChanges(edits)))
+        End Function
+
+        ''' <summary>
+        ''' Renames the parameter whose identifier is reported by a diagnostic, in the whole solution 
+        ''' (references, <see langword="NameOf"/>, named arguments of callers and XML documentation included).
+        ''' </summary>
+        '''
+        ''' <param name="document">
+        ''' The document that declares the parameter.
+        ''' </param>
+        '''
+        ''' <param name="diagnostic">
+        ''' The diagnostic, located on the identifier of the parameter.
+        ''' </param>
+        '''
+        ''' <param name="newName">
+        ''' The new parameter name.
+        ''' </param>
+        '''
+        ''' <param name="cancellationToken">
+        ''' The token to monitor for cancellation requests.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The solution with the renamed parameter.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="document"/> or <paramref name="diagnostic"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        '''
+        ''' <exception cref="ArgumentException">
+        ''' Thrown when <paramref name="newName"/> is <see langword="Nothing"/> or empty.
+        ''' </exception>
+        '''
+        ''' <exception cref="InvalidOperationException">
+        ''' Thrown when the diagnostic no longer points to a parameter.
+        ''' </exception>
+        Friend Shared Async Function RenameParameterAsync(document As Document, diagnostic As Diagnostic, newName As String,
+                                                          cancellationToken As CancellationToken) As Task(Of Solution)
+
+            If document Is Nothing Then
+                Throw New ArgumentNullException(NameOf(document))
+            End If
+            If diagnostic Is Nothing Then
+                Throw New ArgumentNullException(NameOf(diagnostic))
+            End If
+            If String.IsNullOrEmpty(newName) Then
+                Throw New ArgumentException("The new name cannot be null or empty.", NameOf(newName))
+            End If
+
+            Dim root As SyntaxNode = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
+            Dim model As SemanticModel = Await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(False)
+            Dim node As SyntaxNode = root.FindToken(diagnostic.Location.SourceSpan.Start).Parent
+            Dim parameter As IParameterSymbol = TryCast(model.GetDeclaredSymbol(node, cancellationToken), IParameterSymbol)
+            If parameter Is Nothing Then
+                Throw New InvalidOperationException("The diagnostic does not point to a parameter.")
+            End If
+
+            Return Await Renamer.RenameSymbolAsync(document.Project.Solution, parameter, New SymbolRenameOptions(), newName,
+                                                   cancellationToken).ConfigureAwait(False)
         End Function
 
 #End Region

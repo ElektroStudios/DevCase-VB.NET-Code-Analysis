@@ -77,7 +77,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(AddressOf ThrowInPropertyGetterAnalyzer.AnalyzeThrow, SyntaxKind.ThrowStatement)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf ThrowInPropertyGetterAnalyzer.AnalyzeThrow), SyntaxKind.ThrowStatement)
         End Sub
 
 #End Region

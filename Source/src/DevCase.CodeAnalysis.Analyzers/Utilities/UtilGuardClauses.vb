@@ -434,8 +434,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                         Return Nothing
                     End If
 
+                    ' The single argument, positional or named (String.IsNullOrEmpty(value:=p)).
                     Dim argument As SimpleArgumentSyntax = TryCast(invocation.ArgumentList.Arguments(0), SimpleArgumentSyntax)
-                    If argument Is Nothing OrElse argument.IsNamed Then
+                    If argument Is Nothing Then
                         Return Nothing
                     End If
 

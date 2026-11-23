@@ -100,7 +100,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterOperationAction(AddressOf InsecureTempFileAnalyzer.AnalyzeInvocation, OperationKind.Invocation)
+            context.RegisterOperationAction(UtilAnalyzerFiles.SkipExcludedOperations(AddressOf InsecureTempFileAnalyzer.AnalyzeInvocation), OperationKind.Invocation)
         End Sub
 
 #End Region
