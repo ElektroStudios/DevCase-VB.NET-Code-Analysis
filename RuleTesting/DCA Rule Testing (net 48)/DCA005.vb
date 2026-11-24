@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA005 (Warning) on the class, which does not declare an instance constructor.
+    ''' Expected: DCA005 (Info) on the class, which does not declare an instance constructor.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): adds a documented <c>Public Sub New()</c> inside a <c>Constructors</c> region.

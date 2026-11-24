@@ -2,7 +2,7 @@
 
 Reports declarations with the `Public` modifier that have no XML documentation comment.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Documentation
 - **Code fix:** ✔️ Generates the documentation comment
 

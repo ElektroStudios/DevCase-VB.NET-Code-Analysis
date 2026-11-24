@@ -11,12 +11,13 @@ Option Infer Off
 Namespace DCA_Rule_Testing
 
     ''' <summary>
-    ''' DCA020: &lt;Flags&gt; enumeration without a None zero value.
+    ''' DCA020: &lt;Flags&gt; enumeration without a zero value.
     ''' </summary>
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA020 (Warning) on the enumeration, which has no member <c>None = 0</c>.
+    ''' Expected: DCA020 (Warning) on the enumeration, which has no member whose value is zero. A zero member with any name
+    ''' (<c>Null</c>, <c>Empty</c>...) would not be reported.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): adds <c>None = 0</c>.

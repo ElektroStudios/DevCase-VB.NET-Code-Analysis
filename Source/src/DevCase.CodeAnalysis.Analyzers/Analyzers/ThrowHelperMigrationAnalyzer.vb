@@ -118,7 +118,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             Dim run As List(Of ThrowHelperGuard) = UtilThrowHelperGuards.GetRun(statement, context.SemanticModel, context.CancellationToken)
             Dim span As TextSpan = TextSpan.FromBounds(run(0).Statement.SpanStart, run(run.Count - 1).Statement.Span.End)
-            Dim helpers As String = String.Join(", ", run.Select(Function(g As ThrowHelperGuard) g.Replacement.Substring(0, g.Replacement.IndexOf("(", StringComparison.Ordinal))).Distinct(StringComparer.Ordinal))
+            ' Each helper between quotes; the message quotes the first and the last one.
+            Dim helpers As String = String.Join("', '", run.Select(Function(g As ThrowHelperGuard) g.Replacement.Substring(0, g.Replacement.IndexOf("(", StringComparison.Ordinal))).Distinct(StringComparer.Ordinal))
 
             context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.ThrowHelperMigration, Location.Create(statement.SyntaxTree, span),
                                                        run.Count, helpers))

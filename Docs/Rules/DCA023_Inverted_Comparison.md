@@ -2,7 +2,7 @@
 
 Reports negated comparisons such as `Not (a = b)` that can be written with the inverse operator (`a <> b`).
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Style
 - **Code fix:** ✔️ Replaces `Not` and the operator with the inverse operator
 - **Equivalent to:** SonarQube S1940 *"Boolean checks should not be inverted"*

@@ -1,6 +1,6 @@
-# 📜 DCA004 — Missing `Option` statements
+# 📜 DCA004 — Required `Option` settings not in effect
 
-Reports source files that do not explicitly declare `Option Strict On`, `Option Explicit On` and `Option Infer Off`.
+Reports source files that are not compiled with `Option Strict On`, `Option Explicit On` and `Option Infer Off`, taking into account the settings of the project.
 
 - **Severity:** Warning
 - **Category:** Style
@@ -10,13 +10,41 @@ Reports source files that do not explicitly declare `Option Strict On`, `Option 
 
 ## 💡 Why
 
-Project-level settings can be changed or forgotten; explicit file-level statements make the strictness of each file self-evident and portable (copy a file to another project and it keeps its rules).
+- `Option Strict On` rejects implicit narrowing conversions and late binding, which otherwise fail only at run time (`InvalidCastException`, `MissingMemberException`).
+- `Option Explicit On` requires every variable to be declared, so a typo cannot create a new variable.
+- `Option Infer Off` requires the type of every local variable to be written, so it is visible without hovering in the editor.
 
 ## 🔎 Detection
 
-`Option Strict` and `Option Explicit` without a value count as `On`. A file is reported when any of the three declarations is missing or has the opposite value. Generated files (`*.Designer.vb`, `*.g.vb`, ...) are ignored.
+Each of the three settings is the one that the compiler uses for the file:
+
+1. The `Option` statement of the file, if the file declares it (`Option Strict` and `Option Explicit` without a value count as `On`).
+2. Otherwise, the setting of the project: the *Compile* page of the project properties, or `<OptionStrict>`, `<OptionExplicit>` and `<OptionInfer>` in the `.vbproj` file.
+
+The file is reported when one of the three is not the required value:
+
+| Project settings | `Option` statements of the file | Reported |
+|---|---|---|
+| `Strict On`, `Explicit On`, `Infer Off` | None | ➖ The file inherits the required settings |
+| `Strict On`, `Explicit On`, `Infer Off` | `Option Strict On` | ➖ |
+| `Strict On`, `Explicit On`, `Infer Off` | `Option Infer On` | ✔️ The file overrides the project |
+| `Strict Off`, `Explicit On`, `Infer On` (the defaults of a new project) | None | ✔️ |
+| `Strict Off`, `Explicit On`, `Infer On` | The three required statements | ➖ |
+
+`Option Strict Custom` (warnings configured one by one in the project properties) is not `On`. The message lists the statements to declare and the settings that the file uses instead, with their origin:
+
+```text
+Declare 'Option Strict On', 'Option Infer Off' because this file compiles with 'Option Strict Off' (project), 'Option Infer On' (project)
+```
+
+Generated files (`*.Designer.vb`, `*.g.vb`, ...) are ignored.
+
+> [!NOTE]
+> Before version 1.0.8, the rule required the three statements in every file, even when the project already used the required settings.
 
 ## ❌ Non-compliant
+
+In a project with the default settings (`Option Strict Off`, `Option Infer On`):
 
 ```vb
 Option Strict Off
@@ -27,13 +55,19 @@ Imports System
 
 ## ✔️ Compliant
 
+In any project:
+
 ```vb
 Option Infer Off
 Option Strict
 Option Explicit On
 ```
 
+In a project whose settings are `Option Strict On`, `Option Explicit On` and `Option Infer Off`, also a file without `Option` statements.
+
 ## 🔧 Code fix
+
+The fix always writes the three statements, so the file keeps the required settings even if it is moved to another project or the project settings change:
 
 ```vb
 ' Before
@@ -103,11 +137,11 @@ To keep the rule but change how it is shown, use `suggestion`, `warning` or `err
 **A type or member**: with an attribute:
 
 ```vb
-<System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "DCA004:Missing Option statements", Justification:="Reason.")>
+<System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "DCA004:Required Option settings not in effect", Justification:="Reason.")>
 ```
 
 **The whole project, from code**: in a `GlobalSuppressions.vb` file:
 
 ```vb
-<Assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "DCA004:Missing Option statements", Justification:="Reason.", Scope:="module")>
+<Assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "DCA004:Required Option settings not in effect", Justification:="Reason.", Scope:="module")>
 ```

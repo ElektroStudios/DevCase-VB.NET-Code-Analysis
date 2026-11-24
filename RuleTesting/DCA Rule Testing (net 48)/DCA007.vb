@@ -11,7 +11,7 @@ Option Infer Off
 Namespace DCA_Rule_Testing
 
     ' DCA007: this class has no XML documentation comment on purpose.
-    ' Expected: DCA007 (Warning) on the class, which has no XML documentation comment.
+    ' Expected: DCA007 (Info) on the class, which has no XML documentation comment.
     ' Code fix (Ctrl+.): adds a ''' <summary> comment.
     Public NotInheritable Class DCA007
 

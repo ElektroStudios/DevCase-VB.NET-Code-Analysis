@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA023 (Warning) on <c>Not (first = second)</c>.
+    ''' Expected: DCA023 (Info) on <c>Not (first = second)</c>.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): <c>first &lt;&gt; second</c>.

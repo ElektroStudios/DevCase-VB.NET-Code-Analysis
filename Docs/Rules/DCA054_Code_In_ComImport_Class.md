@@ -2,7 +2,7 @@
 
 Reports constructors, methods, properties, operators, custom events and field initializers declared in a class marked with `<ComImport>`.
 
-- **Severity:** Warning
+- **Severity:** Error
 - **Category:** Reliability
 - **Code fix:** ✔️ Removes `Shared Sub New` and `Public Sub New()` (when removing them changes nothing); other members are only reported
 
@@ -116,7 +116,7 @@ End Class
 The same applies to an `#If` block around the constructor. The directives inside its body (an `#If DEBUG Then` block, for example) are part of its code, and are removed with it.
 
 > [!NOTE]
-> **Why Warning and not Error?** The compiler accepts the code, and an empty `Public Sub New()` is harmless dead code. A Warning is visible without breaking existing builds; projects that want it to stop the build can raise its severity (`dotnet_diagnostic.DCA054.severity = error` in `.editorconfig`).
+> **Why Error?** It is the only rule reported as an Error (since version 1.0.8; before, it was a Warning). The compiler accepts the code, but the code can never run: its body is discarded at compile time. That is a defect hidden by the compiler, not a matter of style or performance. An empty `Public Sub New()` is reported too, because it has no meaning in a COM coclass; the code fix removes it. Projects that need time to clean up existing code can lower the severity (`dotnet_diagnostic.DCA054.severity = warning` in `.editorconfig`).
 
 ## 🔕 How to disable
 

@@ -2,7 +2,7 @@
 
 Reports the unstructured error handling statements `On Error GoTo` (any form) and `On Error Resume Next`.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Reliability
 - **Code fix:** ❌ (the handler must be redesigned)
 - **Equivalent to:** SonarQube [S2359](https://rules.sonarsource.com/vbnet/RSPEC-2359/) *""On Error" statements should not be used"*

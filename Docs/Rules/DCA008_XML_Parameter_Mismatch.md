@@ -2,7 +2,7 @@
 
 Reports XML documentation comments whose `<param>` tags do not exactly match the parameter list of a method, constructor, operator, delegate, event or indexed property.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Documentation
 - **Code fix:** ✔️ Adds the missing tags and fills the empty ones
 

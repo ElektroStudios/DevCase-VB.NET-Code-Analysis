@@ -109,11 +109,17 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' </summary>
         <Fact>
         Public Sub Severities_MatchTheSpecification()
-            Dim errors As String() = {DiagnosticIds.MissingConfigureAwait, DiagnosticIds.TaskResultAccess, DiagnosticIds.RegexWithoutTimeout}
-            Dim infos As String() = {DiagnosticIds.TypeOutsideNamespace, DiagnosticIds.ThrowInFinally,
-                                     DiagnosticIds.ThrowHelperMigration, DiagnosticIds.NetFrameworkApiMigration, DiagnosticIds.ArrayCreationInsteadOfLiteral,
-                                     DiagnosticIds.ArrayRankOnVariable, DiagnosticIds.GoToStatement, DiagnosticIds.DuplicateBranch,
-                                     DiagnosticIds.DateTimeNowForTiming, DiagnosticIds.ThrowInPropertyGetter,
+            ' Error only for code that the compiler accepts but that never runs; Warning for code that can fail at run time or 
+            ' hides a defect; Info for style, documentation and micro-performance.
+            Dim errors As String() = {DiagnosticIds.ComImportClassCode}
+            Dim infos As String() = {DiagnosticIds.SilentGuardClause, DiagnosticIds.MissingExplicitConstructor, DiagnosticIds.TypeOutsideNamespace,
+                                     DiagnosticIds.MissingXmlDocumentation, DiagnosticIds.XmlParameterMismatch, DiagnosticIds.MissingStringComparison,
+                                     DiagnosticIds.FlagsEnumWithoutBitShift, DiagnosticIds.ThrowHelperMigration, DiagnosticIds.MissingExceptionDocumentation,
+                                     DiagnosticIds.OnErrorStatement, DiagnosticIds.GoToStatement,
+                                     DiagnosticIds.NetFrameworkApiMigration, DiagnosticIds.DateTimeWithoutKind, DiagnosticIds.DateTimeParseWithoutProvider,
+                                     DiagnosticIds.LinqInsteadOfCollectionMethod, DiagnosticIds.LinqInsteadOfIndexer, DiagnosticIds.InvertedComparison,
+                                     DiagnosticIds.RedundantNullCheckBeforeTypeOf, DiagnosticIds.EncodingNotSpecified, DiagnosticIds.ArrayCreationInsteadOfLiteral,
+                                     DiagnosticIds.ArrayRankOnVariable, DiagnosticIds.DateTimeNowForTiming, DiagnosticIds.ThrowInPropertyGetter,
                                      DiagnosticIds.SingleCharacterString, DiagnosticIds.UnvalidatedParameter,
                                      DiagnosticIds.MisusedSenderParameter, DiagnosticIds.MethodCallWithoutParentheses,
                                      DiagnosticIds.ZeroLengthArrayAllocation, DiagnosticIds.AnyInsteadOfEmptinessCheck,
@@ -127,7 +133,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 ElseIf infos.Contains(descriptor.Id, StringComparer.Ordinal) Then
                     expected = DiagnosticSeverity.Info
                 End If
-                Assert.Equal(expected, descriptor.DefaultSeverity)
+                Assert.True(expected = descriptor.DefaultSeverity, $"{descriptor.Id}: expected {expected}, actual {descriptor.DefaultSeverity}.")
             Next analyzerType
         End Sub
 
@@ -177,7 +183,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 {DevCaseDescriptors.MissingConfigureAwait, Array.Empty(Of Object)()},
                 {DevCaseDescriptors.TaskResultAccess, {"Task(Of Integer)"}},
                 {DevCaseDescriptors.SilentGuardClause, {"value"}},
-                {DevCaseDescriptors.MissingOptionStatements, {"Option Strict On"}},
+                {DevCaseDescriptors.MissingOptionStatements, {"'Option Strict On'", "'Option Strict Off' (project)"}},
                 {DevCaseDescriptors.MissingExplicitConstructor, {"C"}},
                 {DevCaseDescriptors.TypeOutsideNamespace, {"C"}},
                 {DevCaseDescriptors.MissingXmlDocumentation, {"Run"}},
@@ -217,7 +223,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 {DevCaseDescriptors.DiscardedAwaiter, {"GetAwaiter"}},
                 {DevCaseDescriptors.MisusedSenderParameter, {"UtilDrawing.ToPen", " to 'source'"}},
                 {DevCaseDescriptors.MethodCallWithoutParentheses, {"ToArray"}},
-                {DevCaseDescriptors.ComImportClassCode, {"Sub New", "ProgressDialog"}},
+                {DevCaseDescriptors.ComImportClassCode, {"the constructor", "ProgressDialog"}},
                 {DevCaseDescriptors.ZeroLengthArrayAllocation, {"String"}},
                 {DevCaseDescriptors.AnyInsteadOfEmptinessCheck, {"Count", "Queue(Of Integer)"}},
                 {DevCaseDescriptors.CollectionNameOnEnumerableParameter, {"collection", "UtilCollections.AddRange", " to 'sequence'"}},

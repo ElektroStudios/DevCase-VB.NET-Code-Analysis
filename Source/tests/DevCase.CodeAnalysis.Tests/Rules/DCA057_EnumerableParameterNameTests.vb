@@ -122,10 +122,10 @@ End Class
             Assert.Equal(ExpectedNames, names, StringComparer.Ordinal)
 
             Dim messages As List(Of String) = diagnostics.Select(Function(d As Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).ToList()
-            Assert.Equal("Parameter 'collection' of 'C.AddRange' is an IEnumerable, a sequence rather than a collection; rename it to 'sequence'", messages(0))
-            Assert.Equal("Parameter 'coll' of 'C.New' is an IEnumerable, a sequence rather than a collection; rename it to 'seq'", messages(6))
-            Assert.Equal("Parameter 'collection' of 'C.Total' is an IEnumerable, a sequence rather than a collection; rename it to 'sequence'", messages(8))
-            Assert.Equal("Parameter 'collection' of 'C.Busy' is an IEnumerable, a sequence rather than a collection; rename it", messages(10))
+            Assert.Equal("Rename parameter 'collection' to 'sequence' in 'C.AddRange' to match its 'IEnumerable' type", messages(0))
+            Assert.Equal("Rename parameter 'coll' to 'seq' in 'C.New' to match its 'IEnumerable' type", messages(6))
+            Assert.Equal("Rename parameter 'collection' to 'sequence' in 'C.Total' to match its 'IEnumerable' type", messages(8))
+            Assert.Equal("Rename parameter 'collection' in 'C.Busy' to match its 'IEnumerable' type", messages(10))
         End Function
 
         ''' <summary>

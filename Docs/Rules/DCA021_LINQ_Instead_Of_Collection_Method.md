@@ -2,7 +2,7 @@
 
 Reports the LINQ `FirstOrDefault`, `Any` and `All` extensions with a predicate on `List(Of T)`, `ImmutableList(Of T)` and arrays, which have specific methods that are faster.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Performance
 - **Code fix:** ✔️ Replaces the call with the collection-specific method
 - **Equivalent to:** SonarQube S6602 (`Find`), S6603 (`TrueForAll`) and S6605 (`Exists`)

@@ -86,9 +86,9 @@ End Class
                 Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, ReportedSource, targetNetFramework:=True).ConfigureAwait(True)
 
             Dim messages As String() = diagnostics.Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).ToArray()
-            Assert.Contains("Use the strongly typed overload 'StringBuilder.Append(Char, Integer)' instead of converting the argument to a string", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the strongly typed overload 'StringBuilder.Append(Integer)' instead of converting the argument to a string", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the strongly typed overload 'StringBuilder.Insert(Integer, Boolean)' instead of converting the argument to a string", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the StringBuilder.Append(Char, Integer) overload to avoid a temporary string", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the StringBuilder.Append(Integer) overload to avoid a temporary string", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the StringBuilder.Insert(Integer, Boolean) overload to avoid a temporary string", messages, StringComparer.Ordinal)
         End Function
 
         ''' <summary>

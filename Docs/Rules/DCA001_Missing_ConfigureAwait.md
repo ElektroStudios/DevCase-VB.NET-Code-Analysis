@@ -2,7 +2,7 @@
 
 Reports `Await` expressions whose awaited value exposes a `ConfigureAwait(Boolean)` method but is not configured.
 
-- **Severity:** Error
+- **Severity:** Warning
 - **Category:** Reliability
 - **Code fix:** ✔️ Injects `.ConfigureAwait(False)`
 - **Configuration:** `devcase_analyzers.configure_await_named_argument = true` emits `ConfigureAwait(continueOnCapturedContext:=False)`
@@ -84,8 +84,6 @@ Await Task.Delay(1).ConfigureAwait(continueOnCapturedContext:=False)
 ```
 
 ## 🔕 How to disable
-
-This rule is reported as an **error** by default. The directives below also suppress analyzer errors; to keep seeing it without blocking the Error List, lower it to `warning` or `suggestion` instead of disabling it.
 
 Use the narrowest scope that fits, and write down the reason.
 

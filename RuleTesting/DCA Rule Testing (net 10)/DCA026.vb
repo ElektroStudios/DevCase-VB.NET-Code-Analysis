@@ -22,7 +22,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA026 (Warning) on <c>File.WriteAllText(filePath, contents)</c>, which uses an implicit encoding.
+    ''' Expected: DCA026 (Info) on <c>File.WriteAllText(filePath, contents)</c>, which uses an implicit encoding.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): three fixes: UTF-8 without BOM, UTF-8 with BOM or <c>Encoding.Default</c> (the one that keeps the

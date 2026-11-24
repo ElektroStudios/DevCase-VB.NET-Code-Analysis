@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA033 (Warning) on <c>On Error Resume Next</c>.
+    ''' Expected: DCA033 (Info) on <c>On Error Resume Next</c>.
     ''' </para>
     ''' <para>
     ''' No code fix: the right change depends on the intent of the code.

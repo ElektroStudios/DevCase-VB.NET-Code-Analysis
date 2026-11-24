@@ -124,12 +124,20 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' <returns>
         ''' The fixed document.
         ''' </returns>
+        '''
+        ''' <exception cref="InvalidOperationException">
+        ''' Thrown when the document does not belong to a Visual Basic project.
+        ''' </exception>
         Private Shared Async Function FixAsync(document As Document, cancellationToken As CancellationToken) As Task(Of Document)
 
             Dim root As CompilationUnitSyntax = DirectCast(Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False), CompilationUnitSyntax)
             Dim text As SourceText = Await document.GetTextAsync(cancellationToken).ConfigureAwait(False)
 
-            If OptionStatementsAnalyzer.GetMissingStatements(root).Count = 0 Then
+            Dim options As VisualBasicCompilationOptions = TryCast(document.Project.CompilationOptions, VisualBasicCompilationOptions)
+            If options Is Nothing Then
+                Throw New InvalidOperationException("The document does not belong to a Visual Basic project.")
+            End If
+            If OptionStatementsAnalyzer.GetMissingStatements(root, options).Count = 0 Then
                 Return document ' Already fixed (e.g. by a previous Fix All pass).
             End If
 

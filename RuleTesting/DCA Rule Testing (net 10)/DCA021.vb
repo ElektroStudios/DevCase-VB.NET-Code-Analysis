@@ -23,7 +23,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA021 (Warning) on <c>numbers.Any(predicate)</c> on a <c>List(Of Integer)</c>, which has the faster
+    ''' Expected: DCA021 (Info) on <c>numbers.Any(predicate)</c> on a <c>List(Of Integer)</c>, which has the faster
     ''' <c>Exists</c> method.
     ''' </para>
     ''' <para>

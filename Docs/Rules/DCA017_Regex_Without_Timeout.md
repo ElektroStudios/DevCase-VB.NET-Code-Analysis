@@ -2,7 +2,7 @@
 
 Reports regular expressions evaluated **without a match timeout**: `New Regex(...)` and calls to the static `Regex` methods (`IsMatch`, `Match`, `Matches`, `Replace`, `Split`, `Count`, `EnumerateMatches`...) that use an overload without a `TimeSpan` parameter.
 
-- **Severity:** Error
+- **Severity:** Warning
 - **Category:** Security
 - **Code fix:** ✔️ Two lightbulb actions: a finite timeout (30 seconds by default) or an explicit `Regex.InfiniteMatchTimeout`
 - **Configuration:** `devcase_analyzers.dca017_timeout_ms = 30000` (optional)
@@ -131,8 +131,6 @@ devcase_analyzers.dca017_timeout_ms = 5000
 Invalid values (non-numeric, zero or negative) are ignored and the default (30000 ms) applies.
 
 ## 🔕 How to disable
-
-This rule is reported as an **error** by default. The directives below also suppress analyzer errors; to keep seeing it without blocking the Error List, lower it to `warning` or `suggestion` instead of disabling it.
 
 Use the narrowest scope that fits, and write down the reason.
 

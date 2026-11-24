@@ -2,7 +2,7 @@
 
 Reports `Parse`, `TryParse`, `ParseExact` and `TryParseExact` calls on `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly` and `TimeOnly` that do not pass an `IFormatProvider` although an overload accepts one.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Globalization
 - **Code fix:** ✔️ Two lightbulb actions: `CultureInfo.CurrentCulture` (keeps the current behavior) or `CultureInfo.InvariantCulture`
 - **Equivalent to:** SonarQube S6580 *"Use a format provider when parsing date and time"*. Microsoft's CA1305 covers a broader set of APIs but is disabled by default.

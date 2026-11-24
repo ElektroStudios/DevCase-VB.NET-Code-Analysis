@@ -22,7 +22,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA002 (Error) on <c>.Result</c>, which blocks the calling thread until the task completes.
+    ''' Expected: DCA002 (Warning) on <c>.Result</c>, which blocks the calling thread until the task completes.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): <c>.GetAwaiter().GetResult()</c>.

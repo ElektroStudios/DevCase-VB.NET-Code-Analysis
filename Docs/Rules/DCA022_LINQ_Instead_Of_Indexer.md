@@ -2,7 +2,7 @@
 
 Reports the LINQ `First()`, `Last()` and `ElementAt(index)` calls on types that implement `IList(Of T)` (`List(Of T)`, arrays, `Collection(Of T)`, `IList(Of T)`...), which can be indexed directly.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Performance
 - **Code fix:** ✔️ `items(0)`, `items(items.Count - 1)`, `items(index)`
 - **Equivalent to:** SonarQube S6608 *"Prefer indexing instead of Enumerable methods on types implementing IList"*

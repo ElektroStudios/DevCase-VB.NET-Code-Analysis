@@ -2,7 +2,7 @@
 
 Reports a branch of an `If`/`ElseIf`/`Else` chain or of a `Select Case` statement whose implementation is the same as the implementation of an earlier branch.
 
-- **Severity:** Info
+- **Severity:** Warning
 - **Category:** Design
 - **Code fix:** ❌ (merging conditions must be reviewed: one of the branches may be a mistake)
 - **Equivalent to:** SonarQube [S1871](https://rules.sonarsource.com/vbnet/RSPEC-1871/) *"Two branches in a conditional structure should not have exactly the same implementation"*

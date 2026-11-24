@@ -3,13 +3,14 @@
 Namespace DCA_Rule_Testing
 
     ''' <summary>
-    ''' DCA004: Missing Option statements.
+    ''' DCA004: Required Option settings not in effect.
     ''' </summary>
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA004 (Warning) on the file, which does not declare <c>Option Strict On</c>, <c>Option Explicit On</c> and
-    ''' <c>Option Infer Off</c>.
+    ''' Expected: DCA004 (Warning) on the file, which declares no <c>Option</c> statement: it inherits <c>Option Strict Off</c>
+    ''' and <c>Option Infer On</c> from the project (the defaults of a new project), instead of <c>Option Strict On</c> and
+    ''' <c>Option Infer Off</c>. In a project that already uses the required settings, the file would not be reported.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): adds the <c>Option Statements</c> region at the top of the file.

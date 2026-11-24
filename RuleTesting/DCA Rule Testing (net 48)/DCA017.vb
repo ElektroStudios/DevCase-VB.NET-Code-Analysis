@@ -22,7 +22,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA017 (Error) on <c>Regex.IsMatch(text, "^\d+$")</c>, which has no match timeout.
+    ''' Expected: DCA017 (Warning) on <c>Regex.IsMatch(text, "^\d+$")</c>, which has no match timeout.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): two fixes: a finite timeout (30 seconds by default) or an explicit <c>Regex.InfiniteMatchTimeout</c>.

@@ -26,7 +26,7 @@ Imports Xunit
 Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
 
     ''' <summary>
-    ''' Tests of rule DCA020 (Flags enumeration without a 'None' zero value) and its code fixes.
+    ''' Tests of rule DCA020 (Flags enumeration without a zero value) and its code fix.
     ''' </summary>
     Public NotInheritable Class DCA020_FlagsEnumNoneTests
 
@@ -57,14 +57,15 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
 #Region " Test Methods "
 
         ''' <summary>
-        ''' Verifies that rule DCA020 reports <c>Flags</c> enumerations without a zero member and with a misnamed zero member.
+        ''' Verifies that rule DCA020 reports only the &lt;Flags&gt; enumerations without a member whose value is zero: a zero 
+        ''' member is never reported, whatever its name, and whether its value is explicit or implicit (the first member).
         ''' </summary>
         '''
         ''' <returns>
         ''' A <see cref="Task"/> that represents the asynchronous test.
         ''' </returns>
         <Fact>
-        Public Async Function Reports_MissingAndMisnamedZero() As Task
+        Public Async Function Reports_OnlyEnumerationsWithoutZeroValue() As Task
             Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
 <Flags>
 Public Enum [|Missing|]
@@ -73,9 +74,15 @@ Public Enum [|Missing|]
 End Enum
 
 <Flags>
-Public Enum Misnamed
-    [|Empty|] = 0
+Public Enum ZeroWithAnotherName
+    Empty = 0
     A = 1
+End Enum
+
+<Flags>
+Public Enum HexadecimalZero
+    Off = &H0
+    A = &H1
 End Enum
 
 <Flags>
@@ -91,7 +98,32 @@ End Enum
         End Function
 
         ''' <summary>
-        ''' Verifies that the code fix of rule DCA020 adds a documented <c>None</c> member and keeps the blank-line layout.
+        ''' Verifies that rule DCA020 does not report an enumeration whose first member has the implicit value zero under a name 
+        ''' other than <c>None</c>: renaming it would break the code that uses it.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function DoesNotReport_ImplicitZeroWithAnotherName() As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+<Flags>
+Friend Enum DesktopWallpaperStyle As Integer
+    Null
+    Tile
+    Center
+    Stretch
+    Fit
+    Fill
+    Span
+End Enum
+").ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA020 adds <c>None = 0</c> with a documentation comment, keeping the blank lines 
+        ''' between the members.
         ''' </summary>
         '''
         ''' <returns>
@@ -100,23 +132,21 @@ End Enum
         <Fact>
         Public Async Function Fix_AddsNoneWithDocumentationAndBlankLines() As Task
             Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
-''' <summary>Options.</summary>
 <Flags>
 Public Enum Options
 
     ''' <summary>
-    ''' Reads.
+    ''' Read access.
     ''' </summary>
     Read = 1 << 0
 
     ''' <summary>
-    ''' Writes.
+    ''' Write access.
     ''' </summary>
     Write = 1 << 1
 
 End Enum
 ", "
-''' <summary>Options.</summary>
 <Flags>
 Public Enum Options
 
@@ -126,12 +156,12 @@ Public Enum Options
     None = 0
 
     ''' <summary>
-    ''' Reads.
+    ''' Read access.
     ''' </summary>
     Read = 1 << 0
 
     ''' <summary>
-    ''' Writes.
+    ''' Write access.
     ''' </summary>
     Write = 1 << 1
 
@@ -140,7 +170,7 @@ End Enum
         End Function
 
         ''' <summary>
-        ''' Verifies that the code fix of rule DCA020 adds <c>None = 0</c> to an enumeration without blank lines.
+        ''' Verifies that the code fix of rule DCA020 adds <c>None = 0</c> to an enumeration without blank lines between members.
         ''' </summary>
         '''
         ''' <returns>
@@ -165,53 +195,65 @@ End Enum
         End Function
 
         ''' <summary>
-        ''' Verifies that the code fix of rule DCA020 renames the zero member and every reference to it.
+        ''' Verifies that the code fix of rule DCA020 uses the next free name when <c>None</c> is already used by a member with 
+        ''' another value: <c>[Nothing]</c>, <c>Null</c>, <c>Zero</c>, <c>Empty</c>. Names are compared without case, as 
+        ''' Visual Basic does.
         ''' </summary>
+        '''
+        ''' <param name="usedMembers">
+        ''' The members of the enumeration, all with a non-zero value.
+        ''' </param>
+        '''
+        ''' <param name="expectedName">
+        ''' The name of the added zero member, as written in source.
+        ''' </param>
         '''
         ''' <returns>
         ''' A <see cref="Task"/> that represents the asynchronous test.
         ''' </returns>
-        <Fact>
-        Public Async Function Fix_RenamesZeroMemberAndItsReferences() As Task
-            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
+        <Theory>
+        <InlineData("None = 1", "[Nothing]")>
+        <InlineData("NONE = 1", "[Nothing]")>
+        <InlineData("None = 1|[Nothing] = 2", "Null")>
+        <InlineData("None = 1|[Nothing] = 2|Null = 4", "Zero")>
+        <InlineData("None = 1|[Nothing] = 2|Null = 4|zero = 8", "Empty")>
+        Public Async Function Fix_UsesTheNextFreeName(usedMembers As String, expectedName As String) As Task
+            Dim members As String = String.Join(String.Empty, usedMembers.Split("|"c).Select(Function(m As String) $"    {m}{vbLf}"))
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, $"
 <Flags>
 Public Enum Options
-    Empty = 0
-    Read = 1
-End Enum
-
-Public Class C
-    Private ReadOnly Value As Options = Options.Empty
-End Class
-", "
+{members}End Enum
+", $"
 <Flags>
 Public Enum Options
-    None = 0
-    Read = 1
-End Enum
-
-Public Class C
-    Private ReadOnly Value As Options = Options.None
-End Class
+    {expectedName} = 0
+{members}End Enum
 ").ConfigureAwait(True)
         End Function
 
         ''' <summary>
-        ''' Verifies that rule DCA020 offers no fix when a member named <c>None</c> already has a non-zero value.
+        ''' Verifies that rule DCA020 is reported without a code fix when every candidate name is already used by a member with 
+        ''' another value.
         ''' </summary>
         '''
         ''' <returns>
         ''' A <see cref="Task"/> that represents the asynchronous test.
         ''' </returns>
         <Fact>
-        Public Async Function Conflict_IsReportedWithoutFix() As Task
-            Dim actions As List(Of CodeAction) = Await AnalyzerTestHost.GetRegisteredActionsAsync(Analyzer, Provider, "
+        Public Async Function NoFix_WhenEveryCandidateNameIsUsed() As Task
+            Const Source As String = "
 <Flags>
-Public Enum Options
-    None = 4
-    Read = 1
+Public Enum [|Options|]
+    None = 1
+    [Nothing] = 2
+    Null = 4
+    Zero = 8
+    Empty = 16
 End Enum
-").ConfigureAwait(True)
+"
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, Source).ConfigureAwait(True)
+            Dim actions As List(Of CodeAction) = Await AnalyzerTestHost.GetRegisteredActionsAsync(Analyzer, Provider, Source.Replace("[|", String.Empty, StringComparison.Ordinal).
+                                                                                                                    Replace("|]", String.Empty, StringComparison.Ordinal)).ConfigureAwait(True)
             Assert.Empty(actions)
         End Function
 

@@ -22,7 +22,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA054 (Warning) on the constructor: Visual Basic compiles the code of a <c>&lt;ComImport&gt;</c> class
+    ''' Expected: DCA054 (Error) on the constructor: Visual Basic compiles the code of a <c>&lt;ComImport&gt;</c> class
     ''' without a body.
     ''' </para>
     ''' <para>

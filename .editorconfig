@@ -36,6 +36,24 @@ indent_size = 4
 # The DCA rules are applied to the CodeFixes and Tests projects at build time (see their .vbproj files).
 # The following built-in suggestions are raised to warnings so that they are also reported on command-line builds.
 
+# DCA rules whose default severity is Info since version 1.0.8 but that this repository enforces at build time, as
+# before: style, documentation and micro-performance rules are suggestions for users, but requirements here.
+dotnet_diagnostic.DCA003.severity = warning
+dotnet_diagnostic.DCA005.severity = warning
+dotnet_diagnostic.DCA007.severity = warning
+dotnet_diagnostic.DCA008.severity = warning
+dotnet_diagnostic.DCA009.severity = warning
+dotnet_diagnostic.DCA010.severity = warning
+dotnet_diagnostic.DCA012.severity = warning
+dotnet_diagnostic.DCA018.severity = warning
+dotnet_diagnostic.DCA019.severity = warning
+dotnet_diagnostic.DCA021.severity = warning
+dotnet_diagnostic.DCA022.severity = warning
+dotnet_diagnostic.DCA023.severity = warning
+dotnet_diagnostic.DCA025.severity = warning
+dotnet_diagnostic.DCA026.severity = warning
+dotnet_diagnostic.DCA033.severity = warning
+
 dotnet_diagnostic.IDE0004.severity = warning
 dotnet_diagnostic.IDE0031.severity = warning
 dotnet_diagnostic.IDE0045.severity = warning

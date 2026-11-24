@@ -2,7 +2,7 @@
 
 Reports `New DateTime(...)` (or `New Date(...)`) calls that do not specify a `DateTimeKind` although a constructor overload accepts one.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Reliability
 - **Code fix:** ✔️ Three lightbulb actions: `Unspecified` (keeps the current behavior), `Utc` or `Local`
 - **Equivalent to:** SonarQube S6562 *"Always set the DateTimeKind when creating new DateTime instances"*

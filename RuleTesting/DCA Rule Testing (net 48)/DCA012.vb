@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA012 (Warning) on the method <c>Fail</c>, which throws <c>InvalidOperationException</c> without an
+    ''' Expected: DCA012 (Info) on the method <c>Fail</c>, which throws <c>InvalidOperationException</c> without an
     ''' <c>&lt;exception&gt;</c> tag.
     ''' </para>
     ''' <para>

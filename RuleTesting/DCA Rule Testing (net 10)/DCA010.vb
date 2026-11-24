@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA010 (Warning) on the members <c>Read</c> and <c>Write</c>, whose values are written as numbers. The rule is
+    ''' Expected: DCA010 (Info) on the members <c>Read</c> and <c>Write</c>, whose values are written as numbers. The rule is
     ''' disabled by default: the <c>.editorconfig</c> file of this solution enables it
     ''' (<c>devcase_analyzers.dca010_enabled = true</c>).
     ''' </para>

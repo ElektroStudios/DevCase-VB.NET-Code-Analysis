@@ -2,7 +2,7 @@
 
 Reports null checks that are redundant because the next operand is a `TypeOf` expression on the same value: `x IsNot Nothing AndAlso TypeOf x Is T` and `x Is Nothing OrElse TypeOf x IsNot T`, in any of their Visual Basic forms.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Style
 - **Code fix:** ✔️ Removes the null check and its operator
 - **Equivalent to:** SonarQube S4201 *"Null checks should not be combined with 'is' operator checks"*

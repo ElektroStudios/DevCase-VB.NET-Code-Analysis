@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA008 (Warning) on the method <c>Add</c>, whose documentation has no <c>&lt;param&gt;</c> tag for
+    ''' Expected: DCA008 (Info) on the method <c>Add</c>, whose documentation has no <c>&lt;param&gt;</c> tag for
     ''' <c>second</c>.
     ''' </para>
     ''' <para>

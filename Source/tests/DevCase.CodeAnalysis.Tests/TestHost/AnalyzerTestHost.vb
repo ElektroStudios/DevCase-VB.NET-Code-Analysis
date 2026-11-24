@@ -178,6 +178,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' documents and file paths (as a multi-targeted project or linked files).
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' The project.
         ''' </returns>
@@ -186,7 +191,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                                              Optional additionalReferences As IEnumerable(Of MetadataReference) = Nothing,
                                              Optional targetNetFramework As Boolean = False,
                                              Optional rootNamespace As String = Nothing,
-                                             Optional linkedNetFrameworkProject As Boolean = False) As Project
+                                             Optional linkedNetFrameworkProject As Boolean = False,
+                                             Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Project
 
             Dim workspace As New AdhocWorkspace()
             Dim projectId As ProjectId = ProjectId.CreateNewId()
@@ -194,7 +200,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
             Dim parseOptions As New VisualBasicParseOptions(LanguageVersion.Latest, documentationMode)
             Dim compilationOptions As VisualBasicCompilationOptions =
                 New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                                                  optionStrict:=OptionStrict.On, optionInfer:=False, optionExplicit:=True).
+                                                  optionStrict:=If(optionStatements.HasValue, optionStatements.Value.Strict, OptionStrict.On),
+                                                  optionInfer:=optionStatements.HasValue AndAlso optionStatements.Value.Infer,
+                                                  optionExplicit:=Not optionStatements.HasValue OrElse optionStatements.Value.Explicit).
                     WithGlobalImports(GlobalImport.Parse(AnalyzerTestHost.DefaultGlobalImports)).
                     WithRootNamespace(If(rootNamespace, String.Empty))
 
@@ -249,13 +257,20 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies instead of the test runtime.
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' The project.
         ''' </returns>
         Friend Shared Function CreateProject(source As String, Optional editorConfig As String = Nothing,
-                                             Optional targetNetFramework As Boolean = False) As Project
+                                             Optional targetNetFramework As Boolean = False,
+                                             Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Project
 
-            Return AnalyzerTestHost.CreateProject({New TestSource("Test0.vb", source)}, editorConfig, targetNetFramework:=targetNetFramework)
+            Return AnalyzerTestHost.CreateProject({New TestSource("Test0.vb", source)}, editorConfig, targetNetFramework:=targetNetFramework,
+                                                  optionStatements:=optionStatements)
         End Function
 
 #End Region
@@ -353,18 +368,24 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies.
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' The reported diagnostics, for additional assertions.
         ''' </returns>
         Friend Shared Async Function VerifyAnalyzerAsync(analyzer As DiagnosticAnalyzer, markupSource As String,
                                                          Optional editorConfig As String = Nothing,
                                                          Optional allowCompilerErrors As Boolean = False,
-                                                         Optional targetNetFramework As Boolean = False) As Task(Of ImmutableArray(Of Diagnostic))
+                                                         Optional targetNetFramework As Boolean = False,
+                                                         Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Task(Of ImmutableArray(Of Diagnostic))
 
             Dim diagnostics As ImmutableArray(Of Diagnostic) =
-                Await AnalyzerTestHost.VerifyAnalyzerCoreAsync(analyzer, markupSource, editorConfig, allowCompilerErrors, targetNetFramework).ConfigureAwait(False)
+                Await AnalyzerTestHost.VerifyAnalyzerCoreAsync(analyzer, markupSource, editorConfig, allowCompilerErrors, targetNetFramework, optionStatements).ConfigureAwait(False)
             If AnalyzerTestHost.IsLineFeedOnly(markupSource) Then
-                Await AnalyzerTestHost.VerifyAnalyzerCoreAsync(analyzer, AnalyzerTestHost.ToCrLf(markupSource), editorConfig, allowCompilerErrors, targetNetFramework).ConfigureAwait(False)
+                Await AnalyzerTestHost.VerifyAnalyzerCoreAsync(analyzer, AnalyzerTestHost.ToCrLf(markupSource), editorConfig, allowCompilerErrors, targetNetFramework, optionStatements).ConfigureAwait(False)
             End If
             Return diagnostics
         End Function
@@ -425,17 +446,23 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies.
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' The reported diagnostics, for additional assertions.
         ''' </returns>
         Private Shared Async Function VerifyAnalyzerCoreAsync(analyzer As DiagnosticAnalyzer, markupSource As String,
                                                          Optional editorConfig As String = Nothing,
                                                          Optional allowCompilerErrors As Boolean = False,
-                                                         Optional targetNetFramework As Boolean = False) As Task(Of ImmutableArray(Of Diagnostic))
+                                                         Optional targetNetFramework As Boolean = False,
+                                                         Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Task(Of ImmutableArray(Of Diagnostic))
 
             Dim expectedSpans As List(Of TextSpan) = Nothing
             Dim source As String = AnalyzerTestHost.ParseMarkup(markupSource, expectedSpans)
-            Dim project As Project = AnalyzerTestHost.CreateProject(source, editorConfig, targetNetFramework)
+            Dim project As Project = AnalyzerTestHost.CreateProject(source, editorConfig, targetNetFramework, optionStatements)
 
             If Not allowCompilerErrors Then
                 Await AnalyzerTestHost.AssertCompilesAsync(project, "test source").ConfigureAwait(False)
@@ -498,6 +525,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies.
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' A task that represents the asynchronous verification.
         ''' </returns>
@@ -507,14 +539,15 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                                                         Optional editorConfig As String = Nothing,
                                                         Optional allowRemainingDiagnostics As Boolean = False,
                                                         Optional allowCompilerErrors As Boolean = False,
-                                                        Optional targetNetFramework As Boolean = False) As Task
+                                                        Optional targetNetFramework As Boolean = False,
+                                                        Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Task
 
             Await AnalyzerTestHost.VerifyCodeFixCoreAsync(analyzer, provider, markupSource, expectedSource, equivalenceKey, editorConfig,
-                                                          allowRemainingDiagnostics, allowCompilerErrors, targetNetFramework).ConfigureAwait(False)
+                                                          allowRemainingDiagnostics, allowCompilerErrors, targetNetFramework, optionStatements).ConfigureAwait(False)
             If AnalyzerTestHost.IsLineFeedOnly(markupSource) AndAlso AnalyzerTestHost.IsLineFeedOnly(expectedSource) Then
                 Await AnalyzerTestHost.VerifyCodeFixCoreAsync(analyzer, provider, AnalyzerTestHost.ToCrLf(markupSource), AnalyzerTestHost.ToCrLf(expectedSource),
                                                               equivalenceKey, editorConfig, allowRemainingDiagnostics, allowCompilerErrors,
-                                                              targetNetFramework).ConfigureAwait(False)
+                                                              targetNetFramework, optionStatements).ConfigureAwait(False)
             End If
         End Function
 
@@ -558,6 +591,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies.
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' A task that represents the asynchronous verification.
         ''' </returns>
@@ -567,7 +605,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                                                         Optional editorConfig As String = Nothing,
                                                         Optional allowRemainingDiagnostics As Boolean = False,
                                                         Optional allowCompilerErrors As Boolean = False,
-                                                        Optional targetNetFramework As Boolean = False) As Task
+                                                        Optional targetNetFramework As Boolean = False,
+                                                        Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Task
 
             Dim expectedSpans As List(Of TextSpan) = Nothing
             Dim currentText As String = AnalyzerTestHost.ParseMarkup(markupSource, expectedSpans)
@@ -576,7 +615,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
             Dim skipped As Integer = 0
 
             For iteration As Integer = 1 To 50
-                Dim project As Project = AnalyzerTestHost.CreateProject(currentText, editorConfig, targetNetFramework)
+                Dim project As Project = AnalyzerTestHost.CreateProject(currentText, editorConfig, targetNetFramework, optionStatements)
                 Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, analyzer).ConfigureAwait(False)
 
                 If iteration = 1 AndAlso hasMarkup Then
@@ -608,7 +647,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
             Assert.True(fixedOnce, "No code fix was applied.")
             AnalyzerTestHost.AssertTextEqual(expectedSource, currentText)
 
-            Dim finalProject As Project = AnalyzerTestHost.CreateProject(currentText, editorConfig, targetNetFramework)
+            Dim finalProject As Project = AnalyzerTestHost.CreateProject(currentText, editorConfig, targetNetFramework, optionStatements)
             If Not allowCompilerErrors Then
                 Await AnalyzerTestHost.AssertCompilesAsync(finalProject, "fixed source").ConfigureAwait(False)
             End If
@@ -651,19 +690,25 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies instead of the test runtime.
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' The fixed text.
         ''' </returns>
         Friend Shared Async Function ApplyFixAllInDocumentAsync(analyzer As DiagnosticAnalyzer, provider As CodeFixProvider, source As String,
                                                                 equivalenceKey As String, Optional editorConfig As String = Nothing,
-                                                                Optional targetNetFramework As Boolean = False) As Task(Of String)
+                                                                Optional targetNetFramework As Boolean = False,
+                                                                Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Task(Of String)
 
             Dim fixedText As String = Await AnalyzerTestHost.ApplyFixAllInDocumentCoreAsync(analyzer, provider, source, equivalenceKey, editorConfig,
-                                                                                             targetNetFramework).ConfigureAwait(False)
+                                                                                             targetNetFramework, optionStatements).ConfigureAwait(False)
             If AnalyzerTestHost.IsLineFeedOnly(source) Then
                 Assert.DoesNotContain(vbCr, fixedText, StringComparison.Ordinal)
                 Dim crLfText As String = Await AnalyzerTestHost.ApplyFixAllInDocumentCoreAsync(analyzer, provider, AnalyzerTestHost.ToCrLf(source), equivalenceKey,
-                                                                                               editorConfig, targetNetFramework).ConfigureAwait(False)
+                                                                                               editorConfig, targetNetFramework, optionStatements).ConfigureAwait(False)
                 AnalyzerTestHost.AssertTextEqual(AnalyzerTestHost.ToCrLf(fixedText), crLfText)
             End If
             Return fixedText
@@ -697,14 +742,20 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies instead of the test runtime.
         ''' </param>
         '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project; 
+        ''' <see langword="Nothing"/> for <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </param>
+        '''
         ''' <returns>
         ''' The fixed text.
         ''' </returns>
         Private Shared Async Function ApplyFixAllInDocumentCoreAsync(analyzer As DiagnosticAnalyzer, provider As CodeFixProvider, source As String,
                                                                 equivalenceKey As String, Optional editorConfig As String = Nothing,
-                                                                Optional targetNetFramework As Boolean = False) As Task(Of String)
+                                                                Optional targetNetFramework As Boolean = False,
+                                                                Optional optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)? = Nothing) As Task(Of String)
 
-            Dim project As Project = AnalyzerTestHost.CreateProject(source, editorConfig, targetNetFramework)
+            Dim project As Project = AnalyzerTestHost.CreateProject(source, editorConfig, targetNetFramework, optionStatements)
             Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, analyzer).ConfigureAwait(False)
             Assert.NotEmpty(diagnostics)
 

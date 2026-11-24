@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA025 (Warning) on <c>value IsNot Nothing</c>, because <c>TypeOf value Is String</c> is already <c>False</c>
+    ''' Expected: DCA025 (Info) on <c>value IsNot Nothing</c>, because <c>TypeOf value Is String</c> is already <c>False</c>
     ''' for <c>Nothing</c>.
     ''' </para>
     ''' <para>

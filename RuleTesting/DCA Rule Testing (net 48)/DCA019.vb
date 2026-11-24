@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA019 (Warning) on <c>DateTime.Parse(text)</c>, which depends on the culture of the current thread.
+    ''' Expected: DCA019 (Info) on <c>DateTime.Parse(text)</c>, which depends on the culture of the current thread.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): two fixes: <c>CultureInfo.CurrentCulture</c> (keeps the current behavior) or

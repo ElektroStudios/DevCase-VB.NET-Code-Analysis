@@ -12,6 +12,7 @@ Imports System.Collections.Immutable
 Imports System.Threading.Tasks
 
 Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.VisualBasic
 
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
@@ -25,7 +26,7 @@ Imports Xunit
 Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
 
     ''' <summary>
-    ''' Tests of rule DCA004 (missing Option statements) and its code fix.
+    ''' Tests of rule DCA004 (required Option settings not in effect) and its code fix.
     ''' </summary>
     Public NotInheritable Class DCA004_OptionStatementsTests
 
@@ -40,6 +41,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' The code fix provider under test.
         ''' </summary>
         Private Shared ReadOnly Provider As New OptionStatementsCodeFixProvider()
+
+        ''' <summary>
+        ''' The settings of a new Visual Basic project: <c>Option Strict Off</c>, <c>Option Explicit On</c>, <c>Option Infer On</c>.
+        ''' </summary>
+        Private Shared ReadOnly VisualBasicDefaults As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean) = (OptionStrict.Off, True, True)
 
 #End Region
 
@@ -56,7 +62,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
 #Region " Test Methods "
 
         ''' <summary>
-        ''' Verifies that rule DCA004 reports a file without <c>Option</c> statements on its first token.
+        ''' Verifies that rule DCA004 reports a file without <c>Option</c> statements, in a project with the default settings of 
+        ''' Visual Basic, on its first token, and that the message says where each setting comes from.
         ''' </summary>
         '''
         ''' <returns>
@@ -68,8 +75,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
 [|Imports|] System
 Public Class C
 End Class
-").ConfigureAwait(True)
-            Assert.Contains("Option Strict On, Option Explicit On, Option Infer Off", diagnostics(0).GetMessage(), StringComparison.Ordinal)
+", optionStatements:=DCA004_OptionStatementsTests.VisualBasicDefaults).ConfigureAwait(True)
+            Assert.Equal("Declare 'Option Strict On', 'Option Infer Off' because this file compiles with 'Option Strict Off' (project), 'Option Infer On' (project)",
+                         diagnostics(0).GetMessage(Globalization.CultureInfo.InvariantCulture))
         End Function
 
         ''' <summary>
@@ -85,8 +93,9 @@ End Class
 Option Explicit|]
 Public Class C
 End Class
-").ConfigureAwait(True)
-            Assert.Contains("Option Strict On, Option Infer Off", diagnostics(0).GetMessage(), StringComparison.Ordinal)
+", optionStatements:=DCA004_OptionStatementsTests.VisualBasicDefaults).ConfigureAwait(True)
+            Assert.Contains("'Option Strict On', 'Option Infer Off'", diagnostics(0).GetMessage(Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal)
+            Assert.Contains("'Option Strict Off' (file), 'Option Infer On' (project)", diagnostics(0).GetMessage(Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal)
         End Function
 
         ''' <summary>
@@ -152,7 +161,7 @@ Imports System
 
 Public Class C
 End Class
-").ConfigureAwait(True)
+", optionStatements:=DCA004_OptionStatementsTests.VisualBasicDefaults).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -228,7 +237,7 @@ End Class
             Dim expected As String = "#Region "" Option Statements """ & vbCrLf & vbCrLf &
                                      "Option Strict On" & vbCrLf & "Option Explicit On" & vbCrLf & "Option Infer Off" & vbCrLf & vbCrLf &
                                      "#End Region" & vbCrLf & vbCrLf & source
-            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, source, expected).ConfigureAwait(True)
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, source, expected, optionStatements:=DCA004_OptionStatementsTests.VisualBasicDefaults).ConfigureAwait(True)
         End Function
 
         ''' <summary>
@@ -244,7 +253,88 @@ End Class
             Dim expected As String = "#Region "" Option Statements """ & vbCrLf & vbCrLf &
                                      "Option Strict On" & vbCrLf & "Option Explicit On" & vbCrLf & "Option Infer Off" & vbCrLf & vbCrLf &
                                      "#End Region"
-            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "Option Strict On", expected).ConfigureAwait(True)
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "Option Strict On", expected, optionStatements:=DCA004_OptionStatementsTests.VisualBasicDefaults).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA004 does not report a file without <c>Option</c> statements, or with only some of them, when 
+        ''' the project already uses <c>Option Strict On</c>, <c>Option Explicit On</c> and <c>Option Infer Off</c>.
+        ''' </summary>
+        '''
+        ''' <param name="source">
+        ''' The source file.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Theory>
+        <InlineData("Public Class C" & vbLf & "End Class" & vbLf)>
+        <InlineData("Option Strict On" & vbLf & "Public Class C" & vbLf & "End Class" & vbLf)>
+        <InlineData("Option Compare Text" & vbLf & "Option Infer Off" & vbLf & "Public Class C" & vbLf & "End Class" & vbLf)>
+        Public Async Function DoesNotReport_FileThatInheritsTheRequiredProjectSettings(source As String) As Task
+            Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, source, optionStatements:=(OptionStrict.On, True, False)).ConfigureAwait(True)
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA004 reports a file whose <c>Option</c> statement contradicts the required settings of the project.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Reports_FileThatOverridesTheProjectSettings() As Task
+            Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "[|Option Strict On
+Option Infer On|]
+Public Class C
+End Class
+", optionStatements:=(OptionStrict.On, True, False)).ConfigureAwait(True)
+            Assert.Equal("Declare 'Option Infer Off' because this file compiles with 'Option Infer On' (file)",
+                         diagnostics(0).GetMessage(Globalization.CultureInfo.InvariantCulture))
+        End Function
+
+        ''' <summary>
+        ''' Verifies that rule DCA004 reports each project setting that is not the required one: <c>Option Strict Custom</c> 
+        ''' (warnings configured one by one) and <c>Option Explicit Off</c>.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Reports_EachProjectSettingThatIsNotTheRequiredOne() As Task
+            Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "[|Public|] Class C
+End Class
+", optionStatements:=(OptionStrict.Custom, False, False)).ConfigureAwait(True)
+            Assert.Equal("Declare 'Option Strict On', 'Option Explicit On' because this file compiles with 'Option Strict Custom' (project), 'Option Explicit Off' (project)",
+                         diagnostics(0).GetMessage(Globalization.CultureInfo.InvariantCulture))
+        End Function
+
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA004 writes the three required statements in a file whose statement contradicts 
+        ''' the required settings of the project.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Fix_ReplacesTheStatementThatOverridesTheProjectSettings() As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "Option Infer On
+Public Class C
+End Class
+", "#Region "" Option Statements ""
+
+Option Strict On
+Option Explicit On
+Option Infer Off
+
+#End Region
+
+Public Class C
+End Class
+", optionStatements:=(OptionStrict.On, True, False)).ConfigureAwait(True)
         End Function
 
 #End Region

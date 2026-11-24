@@ -22,7 +22,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA001 (Error) on the <c>Await</c> of <c>Task.Delay(1)</c>, which is not configured.
+    ''' Expected: DCA001 (Warning) on the <c>Await</c> of <c>Task.Delay(1)</c>, which is not configured.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): <c>Await Task.Delay(1).ConfigureAwait(False)</c>.

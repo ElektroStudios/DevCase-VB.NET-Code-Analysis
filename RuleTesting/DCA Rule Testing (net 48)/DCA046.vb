@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA046 (Info) on the <c>Throw</c> in the <c>Finally</c> block, which replaces the exception that is being
+    ''' Expected: DCA046 (Warning) on the <c>Throw</c> in the <c>Finally</c> block, which replaces the exception that is being
     ''' propagated. This rule runs only in .NET Framework projects (on modern .NET, the built-in rule CA2219 reports the same
     ''' statements), so this file is only in the .NET Framework project.
     ''' </para>

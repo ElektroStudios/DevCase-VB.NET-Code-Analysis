@@ -2,7 +2,7 @@
 
 Reports `.Result` (and the VB property-call form `.Result()`) on `Task(Of T)` and `ValueTask(Of T)`.
 
-- **Severity:** Error
+- **Severity:** Warning
 - **Category:** Reliability
 - **Code fix:** ✔️ Replaces it with `.GetAwaiter().GetResult()`
 
@@ -62,8 +62,6 @@ Dim e As String = Task.FromResult(1).GetAwaiter().GetResult().ToString()
 ```
 
 ## 🔕 How to disable
-
-This rule is reported as an **error** by default. The directives below also suppress analyzer errors; to keep seeing it without blocking the Error List, lower it to `warning` or `suggestion` instead of disabling it.
 
 Use the narrowest scope that fits, and write down the reason.
 

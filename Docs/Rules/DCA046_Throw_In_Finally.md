@@ -2,13 +2,13 @@
 
 **.NET Framework only.** Reports `Throw` statements that leave a `Finally` block.
 
-- **Severity:** Info
+- **Severity:** Warning
 - **Category:** Reliability
 - **Code fix:** ❌ (the cleanup code must be redesigned)
 - **Equivalent to:** Microsoft [CA2219](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2219) *"Do not raise exceptions in exception clauses"* and SonarQube [S1163](https://rules.sonarsource.com/vbnet/RSPEC-1163/) *"Exceptions should not be thrown in finally blocks"*
 
 > [!NOTE]
-> On modern .NET, the built-in rule CA2219 already reports these statements, so this rule stays silent there (since version 1.0.6). Its severity is Info, the same as CA2219 (*suggestion*); before 1.0.6 it was a Warning.
+> On modern .NET, the built-in rule CA2219 already reports these statements, so this rule stays silent there (since version 1.0.6). Its severity is Warning (it was Info in versions 1.0.6 and 1.0.7, like CA2219): the new exception hides the real error, which is a defect, not a matter of style.
 
 ---
 

@@ -89,11 +89,11 @@ End Class
 
             Dim messages As String() = diagnostics.OrderBy(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.Location.SourceSpan.Start).
                 Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).Distinct(StringComparer.Ordinal).ToArray()
-            Assert.Contains("Use the 'Count' property of 'Queue(Of Integer)' instead of calling 'Enumerable.Any()'", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the 'Length' property of 'Integer()' instead of calling 'Enumerable.Any()'", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the 'Length' property of 'String' instead of calling 'Enumerable.Any()'", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the 'IsEmpty' property of 'ConcurrentQueue(Of Integer)' instead of calling 'Enumerable.Any()'", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the 'Count' property of 'Dictionary(Of String, Integer).KeyCollection' instead of calling 'Enumerable.Any()'", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the 'Count' property instead of 'Enumerable.Any()' to avoid enumerator boxing and allocation", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the 'Length' property instead of 'Enumerable.Any()' to avoid enumerator boxing and allocation", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the 'Length' property instead of 'Enumerable.Any()' to avoid enumerator boxing and allocation", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the 'IsEmpty' property instead of 'Enumerable.Any()' to avoid enumerator boxing and allocation", messages, StringComparer.Ordinal)
+            Assert.Contains("Use the 'Count' property instead of 'Enumerable.Any()' to avoid enumerator boxing and allocation", messages, StringComparer.Ordinal)
         End Function
 
         ''' <summary>

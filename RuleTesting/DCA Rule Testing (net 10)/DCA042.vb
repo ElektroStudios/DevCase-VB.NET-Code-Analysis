@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA042 (Info) on <c>Case 3</c>, whose implementation is the same as <c>Case 1</c>.
+    ''' Expected: DCA042 (Warning) on <c>Case 3</c>, whose implementation is the same as <c>Case 1</c>.
     ''' </para>
     ''' <para>
     ''' No code fix: the right change depends on the intent of the code.

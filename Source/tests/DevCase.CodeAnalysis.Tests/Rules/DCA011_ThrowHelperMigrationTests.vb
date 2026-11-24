@@ -101,7 +101,7 @@ Public Class C
     End Sub
 End Class
 ", targetNetFramework:=True).ConfigureAwait(True)
-            Assert.Contains("ArgumentException.ThrowIfNullOrEmpty, ArgumentNullException.ThrowIfNull", diagnostics(0).GetMessage(), StringComparison.Ordinal)
+            Assert.Contains("Conditionally use 'ArgumentException.ThrowIfNullOrEmpty', 'ArgumentNullException.ThrowIfNull' for 2 argument guard(s) on modern .NET", diagnostics(0).GetMessage(), StringComparison.Ordinal)
         End Function
 
         ''' <summary>

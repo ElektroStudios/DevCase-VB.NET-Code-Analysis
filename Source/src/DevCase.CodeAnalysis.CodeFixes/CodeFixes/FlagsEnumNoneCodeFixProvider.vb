@@ -22,7 +22,6 @@ Imports Microsoft.CodeAnalysis.CodeFixes
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Microsoft.CodeAnalysis.Rename
 
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
@@ -33,8 +32,8 @@ Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
 
     ''' <summary>
-    ''' Provides the code fix for rule <see cref="DiagnosticIds.FlagsEnumWithoutNone"/>: adds a <c>None = 0</c> member, 
-    ''' or renames the existing zero member to <c>None</c> in the whole solution.
+    ''' Provides the code fix for rule <see cref="DiagnosticIds.FlagsEnumWithoutNone"/>: adds a zero member, named <c>None</c> 
+    ''' or, when that name is already used, the first free name of <see cref="FlagsEnumNoneAnalyzer.CandidateNames"/>.
     ''' </summary>
     ''' 
     ''' <remarks>
@@ -78,20 +77,17 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
 
             For Each diagnostic As Diagnostic In context.Diagnostics
                 Dim document As Document = context.Document
-                Dim kind As String = diagnostic.Properties(FlagsEnumNoneAnalyzer.KindPropertyKey)
-                If kind.Equals(FlagsEnumNoneAnalyzer.AddKind, StringComparison.Ordinal) Then
-                    context.RegisterCodeFix(
-                        CodeAction.Create("Add 'None = 0'",
-                                          Function(ct As CancellationToken) FlagsEnumNoneCodeFixProvider.AddNoneAsync(document, diagnostic, ct),
-                                          equivalenceKey:=$"{NameOf(FlagsEnumNoneCodeFixProvider)}.Add"),
-                        diagnostic)
-                ElseIf kind.Equals(FlagsEnumNoneAnalyzer.RenameKind, StringComparison.Ordinal) Then
-                    context.RegisterCodeFix(
-                        CodeAction.Create("Rename the zero member to 'None'",
-                                          Function(ct As CancellationToken) FlagsEnumNoneCodeFixProvider.RenameAsync(document, diagnostic, ct),
-                                          equivalenceKey:=$"{NameOf(FlagsEnumNoneCodeFixProvider)}.Rename"),
-                        diagnostic)
+                Dim name As String = Nothing
+                If Not diagnostic.Properties.TryGetValue(FlagsEnumNoneAnalyzer.NamePropertyKey, name) OrElse name Is Nothing Then
+                    Continue For ' Every candidate name is already used by a member with another value.
                 End If
+
+                ' One equivalence key for every name, so that Fix All adds the zero member of every enumeration.
+                context.RegisterCodeFix(
+                    CodeAction.Create($"Add '{name} = 0'",
+                                      Function(ct As CancellationToken) FlagsEnumNoneCodeFixProvider.AddZeroMemberAsync(document, diagnostic, name, ct),
+                                      equivalenceKey:=$"{NameOf(FlagsEnumNoneCodeFixProvider)}.Add"),
+                    diagnostic)
             Next diagnostic
             Return Task.CompletedTask
         End Function
@@ -101,7 +97,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
 #Region " Private Methods "
 
         ''' <summary>
-        ''' Adds a <c>None = 0</c> member as the first member of the reported enumeration.
+        ''' Adds a zero member (for example <c>None = 0</c>) as the first member of the reported enumeration.
         ''' </summary>
         ''' 
         ''' <param name="document">
@@ -110,6 +106,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' 
         ''' <param name="diagnostic">
         ''' The diagnostic to fix.
+        ''' </param>
+        ''' 
+        ''' <param name="memberName">
+        ''' The name of the member, as written in source (for example <c>None</c> or <c>[Nothing]</c>).
         ''' </param>
         ''' 
         ''' <param name="cancellationToken">
@@ -123,7 +123,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
         ''' <exception cref="InvalidOperationException">
         ''' Thrown when the diagnostic no longer points to an enumeration.
         ''' </exception>
-        Private Shared Async Function AddNoneAsync(document As Document, diagnostic As Diagnostic, cancellationToken As CancellationToken) As Task(Of Document)
+        Private Shared Async Function AddZeroMemberAsync(document As Document, diagnostic As Diagnostic, memberName As String, cancellationToken As CancellationToken) As Task(Of Document)
 
             Dim root As SyntaxNode = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
             Dim text As SourceText = Await document.GetTextAsync(cancellationToken).ConfigureAwait(False)
@@ -133,7 +133,6 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             End If
 
             Dim eol As String = UtilAnalyzerSyntax.GetEndOfLine(root.SyntaxTree)
-            Dim memberName As String = FlagsEnumNoneAnalyzer.NoneName
             Dim insertion As String
             Dim position As Integer
 
@@ -164,44 +163,6 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
             End If
 
             Return Await UtilCodeFix.ApplyTextChangesAsync(document, {New TextChange(New TextSpan(position, 0), insertion)}, cancellationToken).ConfigureAwait(False)
-        End Function
-
-        ''' <summary>
-        ''' Renames the reported zero member to <c>None</c> in the whole solution.
-        ''' </summary>
-        ''' 
-        ''' <param name="document">
-        ''' The document that contains the member.
-        ''' </param>
-        ''' 
-        ''' <param name="diagnostic">
-        ''' The diagnostic to fix.
-        ''' </param>
-        ''' 
-        ''' <param name="cancellationToken">
-        ''' The token to monitor for cancellation requests.
-        ''' </param>
-        ''' 
-        ''' <returns>
-        ''' The changed solution.
-        ''' </returns>
-        ''' 
-        ''' <exception cref="InvalidOperationException">
-        ''' Thrown when the diagnostic no longer points to an enumeration member.
-        ''' </exception>
-        Private Shared Async Function RenameAsync(document As Document, diagnostic As Diagnostic, cancellationToken As CancellationToken) As Task(Of Solution)
-
-            Dim root As SyntaxNode = Await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(False)
-            Dim model As SemanticModel = Await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(False)
-            Dim member As EnumMemberDeclarationSyntax = root.FindToken(diagnostic.Location.SourceSpan.Start).Parent.AncestorsAndSelf().
-                                                             OfType(Of EnumMemberDeclarationSyntax)().FirstOrDefault()
-            Dim symbol As ISymbol = If(member Is Nothing, Nothing, model.GetDeclaredSymbol(member, cancellationToken))
-            If symbol Is Nothing Then
-                Throw New InvalidOperationException("The diagnostic does not point to an enumeration member.")
-            End If
-
-            Return Await Renamer.RenameSymbolAsync(document.Project.Solution, symbol, New SymbolRenameOptions(), FlagsEnumNoneAnalyzer.NoneName,
-                                                   cancellationToken).ConfigureAwait(False)
         End Function
 
 #End Region

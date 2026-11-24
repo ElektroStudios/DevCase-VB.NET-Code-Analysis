@@ -2,7 +2,7 @@
 
 Reports classes that do not explicitly declare an instance constructor.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Design
 - **Code fix:** ✔️ Injects a documented constructor inside a `#Region " Constructors "` block
 

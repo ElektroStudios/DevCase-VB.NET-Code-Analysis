@@ -2,7 +2,7 @@
 
 Reports members of an enumeration marked with `<Flags>` that declare a single-bit value with a numeric literal instead of the bit-shift operator.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Style
 - **Code fix:** ✔️ Converts the literal to `1 << n`
 - **Configuration:** ⚠️ **Disabled by default.** Enable it with `devcase_analyzers.dca010_enabled = true`

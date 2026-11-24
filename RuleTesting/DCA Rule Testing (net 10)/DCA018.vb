@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA018 (Warning) on <c>New DateTime(1970, 1, 1)</c>, whose kind is Unspecified.
+    ''' Expected: DCA018 (Info) on <c>New DateTime(1970, 1, 1)</c>, whose kind is Unspecified.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): three fixes: <c>DateTimeKind.Unspecified</c> (keeps the current behavior), <c>DateTimeKind.Utc</c> or

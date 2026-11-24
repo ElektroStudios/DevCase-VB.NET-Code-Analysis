@@ -94,37 +94,37 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Select Case True
                     Case TypeOf member Is ConstructorBlockSyntax
                         Dim statement As SubNewStatementSyntax = DirectCast(member, ConstructorBlockSyntax).SubNewStatement
-                        Dim name As String = If(statement.Modifiers.Any(SyntaxKind.SharedKeyword), "Shared Sub New", "Sub New")
+                        Dim name As String = If(statement.Modifiers.Any(SyntaxKind.SharedKeyword), "the shared constructor", "the constructor")
                         ComImportClassCodeAnalyzer.Report(context, statement.NewKeyword, name, type)
 
                     Case TypeOf member Is MethodBlockSyntax
                         Dim statement As MethodStatementSyntax = DirectCast(member, MethodBlockSyntax).SubOrFunctionStatement
-                        ComImportClassCodeAnalyzer.Report(context, statement.Identifier, statement.Identifier.ValueText, type)
+                        ComImportClassCodeAnalyzer.Report(context, statement.Identifier, $"method '{statement.Identifier.ValueText}'", type)
 
                     Case TypeOf member Is OperatorBlockSyntax
                         Dim statement As OperatorStatementSyntax = DirectCast(member, OperatorBlockSyntax).OperatorStatement
-                        ComImportClassCodeAnalyzer.Report(context, statement.OperatorToken, $"Operator {statement.OperatorToken.Text}", type)
+                        ComImportClassCodeAnalyzer.Report(context, statement.OperatorToken, $"operator '{statement.OperatorToken.Text}'", type)
 
                     Case TypeOf member Is PropertyBlockSyntax
                         Dim statement As PropertyStatementSyntax = DirectCast(member, PropertyBlockSyntax).PropertyStatement
-                        ComImportClassCodeAnalyzer.Report(context, statement.Identifier, statement.Identifier.ValueText, type)
+                        ComImportClassCodeAnalyzer.Report(context, statement.Identifier, $"property '{statement.Identifier.ValueText}'", type)
 
                     Case TypeOf member Is PropertyStatementSyntax
                         ' An auto-implemented property: its generated accessors have no body either.
                         Dim statement As PropertyStatementSyntax = DirectCast(member, PropertyStatementSyntax)
                         If Not statement.Modifiers.Any(SyntaxKind.MustOverrideKeyword) Then
-                            ComImportClassCodeAnalyzer.Report(context, statement.Identifier, statement.Identifier.ValueText, type)
+                            ComImportClassCodeAnalyzer.Report(context, statement.Identifier, $"property '{statement.Identifier.ValueText}'", type)
                         End If
 
                     Case TypeOf member Is EventBlockSyntax
                         Dim statement As EventStatementSyntax = DirectCast(member, EventBlockSyntax).EventStatement
-                        ComImportClassCodeAnalyzer.Report(context, statement.Identifier, statement.Identifier.ValueText, type)
+                        ComImportClassCodeAnalyzer.Report(context, statement.Identifier, $"event '{statement.Identifier.ValueText}'", type)
 
                     Case TypeOf member Is FieldDeclarationSyntax
                         For Each declarator As VariableDeclaratorSyntax In DirectCast(member, FieldDeclarationSyntax).Declarators
                             If declarator.Initializer IsNot Nothing OrElse TypeOf declarator.AsClause Is AsNewClauseSyntax Then
                                 For Each name As ModifiedIdentifierSyntax In declarator.Names
-                                    ComImportClassCodeAnalyzer.Report(context, name.Identifier, name.Identifier.ValueText, type)
+                                    ComImportClassCodeAnalyzer.Report(context, name.Identifier, $"the initializer of field '{name.Identifier.ValueText}'", type)
                                 Next name
                             End If
                         Next declarator
@@ -145,7 +145,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </param>
         '''
         ''' <param name="memberName">
-        ''' The member name shown in the message.
+        ''' The member, as shown in the message (for example <c>the constructor</c> or <c>method 'Show'</c>).
         ''' </param>
         '''
         ''' <param name="type">

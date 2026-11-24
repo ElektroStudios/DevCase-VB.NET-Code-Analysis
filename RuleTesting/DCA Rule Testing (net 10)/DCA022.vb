@@ -23,7 +23,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA022 (Warning) on <c>numbers.First()</c> on a <c>List(Of Integer)</c>, which has an indexer.
+    ''' Expected: DCA022 (Info) on <c>numbers.First()</c> on a <c>List(Of Integer)</c>, which has an indexer.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): <c>numbers(0)</c>.

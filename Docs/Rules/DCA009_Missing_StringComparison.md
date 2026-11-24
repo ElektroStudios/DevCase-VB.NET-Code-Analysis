@@ -2,7 +2,7 @@
 
 Reports invocations that omit a string comparison argument although one is available, either through an **overload** or an **optional parameter**.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Globalization
 - **Code fix:** ✔️ Two lightbulb actions: `Ordinal` or `OrdinalIgnoreCase`
 

@@ -23,18 +23,14 @@ Imports Microsoft.CodeAnalysis.Diagnostics
 Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
     ''' <summary>
-    ''' Reports <c>&lt;Flags&gt;</c> enumerations whose zero value is not a member named <c>None</c> 
+    ''' Reports <c>&lt;Flags&gt;</c> enumerations without a member whose value is zero 
     ''' (rule <see cref="DiagnosticIds.FlagsEnumWithoutNone"/>).
     ''' </summary>
     ''' 
     ''' <remarks>
-    ''' Two cases are reported, each with its own code fix:
-    ''' <list type="bullet">
-    '''   <item><description>No member has the value zero: the fix adds <c>None = 0</c> as the first member.</description></item>
-    '''   <item><description>A member has the value zero but another name (e.g. <c>Empty = 0</c>): the fix renames it to <c>None</c> 
-    '''   in the whole solution.</description></item>
-    ''' </list>
-    ''' When a member named <c>None</c> already exists with a non-zero value, the diagnostic is reported without a fix.
+    ''' A zero member already declared is never reported, whatever its name (<c>None</c>, <c>Null</c>, <c>Empty</c>...): 
+    ''' renaming it would break the code that uses it. The code fix adds a zero member named <c>None</c>; when that name is 
+    ''' already used by a member with another value, the first free name of <see cref="CandidateNames"/>.
     ''' </remarks>
     <DiagnosticAnalyzer(LanguageNames.VisualBasic)>
     Public NotInheritable Class FlagsEnumNoneAnalyzer : Inherits DiagnosticAnalyzer
@@ -42,29 +38,20 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 #Region " Constants "
 
         ''' <summary>
-        ''' The diagnostic property that carries the kind of problem: <see cref="AddKind"/>, <see cref="RenameKind"/> or <see cref="ConflictKind"/>.
+        ''' The diagnostic property that carries the name of the member to add, as written in source 
+        ''' (for example <c>None</c> or <c>[Nothing]</c>); absent when every candidate name is already used.
         ''' </summary>
-        Public Const KindPropertyKey As String = "Kind"
+        Public Const NamePropertyKey As String = "Name"
+
+#End Region
+
+#Region " Fields "
 
         ''' <summary>
-        ''' No member has the value zero.
+        ''' The names for the added zero member, in order of preference, as written in source (<c>Nothing</c> is a keyword, 
+        ''' so it is written between brackets).
         ''' </summary>
-        Public Const AddKind As String = "Add"
-
-        ''' <summary>
-        ''' The zero member has a name other than <c>None</c>.
-        ''' </summary>
-        Public Const RenameKind As String = "Rename"
-
-        ''' <summary>
-        ''' A member named <c>None</c> already exists with a non-zero value; no fix is possible.
-        ''' </summary>
-        Public Const ConflictKind As String = "Conflict"
-
-        ''' <summary>
-        ''' The expected name of the zero member.
-        ''' </summary>
-        Public Const NoneName As String = "None"
+        Friend Shared ReadOnly CandidateNames As ImmutableArray(Of String) = ImmutableArray.Create("None", "[Nothing]", "Null", "Zero", "Empty")
 
 #End Region
 
@@ -108,7 +95,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 #Region " Private Methods "
 
         ''' <summary>
-        ''' Analyzes a named type.
+        ''' Analyzes a named type symbol.
         ''' </summary>
         ''' 
         ''' <param name="context">
@@ -123,39 +110,32 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Exit Sub
             End If
 
+            ' The value of each member is its constant value, also when it is implicit (the first member is 0).
             Dim members As List(Of IFieldSymbol) = type.GetMembers().OfType(Of IFieldSymbol)().Where(Function(f As IFieldSymbol) f.HasConstantValue).ToList()
-            Dim zeroMembers As List(Of IFieldSymbol) = members.Where(Function(f As IFieldSymbol) FlagsEnumNoneAnalyzer.IsZero(f.ConstantValue)).ToList()
-            If zeroMembers.Exists(Function(f As IFieldSymbol) f.Name.Equals(FlagsEnumNoneAnalyzer.NoneName, StringComparison.Ordinal)) Then
+            If members.Exists(Function(f As IFieldSymbol) FlagsEnumNoneAnalyzer.IsZero(f.ConstantValue)) Then
                 Exit Sub
             End If
 
-            Dim noneConflict As Boolean = members.Exists(Function(f As IFieldSymbol) f.Name.Equals(FlagsEnumNoneAnalyzer.NoneName, StringComparison.OrdinalIgnoreCase))
-            Dim kind As String
-            Dim location As Location
-            If noneConflict Then
-                kind = FlagsEnumNoneAnalyzer.ConflictKind
-                location = type.Locations.FirstOrDefault(Function(l As Location) l.IsInSource)
-            ElseIf zeroMembers.Count = 0 Then
-                kind = FlagsEnumNoneAnalyzer.AddKind
-                location = type.Locations.FirstOrDefault(Function(l As Location) l.IsInSource)
-            Else
-                kind = FlagsEnumNoneAnalyzer.RenameKind
-                location = zeroMembers(0).Locations.FirstOrDefault(Function(l As Location) l.IsInSource)
-            End If
+            Dim location As Location = type.Locations.FirstOrDefault(Function(l As Location) l.IsInSource)
             If location Is Nothing Then
                 Exit Sub
             End If
 
-            Dim properties As ImmutableDictionary(Of String, String) = ImmutableDictionary(Of String, String).Empty.Add(FlagsEnumNoneAnalyzer.KindPropertyKey, kind)
+            ' Visual Basic names are case-insensitive: "none" and "NONE" are the same name as "None".
+            Dim name As String = FlagsEnumNoneAnalyzer.CandidateNames.FirstOrDefault(
+                Function(candidate As String) Not members.Exists(Function(f As IFieldSymbol) f.Name.Equals(candidate.Trim("["c, "]"c), StringComparison.OrdinalIgnoreCase)))
+            Dim properties As ImmutableDictionary(Of String, String) = If(name Is Nothing,
+                                                                          ImmutableDictionary(Of String, String).Empty,
+                                                                          ImmutableDictionary(Of String, String).Empty.Add(FlagsEnumNoneAnalyzer.NamePropertyKey, name))
             context.ReportDiagnostic(Diagnostic.Create(DevCaseDescriptors.FlagsEnumWithoutNone, location, properties, type.Name))
         End Sub
 
         ''' <summary>
-        ''' Determines whether an enumeration constant value is zero.
+        ''' Determines whether a constant value is zero.
         ''' </summary>
         ''' 
         ''' <param name="value">
-        ''' The boxed constant value.
+        ''' The constant value of an enumeration member.
         ''' </param>
         ''' 
         ''' <returns>

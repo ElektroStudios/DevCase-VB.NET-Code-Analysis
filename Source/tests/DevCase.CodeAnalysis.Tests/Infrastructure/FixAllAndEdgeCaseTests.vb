@@ -15,6 +15,7 @@ Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.CodeFixes
 Imports Microsoft.CodeAnalysis.Diagnostics
+Imports Microsoft.CodeAnalysis.VisualBasic
 
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 Imports DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
@@ -257,11 +258,13 @@ End Class
                 (New StringComparisonAnalyzer(), New StringComparisonCodeFixProvider(), $"{NameOf(StringComparisonCodeFixProvider)}.Ordinal")}
 
             For Each stage As (Analyzer As DiagnosticAnalyzer, Provider As CodeFixProvider, Key As String) In pipeline
-                text = Await AnalyzerTestHost.ApplyFixAllInDocumentAsync(stage.Analyzer, stage.Provider, text, stage.Key, targetNetFramework:=True).ConfigureAwait(True)
+                ' A project with the default settings of Visual Basic (Option Strict Off, Option Explicit On, Option Infer On).
+                text = Await AnalyzerTestHost.ApplyFixAllInDocumentAsync(stage.Analyzer, stage.Provider, text, stage.Key, targetNetFramework:=True,
+                                                                         optionStatements:=(OptionStrict.Off, True, True)).ConfigureAwait(True)
             Next stage
 
             ' .NET Framework: DCA006 runs only there (CA1050 covers modern .NET).
-            Dim project As Project = AnalyzerTestHost.CreateProject(text, targetNetFramework:=True)
+            Dim project As Project = AnalyzerTestHost.CreateProject(text, targetNetFramework:=True, optionStatements:=(OptionStrict.Off, True, True))
             Await AnalyzerTestHost.AssertCompilesAsync(project, "fully fixed source").ConfigureAwait(True)
 
             Dim structural As DiagnosticAnalyzer() = pipeline.Select(Function(s As (Analyzer As DiagnosticAnalyzer, Provider As CodeFixProvider, Key As String)) s.Analyzer).ToArray()

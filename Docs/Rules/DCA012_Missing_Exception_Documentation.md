@@ -2,7 +2,7 @@
 
 Reports documented members that explicitly throw exceptions not listed with an `<exception cref="...">` tag.
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Documentation
 - **Code fix:** ✔️ Adds **empty**, single-line `<exception cref="..."></exception>` sections
 

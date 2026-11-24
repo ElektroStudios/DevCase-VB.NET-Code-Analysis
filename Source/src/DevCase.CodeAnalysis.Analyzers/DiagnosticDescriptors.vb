@@ -78,9 +78,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MissingConfigureAwait As New DiagnosticDescriptor(
             id:=DiagnosticIds.MissingConfigureAwait,
             title:="Await expression is missing ConfigureAwait(False)",
-            messageFormat:="Await expression must be configured with '.ConfigureAwait(False)' to avoid synchronization-context deadlocks",
+            messageFormat:="Add 'ConfigureAwait(False)' to this awaited task to avoid deadlocks",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Error,
+            defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
             description:="Reusable library code must not capture the synchronization context. Every awaited task-like value that exposes a ConfigureAwait(Boolean) method must be configured explicitly.")
 
@@ -90,9 +90,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly TaskResultAccess As New DiagnosticDescriptor(
             id:=DiagnosticIds.TaskResultAccess,
             title:="Blocking .Result access on a task",
-            messageFormat:="Do not access '.Result' on '{0}'; use '.GetAwaiter().GetResult()' (or Await) so exceptions are not wrapped in an AggregateException",
+            messageFormat:="Use '{0}.GetAwaiter().GetResult()' instead of '{0}.Result' to avoid 'AggregateException'",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Error,
+            defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
             description:="Task(Of T).Result wraps faults inside an AggregateException and hides the original stack trace. GetAwaiter().GetResult() surfaces the root exception directly.")
 
@@ -102,9 +102,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly SilentGuardClause As New DiagnosticDescriptor(
             id:=DiagnosticIds.SilentGuardClause,
             title:="Silent guard clause on a parameter",
-            messageFormat:="Guard clause on parameter '{0}' exits silently; throw an explicit argument exception instead (fail-fast)",
+            messageFormat:="Throw an argument exception instead of silently exiting when '{0}' is invalid",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="A broken precondition must never be hidden by a silent Return or Exit statement. Throw ArgumentNullException, ArgumentException or ArgumentOutOfRangeException instead.")
 
@@ -113,12 +113,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Shared ReadOnly MissingOptionStatements As New DiagnosticDescriptor(
             id:=DiagnosticIds.MissingOptionStatements,
-            title:="Missing Option statements",
-            messageFormat:="Source file is missing the required Option statement(s): {0}",
+            title:="Required Option settings not in effect",
+            messageFormat:="Declare {0} because this file compiles with {1}",
             category:=DevCaseDescriptors.CategoryStyle,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
-            description:="Every source file must explicitly declare 'Option Strict On', 'Option Explicit On' and 'Option Infer Off'.")
+            description:="Every source file must be compiled with 'Option Strict On', 'Option Explicit On' and 'Option Infer Off'. Each setting is taken from the Option statement of the file or, when the file does not declare it, from the project settings: a file without Option statements in a project that already uses the required settings is not reported.")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.MissingExplicitConstructor"/>.
@@ -126,9 +126,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MissingExplicitConstructor As New DiagnosticDescriptor(
             id:=DiagnosticIds.MissingExplicitConstructor,
             title:="Class lacks an explicit constructor",
-            messageFormat:="Class '{0}' does not explicitly declare an instance constructor",
+            messageFormat:="Explicitly declare an instance constructor in class '{0}' to avoid an implicit public constructor",
             category:=DevCaseDescriptors.CategoryDesign,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Every class must explicitly declare its instance constructor so that its accessibility and documentation are intentional.")
 
@@ -138,7 +138,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly TypeOutsideNamespace As New DiagnosticDescriptor(
             id:=DiagnosticIds.TypeOutsideNamespace,
             title:="Type declared in the global namespace",
-            messageFormat:="Type '{0}' is declared in the global namespace; declare it inside a Namespace block",
+            messageFormat:="Declare type '{0}' inside a namespace to prevent global naming collisions",
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -150,9 +150,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MissingXmlDocumentation As New DiagnosticDescriptor(
             id:=DiagnosticIds.MissingXmlDocumentation,
             title:="Public member lacks XML documentation",
-            messageFormat:="Public member '{0}' is missing an XML documentation comment",
+            messageFormat:="Add XML documentation <summary> tag to public member '{0}'",
             category:=DevCaseDescriptors.CategoryDocumentation,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Every member declared with the Public modifier must have an XML documentation comment. An '<inheritdoc/>' comment is accepted.")
 
@@ -162,9 +162,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly XmlParameterMismatch As New DiagnosticDescriptor(
             id:=DiagnosticIds.XmlParameterMismatch,
             title:="XML <param> tags do not match the parameter list",
-            messageFormat:="XML documentation of '{0}' does not match its parameters: {1}",
+            messageFormat:="Fix the XML documentation <param> tags of '{0}' ({1})",
             category:=DevCaseDescriptors.CategoryDocumentation,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Every parameter must be documented by exactly one non-empty <param> tag, and every <param> tag must refer to an existing parameter.")
 
@@ -174,9 +174,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MissingStringComparison As New DiagnosticDescriptor(
             id:=DiagnosticIds.MissingStringComparison,
             title:="String comparison argument omitted",
-            messageFormat:="'{0}' accepts a '{1}' argument; specify the string comparison explicitly",
+            messageFormat:="Pass an explicit '{1}' argument to '{0}' to avoid culture-dependent behavior",
             category:=DevCaseDescriptors.CategoryGlobalization,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="When an overload or optional parameter accepting StringComparison, StringComparer, IComparer(Of String) or IEqualityComparer(Of String) is available, the comparison must be specified explicitly instead of relying on culture-sensitive defaults.")
 
@@ -191,9 +191,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly FlagsEnumWithoutBitShift As New DiagnosticDescriptor(
             id:=DiagnosticIds.FlagsEnumWithoutBitShift,
             title:="Flags enum member does not use bit-shift syntax",
-            messageFormat:="Flags enum member '{0}' should be declared as '{1}' instead of a direct numeric literal",
+            messageFormat:="Declare Flags enum member '{0}' as '{1}' to make its bit explicit",
             category:=DevCaseDescriptors.CategoryStyle,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Members of an enumeration marked with <Flags> must declare single-bit values with the bit-shift operator (e.g. 1 << 3). Disabled by default; enable per project with 'devcase_analyzers.dca010_enabled = true'.")
 
@@ -207,7 +207,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ThrowHelperMigration As New DiagnosticDescriptor(
             id:=DiagnosticIds.ThrowHelperMigration,
             title:="Argument guards can be paired with their modern throw helpers",
-            messageFormat:="{0} argument guard(s) have a modern .NET throw-helper equivalent ({1}); add a conditional compilation block for migration",
+            messageFormat:="Conditionally use '{1}' for {0} argument guard(s) on modern .NET",
             category:=DevCaseDescriptors.CategoryPortability,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -219,9 +219,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MissingExceptionDocumentation As New DiagnosticDescriptor(
             id:=DiagnosticIds.MissingExceptionDocumentation,
             title:="Thrown exception is not documented",
-            messageFormat:="'{0}' throws exception(s) not documented with an <exception> tag: {1}",
+            messageFormat:="Add XML documentation <exception> tags to '{0}' for thrown exceptions ({1})",
             category:=DevCaseDescriptors.CategoryDocumentation,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Every exception explicitly thrown by a documented member (Throw New ..., or a .NET throw helper such as ArgumentNullException.ThrowIfNull) must be listed with an <exception cref=""...""> tag. Exceptions caught within the same member and NotImplementedException are ignored.")
 
@@ -235,7 +235,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly NetFrameworkApiMigration As New DiagnosticDescriptor(
             id:=DiagnosticIds.NetFrameworkApiMigration,
             title:="API has a modern .NET equivalent",
-            messageFormat:="'{0}' can be replaced on modern .NET by '{1}'; add a conditional compilation block for migration",
+            messageFormat:="Conditionally use '{1}' instead of '{0}' on modern .NET",
             category:=DevCaseDescriptors.CategoryPortability,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -247,7 +247,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly FileSystemLoopWithoutMessagePumping As New DiagnosticDescriptor(
             id:=DiagnosticIds.FileSystemLoopWithoutMessagePumping,
             title:="File-system loop without Thread.CurrentThread.Join(0)",
-            messageFormat:="Loop over '{0}' must call 'Thread.CurrentThread.Join(0)' to prevent ContextSwitchDeadlock on long-running enumerations",
+            messageFormat:="Call 'Thread.CurrentThread.Join(0)' inside this enumeration loop to pump COM messages and prevent 'ContextSwitchDeadlock'",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -259,7 +259,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly RecursiveCall As New DiagnosticDescriptor(
             id:=DiagnosticIds.RecursiveCall,
             title:="Method calls itself",
-            messageFormat:="'{0}' calls itself recursively; rewrite the algorithm iteratively using an explicit Stack or Queue",
+            messageFormat:="Rewrite recursive method '{0}' iteratively to avoid a stack overflow",
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -271,7 +271,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly AsyncSubNotEventHandler As New DiagnosticDescriptor(
             id:=DiagnosticIds.AsyncSubNotEventHandler,
             title:="Async Sub is not an event handler",
-            messageFormat:="Async Sub '{0}' is not an event handler; declare it as an Async Function that returns a Task so callers can await it and observe its exceptions",
+            messageFormat:="Return a Task from Async Sub '{0}' so callers can await it",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -283,9 +283,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly RegexWithoutTimeout As New DiagnosticDescriptor(
             id:=DiagnosticIds.RegexWithoutTimeout,
             title:="Regular expression without match timeout",
-            messageFormat:="'{0}' evaluates a regular expression without a match timeout; pass a TimeSpan to limit its execution time (ReDoS)",
+            messageFormat:="Specify a match timeout for '{0}' to prevent ReDoS",
             category:=DevCaseDescriptors.CategorySecurity,
-            defaultSeverity:=DiagnosticSeverity.Error,
+            defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
             description:="A regular expression with catastrophic backtracking evaluated against malicious or unexpectedly large input can run for minutes or forever (Regular expression Denial of Service, CWE-1333). Pass a match timeout to the Regex constructor or to the static Regex methods; RegexMatchTimeoutException is thrown when it expires. Equivalent to SonarQube rule S6444.",
             helpLinkUri:="https://learn.microsoft.com/dotnet/standard/base-types/best-practices-regex#use-time-out-values")
@@ -296,9 +296,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly DateTimeWithoutKind As New DiagnosticDescriptor(
             id:=DiagnosticIds.DateTimeWithoutKind,
             title:="DateTime created without DateTimeKind",
-            messageFormat:="'New DateTime' without a DateTimeKind creates a value of kind Unspecified; state the kind explicitly",
+            messageFormat:="Specify a DateTimeKind in this DateTime constructor to avoid ambiguous dates",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="A DateTime created without a DateTimeKind has the kind Unspecified, which ToUniversalTime and ToLocalTime treat as local time and serializers handle inconsistently. Stating the kind (Unspecified, Utc or Local) documents what the value represents. Equivalent to SonarQube rule S6562.")
 
@@ -308,9 +308,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly DateTimeParseWithoutProvider As New DiagnosticDescriptor(
             id:=DiagnosticIds.DateTimeParseWithoutProvider,
             title:="Date and time parsed without a format provider",
-            messageFormat:="'{0}' parses with the culture of the current thread; pass an IFormatProvider such as CultureInfo.InvariantCulture",
+            messageFormat:="Pass an IFormatProvider to '{0}' to avoid culture-dependent parsing",
             category:=DevCaseDescriptors.CategoryGlobalization,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="DateTime, DateTimeOffset, TimeSpan, DateOnly and TimeOnly parsing methods without an IFormatProvider depend on the regional settings of the machine: the same text can produce a different value or fail on another computer. Equivalent to SonarQube rule S6580.")
 
@@ -319,12 +319,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Shared ReadOnly FlagsEnumWithoutNone As New DiagnosticDescriptor(
             id:=DiagnosticIds.FlagsEnumWithoutNone,
-            title:="Flags enumeration without a 'None' zero value",
-            messageFormat:="Flags enumeration '{0}' must declare its zero value as a member named 'None'",
+            title:="Flags enumeration without a zero value",
+            messageFormat:="Add a zero-value member to Flags enum '{0}'",
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
-            description:="The zero value of a Flags enumeration means that no flag is set; naming it None makes code such as 'value = MyFlags.None' readable and avoids using the literal 0. Equivalent to SonarQube rule S2346.")
+            description:="The zero value of a Flags enumeration means that no flag is set. Without a member for it, code has to use the literal 0 or CType(0, MyFlags). A zero member that already exists is never reported, whatever its name. The code fix adds a zero member named None, or [Nothing], Null, Zero or Empty when that name is already used.")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.LinqInsteadOfCollectionMethod"/>.
@@ -332,9 +332,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly LinqInsteadOfCollectionMethod As New DiagnosticDescriptor(
             id:=DiagnosticIds.LinqInsteadOfCollectionMethod,
             title:="LINQ method used instead of the collection-specific method",
-            messageFormat:="Use '{0}' instead of the LINQ '{1}' extension on '{2}'",
+            messageFormat:="Use '{0}' instead of 'Enumerable.{1}()' to avoid enumerator boxing and allocation",
             category:=DevCaseDescriptors.CategoryPerformance,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="List(Of T), arrays and ImmutableList(Of T) provide Find, Exists and TrueForAll methods that are faster than the equivalent LINQ FirstOrDefault, Any and All extensions with a predicate. Equivalent to SonarQube rules S6602, S6603 and S6605.")
 
@@ -344,9 +344,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly LinqInsteadOfIndexer As New DiagnosticDescriptor(
             id:=DiagnosticIds.LinqInsteadOfIndexer,
             title:="LINQ method used instead of the indexer",
-            messageFormat:="Use the indexer instead of the LINQ '{0}' extension on '{1}'",
+            messageFormat:="Use the indexer instead of 'Enumerable.{0}()' to avoid LINQ overhead",
             category:=DevCaseDescriptors.CategoryPerformance,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Types that implement IList(Of T) (List(Of T), arrays, Collection(Of T)...) can be indexed directly; First, Last and ElementAt go through LINQ type checks and interface calls. Equivalent to SonarQube rule S6608 (CA1826 only covers IReadOnlyList(Of T) types that do not implement IList(Of T)).")
 
@@ -356,9 +356,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly InvertedComparison As New DiagnosticDescriptor(
             id:=DiagnosticIds.InvertedComparison,
             title:="Negated comparison",
-            messageFormat:="Replace 'Not' and the '{0}' operator with the inverse operator '{1}'",
+            messageFormat:="Use the '{1}' operator to simplify the negated comparison",
             category:=DevCaseDescriptors.CategoryStyle,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Negating a comparison is harder to read than using the inverse operator: 'Not (a = b)' is 'a <> b'. Relational comparisons of floating-point values are not reported because they differ for NaN. Equivalent to SonarQube rule S1940.")
 
@@ -368,7 +368,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly RethrowOnlyCatch As New DiagnosticDescriptor(
             id:=DiagnosticIds.RethrowOnlyCatch,
             title:="Catch block only rethrows the exception",
-            messageFormat:="This Catch block only rethrows the exception; remove it",
+            messageFormat:="Remove this Catch block because it only rethrows the exception",
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -380,9 +380,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly RedundantNullCheckBeforeTypeOf As New DiagnosticDescriptor(
             id:=DiagnosticIds.RedundantNullCheckBeforeTypeOf,
             title:="Redundant null check before TypeOf",
-            messageFormat:="The null check is redundant: '{0}' already handles Nothing",
+            messageFormat:="Remove the redundant null check because 'TypeOf' already evaluates to 'False' for 'Nothing'",
             category:=DevCaseDescriptors.CategoryStyle,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="'TypeOf x Is T' is False when x is Nothing, and 'TypeOf x IsNot T' is True, so a preceding 'x IsNot Nothing AndAlso' or 'x Is Nothing OrElse' adds nothing. Equivalent to SonarQube rule S4201.")
 
@@ -392,9 +392,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly EncodingNotSpecified As New DiagnosticDescriptor(
             id:=DiagnosticIds.EncodingNotSpecified,
             title:="Text encoding not specified",
-            messageFormat:="'{0}' uses an implicit text encoding; pass the Encoding explicitly",
+            messageFormat:="Pass an explicit 'Encoding' to '{0}' to avoid relying on the default encoding",
             category:=DevCaseDescriptors.CategoryGlobalization,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="Text APIs called without an Encoding use an implicit one (UTF-8 without BOM for System.IO, UTF-8 with BOM for Microsoft.VisualBasic.FileIO). Stating the encoding documents the format of the file or stream, and avoids surprises with programs that expect another encoding.")
 
@@ -404,7 +404,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ThreadSleepInAsyncMethod As New DiagnosticDescriptor(
             id:=DiagnosticIds.ThreadSleepInAsyncMethod,
             title:="Thread.Sleep in an Async method",
-            messageFormat:="'Thread.Sleep' blocks the thread inside an Async method; use 'Await Task.Delay' instead",
+            messageFormat:="Use Await Task.Delay instead of Thread.Sleep in this Async method to avoid blocking the thread",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -416,7 +416,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MissingStaThread As New DiagnosticDescriptor(
             id:=DiagnosticIds.MissingStaThread,
             title:="Windows Forms entry point without <STAThread>",
-            messageFormat:="'{0}' is the entry point of a Windows Forms application but is not marked with <STAThread>",
+            messageFormat:="Use <STAThread> on the Windows Forms entry point '{0}' to ensure COM apartment compatibility",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -428,7 +428,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly StringConcatenationWithPlus As New DiagnosticDescriptor(
             id:=DiagnosticIds.StringConcatenationWithPlus,
             title:="String concatenated with '+'",
-            messageFormat:="Strings are concatenated with '{0}'; use '{1}' instead",
+            messageFormat:="Concatenate strings using '{1}' instead of '{0}' to avoid operator ambiguity",
             category:=DevCaseDescriptors.CategoryStyle,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -440,7 +440,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ArrayCreationInsteadOfLiteral As New DiagnosticDescriptor(
             id:=DiagnosticIds.ArrayCreationInsteadOfLiteral,
             title:="Array creation expression can be an array literal",
-            messageFormat:="'New {0}' is redundant; use an array literal",
+            messageFormat:="Use an array literal instead of an explicit array creation because the type is already inferred",
             category:=DevCaseDescriptors.CategoryStyle,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -452,7 +452,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ArrayRankOnVariable As New DiagnosticDescriptor(
             id:=DiagnosticIds.ArrayRankOnVariable,
             title:="Array designator on the variable name",
-            messageFormat:="Move the array designator '{0}' of '{1}' to the type",
+            messageFormat:="Move the array specifier '{0}' from the variable name to the type for clearer readability",
             category:=DevCaseDescriptors.CategoryStyle,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -464,7 +464,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly EndStatement As New DiagnosticDescriptor(
             id:=DiagnosticIds.EndStatement,
             title:="'End' statement",
-            messageFormat:="The 'End' statement terminates the process abruptly: Finally blocks, Dispose methods and FormClosing events do not run",
+            messageFormat:="Do not use the 'End' statement because it skips Finally blocks and cleanup code",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -476,9 +476,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly OnErrorStatement As New DiagnosticDescriptor(
             id:=DiagnosticIds.OnErrorStatement,
             title:="'On Error' statement",
-            messageFormat:="'{0}' is unstructured error handling; use Try...Catch",
+            messageFormat:="Replace '{0}' with 'Try...Catch' for structured exception handling",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="On Error is unstructured error handling: On Error Resume Next silently ignores every error, and On Error GoTo jumps across the method. Try...Catch handles exceptions in a visible, scoped and typed way.")
 
@@ -488,7 +488,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly GoToStatement As New DiagnosticDescriptor(
             id:=DiagnosticIds.GoToStatement,
             title:="'GoTo' statement",
-            messageFormat:="'GoTo {0}' makes the control flow hard to follow; use a loop, Exit, Continue or Return",
+            messageFormat:="Replace 'GoTo {0}' with loops, 'Exit', or 'Continue' statements for structured control flow",
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -500,7 +500,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly DoEventsInLoop As New DiagnosticDescriptor(
             id:=DiagnosticIds.DoEventsInLoop,
             title:="Application.DoEvents inside a loop",
-            messageFormat:="'{0}' inside a loop processes UI events reentrantly; move the work to a background task",
+            messageFormat:="Move this loop to a background task instead of calling '{0}' to prevent overlapping UI events",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -512,7 +512,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly LockOnWeakIdentity As New DiagnosticDescriptor(
             id:=DiagnosticIds.LockOnWeakIdentity,
             title:="SyncLock on a publicly accessible or weak-identity object",
-            messageFormat:="SyncLock on {0}: other code can lock on the same object; lock on a dedicated Private ReadOnly object",
+            messageFormat:="Lock on a private object instead of {0} to avoid deadlocks",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -524,7 +524,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MonitorEnterWithoutFinally As New DiagnosticDescriptor(
             id:=DiagnosticIds.MonitorEnterWithoutFinally,
             title:="Monitor.Enter without Monitor.Exit in a Finally block",
-            messageFormat:="'Monitor.{0}' is not paired with 'Monitor.Exit' in a Finally block; an exception leaves the lock held forever",
+            messageFormat:="Call Monitor.Exit in a Finally block after 'Monitor.{0}' to always release the lock",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -536,7 +536,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ThreadSuspendResume As New DiagnosticDescriptor(
             id:=DiagnosticIds.ThreadSuspendResume,
             title:="Thread.Suspend or Thread.Resume",
-            messageFormat:="'Thread.{0}' can deadlock the process; use a synchronization primitive instead",
+            messageFormat:="Replace 'Thread.{0}' with a synchronization primitive to avoid deadlocks",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -548,7 +548,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly BeginInvokeWithoutEndInvoke As New DiagnosticDescriptor(
             id:=DiagnosticIds.BeginInvokeWithoutEndInvoke,
             title:="Delegate BeginInvoke without EndInvoke",
-            messageFormat:="'{0}.BeginInvoke' is not paired with 'EndInvoke': its result, exceptions and resources are lost",
+            messageFormat:="Call EndInvoke after '{0}.BeginInvoke' to observe its result and exceptions",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -560,7 +560,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly DuplicateCondition As New DiagnosticDescriptor(
             id:=DiagnosticIds.DuplicateCondition,
             title:="Duplicated condition in If/ElseIf or Select Case",
-            messageFormat:="This condition is the same as the one on line {0}; this branch can never run",
+            messageFormat:="Fix this condition because it duplicates the one on line {0}",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -572,7 +572,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly AllBranchesIdentical As New DiagnosticDescriptor(
             id:=DiagnosticIds.AllBranchesIdentical,
             title:="All branches of a conditional structure are identical",
-            messageFormat:="All branches of this '{0}' have the same implementation; the condition is useless",
+            messageFormat:="Simplify this '{0}' because all its branches are identical",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -584,9 +584,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly DuplicateBranch As New DiagnosticDescriptor(
             id:=DiagnosticIds.DuplicateBranch,
             title:="Two branches of a conditional structure are identical",
-            messageFormat:="This branch has the same implementation as the branch on line {0}; merge their conditions",
+            messageFormat:="Merge this branch with the identical branch on line {0}",
             category:=DevCaseDescriptors.CategoryDesign,
-            defaultSeverity:=DiagnosticSeverity.Info,
+            defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
             description:="Two branches with the same implementation should be merged (OrElse in an If chain, a comma-separated Case clause in Select Case), or one of them is a copy-paste mistake.")
 
@@ -596,7 +596,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly IdenticalOperands As New DiagnosticDescriptor(
             id:=DiagnosticIds.IdenticalOperands,
             title:="Identical expressions on both sides of a binary operator",
-            messageFormat:="Identical expressions on both sides of '{0}'; the result is always the same",
+            messageFormat:="Fix the operands of '{0}' because both sides are identical",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -608,7 +608,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly DateTimeNowForTiming As New DiagnosticDescriptor(
             id:=DiagnosticIds.DateTimeNowForTiming,
             title:="DateTime.Now used to measure elapsed time",
-            messageFormat:="'{0}' measures elapsed time with the system clock; use Stopwatch",
+            messageFormat:="Use Stopwatch instead of '{0}' to measure elapsed time accurately",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -620,7 +620,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly InsecureTempFile As New DiagnosticDescriptor(
             id:=DiagnosticIds.InsecureTempFile,
             title:="Path.GetTempFileName creates a predictable temporary file",
-            messageFormat:="'{0}' creates a temporary file with a predictable name; create it with a random name and FileMode.CreateNew",
+            messageFormat:="Replace '{0}' with 'Path.GetRandomFileName' to avoid predictable names",
             category:=DevCaseDescriptors.CategorySecurity,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -632,9 +632,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ThrowInFinally As New DiagnosticDescriptor(
             id:=DiagnosticIds.ThrowInFinally,
             title:="Exception thrown in a Finally block",
-            messageFormat:="An exception thrown in a Finally block replaces the exception that is being propagated",
+            messageFormat:="Do not throw exceptions in a Finally block to preserve the original exception",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Info,
+            defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
             description:="If the Try block threw an exception, an exception thrown in the Finally block replaces it: the original error and its stack trace are lost. Equivalent of CA2219, for .NET Framework projects.")
 
@@ -644,7 +644,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ThrowInFinalize As New DiagnosticDescriptor(
             id:=DiagnosticIds.ThrowInFinalize,
             title:="Exception thrown in Finalize",
-            messageFormat:="An exception thrown in 'Finalize' terminates the process",
+            messageFormat:="Do not throw exceptions in Finalize to prevent process termination",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -656,7 +656,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ThrowInPropertyGetter As New DiagnosticDescriptor(
             id:=DiagnosticIds.ThrowInPropertyGetter,
             title:="Exception thrown in a property getter",
-            messageFormat:="The getter of '{0}' throws '{1}'; getters should only throw InvalidOperationException, NotSupportedException or NotImplementedException",
+            messageFormat:="Do not throw '{1}' in the getter of '{0}'; move the check to a method or the setter",
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -668,7 +668,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly SingleCharacterString As New DiagnosticDescriptor(
             id:=DiagnosticIds.SingleCharacterString,
             title:="Single-character string where a Char can be used",
-            messageFormat:="Use the character literal {0} instead of a single-character string in '{1}'",
+            messageFormat:="Use a character literal instead of a string to invoke the Char overload",
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -680,7 +680,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly UnvalidatedParameter As New DiagnosticDescriptor(
             id:=DiagnosticIds.UnvalidatedParameter,
             title:="Parameter of an externally visible method is not validated",
-            messageFormat:="Parameter '{0}' of '{1}' is not validated",
+            messageFormat:="Add a guard clause for parameter '{0}' of '{1}'",
             category:=DevCaseDescriptors.CategoryDesign,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -692,7 +692,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly DiscardedAwaiter As New DiagnosticDescriptor(
             id:=DiagnosticIds.DiscardedAwaiter,
             title:="Awaiter or ConfigureAwait result discarded",
-            messageFormat:="The result of '{0}' is discarded: the task is neither awaited nor waited, and its exceptions are lost",
+            messageFormat:="Await the task returned by '{0}' instead of discarding it to observe exceptions and completion",
             category:=DevCaseDescriptors.CategoryReliability,
             defaultSeverity:=DiagnosticSeverity.Warning,
             isEnabledByDefault:=True,
@@ -704,7 +704,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MisusedSenderParameter As New DiagnosticDescriptor(
             id:=DiagnosticIds.MisusedSenderParameter,
             title:="Parameter named 'sender' outside an event handler",
-            messageFormat:="Parameter 'sender' of '{0}' is not the sender of an event; rename it{1}",
+            messageFormat:="Rename parameter 'sender'{1} in '{0}' because it is not an event handler",
             category:=DevCaseDescriptors.CategoryNaming,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -716,7 +716,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly MethodCallWithoutParentheses As New DiagnosticDescriptor(
             id:=DiagnosticIds.MethodCallWithoutParentheses,
             title:="Method call without parentheses",
-            messageFormat:="Add parentheses to the call of method '{0}'",
+            messageFormat:="Add parentheses to this method call to distinguish it from a property",
             category:=DevCaseDescriptors.CategoryStyle,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -728,9 +728,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ComImportClassCode As New DiagnosticDescriptor(
             id:=DiagnosticIds.ComImportClassCode,
             title:="Code in a ComImport class never runs",
-            messageFormat:="'{0}' is declared in the ComImport class '{1}': the compiler discards its body, so its code never runs",
+            messageFormat:="Remove {0} from <ComImport> class '{1}' because the compiler discards its body",
             category:=DevCaseDescriptors.CategoryReliability,
-            defaultSeverity:=DiagnosticSeverity.Warning,
+            defaultSeverity:=DiagnosticSeverity.Error,
             isEnabledByDefault:=True,
             description:="A class marked with <ComImport> is created by the runtime through COM (CoCreateInstance). The Visual Basic compiler accepts constructors, methods and property accessors with code in such a class, but silently compiles them as runtime-implemented members without a body: the code never runs. C# rejects the same code (CS0669, CS0423).")
 
@@ -740,7 +740,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly ZeroLengthArrayAllocation As New DiagnosticDescriptor(
             id:=DiagnosticIds.ZeroLengthArrayAllocation,
             title:="Zero-length array allocation",
-            messageFormat:="Use 'Array.Empty(Of {0})()' instead of allocating a zero-length array",
+            messageFormat:="Use 'Array.Empty(Of {0})()' instead of a new empty array to avoid unnecessary heap allocation",
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -752,7 +752,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly AnyInsteadOfEmptinessCheck As New DiagnosticDescriptor(
             id:=DiagnosticIds.AnyInsteadOfEmptinessCheck,
             title:="Enumerable.Any() instead of IsEmpty, Count or Length",
-            messageFormat:="Use the '{0}' property of '{1}' instead of calling 'Enumerable.Any()'",
+            messageFormat:="Use the '{0}' property instead of 'Enumerable.Any()' to avoid enumerator boxing and allocation",
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -764,7 +764,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly CollectionNameOnEnumerableParameter As New DiagnosticDescriptor(
             id:=DiagnosticIds.CollectionNameOnEnumerableParameter,
             title:="IEnumerable parameter named as a collection",
-            messageFormat:="Parameter '{0}' of '{1}' is an IEnumerable, a sequence rather than a collection; rename it{2}",
+            messageFormat:="Rename parameter '{0}'{2} in '{1}' to match its 'IEnumerable' type",
             category:=DevCaseDescriptors.CategoryNaming,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -776,7 +776,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly StringBuilderArgumentConvertedToString As New DiagnosticDescriptor(
             id:=DiagnosticIds.StringBuilderArgumentConvertedToString,
             title:="StringBuilder argument converted to a string",
-            messageFormat:="Use the strongly typed overload 'StringBuilder.{0}({1})' instead of converting the argument to a string",
+            messageFormat:="Use the StringBuilder.{0}({1}) overload to avoid a temporary string",
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,

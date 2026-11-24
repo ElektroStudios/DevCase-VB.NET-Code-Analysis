@@ -1,6 +1,48 @@
 # DevCase VB.NET Code Analysis Change Log 📋
 
-## v1.0.7 *(current)* 🆕
+## v1.0.8 *(current)* 🆕
+
+### 🔤 Every message and every severity, reviewed rule by rule
+
+This version does not add rules: it rewrites **how all of them speak** and **how loud they are**. It is the largest change since the first release. No code fix changes its result, but the Error List looks different for every rule.
+
+**Messages.** The message of all 58 rules was rewritten with a single pattern: **what to do** + **where** (`'{0}'`) + **why** (optional), in one short sentence. The action comes first, so a long Error List can be scanned at a glance, the reason is a few words instead of an explanation, and every placeholder was checked against the values that its analyzer passes. Some examples:
+
+| Rule | Before | Now |
+|---|---|---|
+| DCA029 | Strings are concatenated with '+'; use '&' instead | Concatenate strings using '&' instead of '+' to avoid operator ambiguity |
+| DCA005 | Class 'C' does not explicitly declare an instance constructor | Explicitly declare an instance constructor in class 'C' to avoid an implicit public constructor |
+| DCA044 | 'Date.Now' measures elapsed time with the system clock; use Stopwatch | Use Stopwatch instead of 'Date.Now' to measure elapsed time accurately |
+| DCA046 | An exception thrown in a Finally block replaces the exception that is being propagated | Do not throw exceptions in a Finally block to preserve the original exception |
+| DCA054 | 'Sub New' is declared in the ComImport class 'C': the compiler discards its body, so its code never runs | Remove the constructor from &lt;ComImport&gt; class 'C' because the compiler discards its body |
+
+DCA054 now names the kind of member (*the constructor*, *the shared constructor*, *method 'X'*, *property 'X'*, *the initializer of field 'X'*...), and DCA011 quotes each throw helper. The descriptions of DCA004, DCA020 and DCA024 were updated.
+
+**Severities.** New policy, applied to every rule:
+
+| Severity | Meaning |
+|---|---|
+| **Error** | Code that the compiler accepts but that can never work. Using an API as the .NET class library exposes it (for example `Task.Result`) is never an Error: it compiles and works. |
+| **Warning** | Code that can fail at run time, hang, lose exceptions or data, or that hides a defect. |
+| **Info** | Style, structure, documentation, naming, readability and micro-performance: the code works, and the fix makes it clearer or faster. |
+
+Changes:
+ - Error → Warning: DCA001, DCA002, DCA017.
+ - Warning → Error: DCA054, now the only Error rule (its code compiles but never runs).
+ - Warning → Info: DCA003, DCA005, DCA007, DCA008, DCA009, DCA010, DCA012, DCA018, DCA019, DCA021, DCA022, DCA023, DCA025, DCA026, DCA033.
+ - Info → Warning: DCA042, DCA046.
+
+Every severity can still be changed in `.editorconfig`. The repository `.editorconfig` raises the 15 rules that became Info to warnings for the repository's own source code, which keeps following them at build time. The README has a new severity table, and the rule table, the Info-level rule list, the rule documents and the comments of the rule testing solution show the new severities.
+
+### Fixes
+ - DCA020: the rule reported a zero member whose name was not `None`, and its code fix renamed it in the whole solution (`Null` → `None`), which breaks every piece of code that uses the old name. A zero member that already exists, explicit (`Empty = 0`) or implicit (the first member without a value), is no longer reported, whatever its name. Only enumerations without a zero value are reported, and the fix adds `None = 0`, or, when `None` is already used by a member with another value, the first free name among `[Nothing]`, `Null`, `Zero` and `Empty` (compared without case). The rename code fix was removed. New title: *Flags enumeration without a zero value*.
+ - DCA004: the rule required the three `Option` statements in every file, even when the project already compiled it with `Option Strict On`, `Option Explicit On` and `Option Infer Off`. Each setting is now taken from the `Option` statement of the file or, when the file does not declare it, from the project settings (`<OptionStrict>`, `<OptionExplicit>`, `<OptionInfer>`): a file that inherits the required settings is not reported, and a file whose statement contradicts them is. `Option Strict Custom` is not `On`. The message says which settings are wrong and where they come from (*"... because this file compiles with 'Option Strict Off' (project), 'Option Infer On' (file)"*). The code fix still writes the three statements. New title: *Required Option settings not in effect*.
+
+### Tests
+ - The test host can set the `Option Strict`, `Option Explicit` and `Option Infer` settings of the project.
+ - New DCA004 tests (inherited settings, a file that overrides the project, `Option Strict Custom`) and DCA020 tests (implicit zero with another name, the next free name, every name used).
+
+## v1.0.7 🔖
 Fixes (code fixes that removed preprocessor directives):
  - DCA054: the code fix removed the directives before the constructor. When the constructor was the only member of a region, as in `DCA054.vb` of the rule testing solution, the `#Region` line was removed and its `#End Region` was left alone (error BC30680). The directives before a removed constructor (`#Region`, `#End Region`, `#If`..., with the comments and conditional code between them) now stay, and a region whose only member was the constructor stays, empty. The directives inside the body of the constructor are still removed with it.
  - DCA024: when the `Try` statement was unwrapped, the `#If` / `#End If` lines before the removed `Catch` and `End Try` keywords were lost. A body that ended with an `#If DEBUG Then ... #End If` block was left with an `#If` without its `#End If` (error BC30012), and the code of a body that only had conditional code was removed. These directives, and the code between them, now stay after the unwrapped statements, and disabled code (an `#If` block whose condition is false) is re-indented with the body. The `#If` / `#End If` lines before a removed `Catch` block now stay before `End Try`, and a `Try` statement removed because its body was empty keeps the directives that preceded it.

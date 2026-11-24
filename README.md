@@ -85,6 +85,7 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 - **Semantic precision:** rules bind symbols through the Roslyn semantic model, so look-alike names (`myAsyncSettings.Result`) are not reported and no fix produces code that does not compile.
 - **.NET Framework migration helpers:** dedicated rules prepare .NET Framework code for modern .NET by adding `#If NETCOREAPP` blocks with the recommended modern APIs, keeping the original code untouched in the `#Else` branch.
 - **Behavior first:** when a fix offers several actions, the first one keeps the current behavior and only makes it explicit (for example `DateTimeKind.Unspecified` or `CultureInfo.CurrentCulture`); fixes that could change the result are never applied silently.
+- **Scannable messages:** every message follows the same pattern, *what to do* + *where* + *why* (optional), in one short sentence (*"Concatenate strings using '&' instead of '+' to avoid operator ambiguity"*), so a long Error List can be read at a glance.
 - **Respectful fixes:** preserve comments, trivia, region layout, line endings (CRLF/LF) and indentation; never reformat unrelated code.
 - **Configurable** through `.editorconfig` (custom options and standard severity overrides).
 - **Visual Studio 2022 and 2026** (amd64 and arm64) from a single VSIX.
@@ -95,39 +96,39 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 
 | ID | Rule | Severity | Category | Code fix |
 | :---: | :--- | :---: | :---: | :---: |
-| [`DCA001`](Docs/Rules/DCA001_Missing_ConfigureAwait.md) | ⏳ [Missing `ConfigureAwait(False)`](Docs/Rules/DCA001_Missing_ConfigureAwait.md) | Error | Reliability | ✔️ |
-| [`DCA002`](Docs/Rules/DCA002_Task_Result.md) | 🧱 [Blocking `.Result` on a task](Docs/Rules/DCA002_Task_Result.md) | Error | Reliability | ✔️ |
-| [`DCA003`](Docs/Rules/DCA003_Silent_Guard_Clause.md) | 🤫 [Silent guard clause](Docs/Rules/DCA003_Silent_Guard_Clause.md) | Warning | Reliability | ✔️ |
-| [`DCA004`](Docs/Rules/DCA004_Missing_Option_Statements.md) | 📜 [Missing `Option` statements](Docs/Rules/DCA004_Missing_Option_Statements.md) | Warning | Style | ✔️ |
-| [`DCA005`](Docs/Rules/DCA005_Missing_Explicit_Constructor.md) | 🏗️ [Missing explicit constructor](Docs/Rules/DCA005_Missing_Explicit_Constructor.md) | Warning | Design | ✔️ |
+| [`DCA001`](Docs/Rules/DCA001_Missing_ConfigureAwait.md) | ⏳ [Missing `ConfigureAwait(False)`](Docs/Rules/DCA001_Missing_ConfigureAwait.md) | Warning | Reliability | ✔️ |
+| [`DCA002`](Docs/Rules/DCA002_Task_Result.md) | 🧱 [Blocking `.Result` on a task](Docs/Rules/DCA002_Task_Result.md) | Warning | Reliability | ✔️ |
+| [`DCA003`](Docs/Rules/DCA003_Silent_Guard_Clause.md) | 🤫 [Silent guard clause](Docs/Rules/DCA003_Silent_Guard_Clause.md) | Info | Reliability | ✔️ |
+| [`DCA004`](Docs/Rules/DCA004_Missing_Option_Statements.md) | 📜 [Required `Option` settings not in effect](Docs/Rules/DCA004_Missing_Option_Statements.md) | Warning | Style | ✔️ |
+| [`DCA005`](Docs/Rules/DCA005_Missing_Explicit_Constructor.md) | 🏗️ [Missing explicit constructor](Docs/Rules/DCA005_Missing_Explicit_Constructor.md) | Info | Design | ✔️ |
 | [`DCA006`](Docs/Rules/DCA006_Type_Outside_Namespace.md) | 📦 [Type in the global namespace *(.NET Framework)*](Docs/Rules/DCA006_Type_Outside_Namespace.md) | Info | Design | ✔️ |
-| [`DCA007`](Docs/Rules/DCA007_Missing_XML_Documentation.md) | 📝 [Public member without XML documentation](Docs/Rules/DCA007_Missing_XML_Documentation.md) | Warning | Documentation | ✔️ |
-| [`DCA008`](Docs/Rules/DCA008_XML_Parameter_Mismatch.md) | 🧾 [`<param>` tags do not match the parameters](Docs/Rules/DCA008_XML_Parameter_Mismatch.md) | Warning | Documentation | ✔️ |
-| [`DCA009`](Docs/Rules/DCA009_Missing_StringComparison.md) | 🔤 [String comparison argument omitted](Docs/Rules/DCA009_Missing_StringComparison.md) | Warning | Globalization | ✔️ (×2) |
-| [`DCA010`](Docs/Rules/DCA010_Flags_Enum_Bit_Shift.md) | 🚩 [`<Flags>` enum member without bit-shift syntax *(disabled by default)*](Docs/Rules/DCA010_Flags_Enum_Bit_Shift.md) | Warning | Style | ✔️ |
+| [`DCA007`](Docs/Rules/DCA007_Missing_XML_Documentation.md) | 📝 [Public member without XML documentation](Docs/Rules/DCA007_Missing_XML_Documentation.md) | Info | Documentation | ✔️ |
+| [`DCA008`](Docs/Rules/DCA008_XML_Parameter_Mismatch.md) | 🧾 [`<param>` tags do not match the parameters](Docs/Rules/DCA008_XML_Parameter_Mismatch.md) | Info | Documentation | ✔️ |
+| [`DCA009`](Docs/Rules/DCA009_Missing_StringComparison.md) | 🔤 [String comparison argument omitted](Docs/Rules/DCA009_Missing_StringComparison.md) | Info | Globalization | ✔️ (×2) |
+| [`DCA010`](Docs/Rules/DCA010_Flags_Enum_Bit_Shift.md) | 🚩 [`<Flags>` enum member without bit-shift syntax *(disabled by default)*](Docs/Rules/DCA010_Flags_Enum_Bit_Shift.md) | Info | Style | ✔️ |
 | [`DCA011`](Docs/Rules/DCA011_Throw_Helper_Migration.md) | 🔁 [Argument guards with a modern throw-helper equivalent *(.NET Framework)*](Docs/Rules/DCA011_Throw_Helper_Migration.md) | Info | Portability | ✔️ |
-| [`DCA012`](Docs/Rules/DCA012_Missing_Exception_Documentation.md) | 💥 [Thrown exception is not documented](Docs/Rules/DCA012_Missing_Exception_Documentation.md) | Warning | Documentation | ✔️ |
+| [`DCA012`](Docs/Rules/DCA012_Missing_Exception_Documentation.md) | 💥 [Thrown exception is not documented](Docs/Rules/DCA012_Missing_Exception_Documentation.md) | Info | Documentation | ✔️ |
 | [`DCA013`](Docs/Rules/DCA013_NetFramework_API_Migration.md) | 🚀 [.NET Framework API with a modern .NET equivalent *(.NET Framework)*](Docs/Rules/DCA013_NetFramework_API_Migration.md) | Info | Portability | ✔️ |
 | [`DCA014`](Docs/Rules/DCA014_FileSystem_Loop_Without_Message_Pumping.md) | 🗂️ [File-system loop without `Thread.CurrentThread.Join(0)`](Docs/Rules/DCA014_FileSystem_Loop_Without_Message_Pumping.md) | Warning | Reliability | ✔️ |
 | [`DCA015`](Docs/Rules/DCA015_Recursive_Call.md) | 🔄 [Method calls itself (recursion)](Docs/Rules/DCA015_Recursive_Call.md) | Warning | Design | ❌ |
 | [`DCA016`](Docs/Rules/DCA016_Async_Sub_Not_Event_Handler.md) | ⚡ [`Async Sub` that is not an event handler](Docs/Rules/DCA016_Async_Sub_Not_Event_Handler.md) | Warning | Reliability | ✔️ |
-| [`DCA017`](Docs/Rules/DCA017_Regex_Without_Timeout.md) | ⏱️ [Regular expression without match timeout](Docs/Rules/DCA017_Regex_Without_Timeout.md) | Error | Security | ✔️ |
-| [`DCA018`](Docs/Rules/DCA018_DateTime_Without_Kind.md) | 🕒 [`DateTime` created without `DateTimeKind`](Docs/Rules/DCA018_DateTime_Without_Kind.md) | Warning | Reliability | ✔️ |
-| [`DCA019`](Docs/Rules/DCA019_DateTime_Parse_Without_Provider.md) | 🌍 [Date or time parsed without a format provider](Docs/Rules/DCA019_DateTime_Parse_Without_Provider.md) | Warning | Globalization | ✔️ |
-| [`DCA020`](Docs/Rules/DCA020_Flags_Enum_Without_None.md) | 🚩 [`<Flags>` enumeration without a `None` zero value](Docs/Rules/DCA020_Flags_Enum_Without_None.md) | Warning | Design | ✔️ |
-| [`DCA021`](Docs/Rules/DCA021_LINQ_Instead_Of_Collection_Method.md) | 🔍 [LINQ method instead of `Find` / `Exists` / `TrueForAll`](Docs/Rules/DCA021_LINQ_Instead_Of_Collection_Method.md) | Warning | Performance | ✔️ |
-| [`DCA022`](Docs/Rules/DCA022_LINQ_Instead_Of_Indexer.md) | 🎯 [LINQ method instead of the indexer](Docs/Rules/DCA022_LINQ_Instead_Of_Indexer.md) | Warning | Performance | ✔️ |
-| [`DCA023`](Docs/Rules/DCA023_Inverted_Comparison.md) | 🔄 [Negated comparison](Docs/Rules/DCA023_Inverted_Comparison.md) | Warning | Style | ✔️ |
+| [`DCA017`](Docs/Rules/DCA017_Regex_Without_Timeout.md) | ⏱️ [Regular expression without match timeout](Docs/Rules/DCA017_Regex_Without_Timeout.md) | Warning | Security | ✔️ |
+| [`DCA018`](Docs/Rules/DCA018_DateTime_Without_Kind.md) | 🕒 [`DateTime` created without `DateTimeKind`](Docs/Rules/DCA018_DateTime_Without_Kind.md) | Info | Reliability | ✔️ |
+| [`DCA019`](Docs/Rules/DCA019_DateTime_Parse_Without_Provider.md) | 🌍 [Date or time parsed without a format provider](Docs/Rules/DCA019_DateTime_Parse_Without_Provider.md) | Info | Globalization | ✔️ |
+| [`DCA020`](Docs/Rules/DCA020_Flags_Enum_Without_None.md) | 🚩 [`<Flags>` enumeration without a zero value](Docs/Rules/DCA020_Flags_Enum_Without_None.md) | Warning | Design | ✔️ |
+| [`DCA021`](Docs/Rules/DCA021_LINQ_Instead_Of_Collection_Method.md) | 🔍 [LINQ method instead of `Find` / `Exists` / `TrueForAll`](Docs/Rules/DCA021_LINQ_Instead_Of_Collection_Method.md) | Info | Performance | ✔️ |
+| [`DCA022`](Docs/Rules/DCA022_LINQ_Instead_Of_Indexer.md) | 🎯 [LINQ method instead of the indexer](Docs/Rules/DCA022_LINQ_Instead_Of_Indexer.md) | Info | Performance | ✔️ |
+| [`DCA023`](Docs/Rules/DCA023_Inverted_Comparison.md) | 🔄 [Negated comparison](Docs/Rules/DCA023_Inverted_Comparison.md) | Info | Style | ✔️ |
 | [`DCA024`](Docs/Rules/DCA024_Rethrow_Only_Catch.md) | 🔁 [`Catch` block that only rethrows](Docs/Rules/DCA024_Rethrow_Only_Catch.md) | Warning | Design | ✔️ |
-| [`DCA025`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | 🧹 [Redundant null check before `TypeOf`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | Warning | Style | ✔️ |
-| [`DCA026`](Docs/Rules/DCA026_Encoding_Not_Specified.md) | 🔤 [Text encoding not specified](Docs/Rules/DCA026_Encoding_Not_Specified.md) | Warning | Globalization | ✔️ |
+| [`DCA025`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | 🧹 [Redundant null check before `TypeOf`](Docs/Rules/DCA025_Redundant_Null_Check_Before_TypeOf.md) | Info | Style | ✔️ |
+| [`DCA026`](Docs/Rules/DCA026_Encoding_Not_Specified.md) | 🔤 [Text encoding not specified](Docs/Rules/DCA026_Encoding_Not_Specified.md) | Info | Globalization | ✔️ |
 | [`DCA027`](Docs/Rules/DCA027_Thread_Sleep_In_Async_Method.md) | 💤 [`Thread.Sleep` in an `Async` method](Docs/Rules/DCA027_Thread_Sleep_In_Async_Method.md) | Warning | Reliability | ✔️ |
 | [`DCA028`](Docs/Rules/DCA028_Missing_STAThread.md) | 🧵 [Windows Forms entry point without `<STAThread>`](Docs/Rules/DCA028_Missing_STAThread.md) | Warning | Reliability | ✔️ |
 | [`DCA029`](Docs/Rules/DCA029_String_Concatenation_With_Plus.md) | ➕ [String concatenated with `+`](Docs/Rules/DCA029_String_Concatenation_With_Plus.md) | Warning | Style | ✔️ |
 | [`DCA030`](Docs/Rules/DCA030_Array_Creation_Instead_Of_Literal.md) | 📦 [Array creation expression can be an array literal](Docs/Rules/DCA030_Array_Creation_Instead_Of_Literal.md) | Info | Style | ✔️ |
 | [`DCA031`](Docs/Rules/DCA031_Array_Designator_On_Variable.md) | 🏷️ [Array designator on the variable name](Docs/Rules/DCA031_Array_Designator_On_Variable.md) | Info | Style | ✔️ |
 | [`DCA032`](Docs/Rules/DCA032_End_Statement.md) | 🛑 [`End` statement](Docs/Rules/DCA032_End_Statement.md) | Warning | Reliability | ❌ |
-| [`DCA033`](Docs/Rules/DCA033_On_Error_Statement.md) | 🚧 [`On Error` statement](Docs/Rules/DCA033_On_Error_Statement.md) | Warning | Reliability | ❌ |
+| [`DCA033`](Docs/Rules/DCA033_On_Error_Statement.md) | 🚧 [`On Error` statement](Docs/Rules/DCA033_On_Error_Statement.md) | Info | Reliability | ❌ |
 | [`DCA034`](Docs/Rules/DCA034_GoTo_Statement.md) | ↪️ [`GoTo` statement](Docs/Rules/DCA034_GoTo_Statement.md) | Info | Design | ❌ |
 | [`DCA035`](Docs/Rules/DCA035_DoEvents_In_Loop.md) | 🌀 [`Application.DoEvents` inside a loop](Docs/Rules/DCA035_DoEvents_In_Loop.md) | Warning | Reliability | ❌ |
 | [`DCA036`](Docs/Rules/DCA036_Lock_On_Weak_Identity.md) | 🔐 [`SyncLock` on a publicly accessible or weak-identity object](Docs/Rules/DCA036_Lock_On_Weak_Identity.md) | Warning | Reliability | ❌ |
@@ -136,11 +137,11 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA039`](Docs/Rules/DCA039_BeginInvoke_Without_EndInvoke.md) | 📮 [Delegate `BeginInvoke` without `EndInvoke`](Docs/Rules/DCA039_BeginInvoke_Without_EndInvoke.md) | Warning | Reliability | ❌ |
 | [`DCA040`](Docs/Rules/DCA040_Duplicate_Condition.md) | 👯 [Duplicated condition in `If`/`ElseIf` or `Select Case`](Docs/Rules/DCA040_Duplicate_Condition.md) | Warning | Reliability | ❌ |
 | [`DCA041`](Docs/Rules/DCA041_All_Branches_Identical.md) | 🪞 [All branches of a conditional structure are identical](Docs/Rules/DCA041_All_Branches_Identical.md) | Warning | Reliability | ❌ |
-| [`DCA042`](Docs/Rules/DCA042_Duplicate_Branch.md) | 🧬 [Two branches of a conditional structure are identical](Docs/Rules/DCA042_Duplicate_Branch.md) | Info | Design | ❌ |
+| [`DCA042`](Docs/Rules/DCA042_Duplicate_Branch.md) | 🧬 [Two branches of a conditional structure are identical](Docs/Rules/DCA042_Duplicate_Branch.md) | Warning | Design | ❌ |
 | [`DCA043`](Docs/Rules/DCA043_Identical_Operands.md) | 🟰 [Identical expressions on both sides of a binary operator](Docs/Rules/DCA043_Identical_Operands.md) | Warning | Reliability | ❌ |
 | [`DCA044`](Docs/Rules/DCA044_DateTime_Now_For_Timing.md) | ⏲️ [`DateTime.Now` used to measure elapsed time](Docs/Rules/DCA044_DateTime_Now_For_Timing.md) | Info | Reliability | ❌ |
 | [`DCA045`](Docs/Rules/DCA045_Insecure_Temp_File.md) | 🗃️ [`Path.GetTempFileName` creates a predictable temporary file](Docs/Rules/DCA045_Insecure_Temp_File.md) | Warning | Security | ✔️ |
-| [`DCA046`](Docs/Rules/DCA046_Throw_In_Finally.md) | 🧨 [Exception thrown in a `Finally` block *(.NET Framework)*](Docs/Rules/DCA046_Throw_In_Finally.md) | Info | Reliability | ❌ |
+| [`DCA046`](Docs/Rules/DCA046_Throw_In_Finally.md) | 🧨 [Exception thrown in a `Finally` block *(.NET Framework)*](Docs/Rules/DCA046_Throw_In_Finally.md) | Warning | Reliability | ❌ |
 | [`DCA047`](Docs/Rules/DCA047_Throw_In_Finalize.md) | ☠️ [Exception thrown in `Finalize`](Docs/Rules/DCA047_Throw_In_Finalize.md) | Warning | Reliability | ❌ |
 | [`DCA048`](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | 🫳 [Exception thrown in a property getter](Docs/Rules/DCA048_Throw_In_Property_Getter.md) | Info | Design | ❌ |
 | [`DCA049`](Docs/Rules/DCA049_Single_Character_String.md) | 🔤 [Single-character string where a `Char` can be used](Docs/Rules/DCA049_Single_Character_String.md) | Info | Performance | ✔️ |
@@ -148,7 +149,7 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA051`](Docs/Rules/DCA051_Discarded_Awaiter.md) | 🕳️ [Awaiter or `ConfigureAwait` result discarded](Docs/Rules/DCA051_Discarded_Awaiter.md) | Warning | Reliability | ❌ |
 | [`DCA052`](Docs/Rules/DCA052_Sender_Parameter_Outside_Event_Handler.md) | 📛 [Parameter named `sender` outside an event handler](Docs/Rules/DCA052_Sender_Parameter_Outside_Event_Handler.md) | Info | Naming | ✔️ |
 | [`DCA053`](Docs/Rules/DCA053_Method_Call_Without_Parentheses.md) | 🫙 [Method call without parentheses](Docs/Rules/DCA053_Method_Call_Without_Parentheses.md) | Info | Style | ✔️ |
-| [`DCA054`](Docs/Rules/DCA054_Code_In_ComImport_Class.md) | 👻 [Code in a `ComImport` class never runs](Docs/Rules/DCA054_Code_In_ComImport_Class.md) | Warning | Reliability | ✔️ |
+| [`DCA054`](Docs/Rules/DCA054_Code_In_ComImport_Class.md) | 👻 [Code in a `ComImport` class never runs](Docs/Rules/DCA054_Code_In_ComImport_Class.md) | Error | Reliability | ✔️ |
 | [`DCA055`](Docs/Rules/DCA055_Zero_Length_Array_Allocation.md) | 🈳 [Zero-length array allocation *(.NET Framework)*](Docs/Rules/DCA055_Zero_Length_Array_Allocation.md) | Info | Performance | ✔️ |
 | [`DCA056`](Docs/Rules/DCA056_Any_Instead_Of_Emptiness_Check.md) | 🔢 [`Enumerable.Any()` instead of `IsEmpty`, `Count` or `Length` *(.NET Framework)*](Docs/Rules/DCA056_Any_Instead_Of_Emptiness_Check.md) | Info | Performance | ✔️ |
 | [`DCA057`](Docs/Rules/DCA057_Collection_Name_On_Enumerable_Parameter.md) | 🌊 [`IEnumerable` parameter named as a collection](Docs/Rules/DCA057_Collection_Name_On_Enumerable_Parameter.md) | Info | Naming | ✔️ |
@@ -156,7 +157,17 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 
 Click a rule to see its purpose, detection details, edge cases and VB.NET code examples.
 
-Rules marked *(.NET Framework)* run only in .NET Framework projects: on modern .NET, Microsoft's built-in rules report the same code (for example CA1050 for DCA006, CA1825 for DCA055), so nothing is reported twice. Rules that replicate a Microsoft rule use its severity (*suggestion*, which is **Info** here).
+Rules marked *(.NET Framework)* run only in .NET Framework projects: on modern .NET, Microsoft's built-in rules report the same code (for example CA1050 for DCA006, CA1825 for DCA055), so nothing is reported twice.
+
+**Severity** says how serious the reported code is, not how much it is worth changing:
+
+| Severity | Meaning | Rules |
+| :---: | :--- | :--- |
+| **Error** | Code that the compiler accepts but that can never work. | DCA054 |
+| **Warning** | Code that can fail at run time, hang, lose exceptions or data, or that hides a defect (unreachable or duplicated code). | DCA001, DCA002, DCA004, DCA014–DCA017, DCA020, DCA024, DCA027–DCA029, DCA032, DCA035–DCA043, DCA045–DCA047, DCA051 |
+| **Info** | Style, structure, documentation, naming, readability and micro-performance: the code works, the fix makes it clearer or faster. | The rest |
+
+Using an API as the .NET class library exposes it (for example `Task.Result`) is never an Error: it compiles and works. Every severity can be changed in `.editorconfig` (`dotnet_diagnostic.DCA009.severity = warning`).
 
 ---
 
@@ -211,7 +222,7 @@ A few details of the solution:
 To debug the analyzers, set `DevCase.CodeAnalysis.Vsix` as the startup project and press **F5**: an experimental instance of Visual Studio starts with the extension loaded.
 
 > [!NOTE]
-> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA006, DCA011, DCA013, DCA030, DCA031, DCA034, DCA042, DCA044, DCA046, DCA048, DCA049, DCA050, DCA052, DCA053, DCA055, DCA056, DCA057, DCA058) appear in the *Messages* tab of the Error List and as gray dots under the code.
+> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA003, DCA005, DCA006, DCA007, DCA008, DCA009, DCA010, DCA011, DCA012, DCA013, DCA018, DCA019, DCA021, DCA022, DCA023, DCA025, DCA026, DCA030, DCA031, DCA033, DCA034, DCA044, DCA048, DCA049, DCA050, DCA052, DCA053, DCA055, DCA056, DCA057, DCA058) appear in the *Messages* tab of the Error List and as gray dots under the code.
 
 ## ⚙️ Configuration
 

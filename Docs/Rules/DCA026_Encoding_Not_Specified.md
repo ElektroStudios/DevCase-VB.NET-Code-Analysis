@@ -2,7 +2,7 @@
 
 Reports method calls and object creations that read or write text **without an explicit `System.Text.Encoding`**, when an overload of the same method accepts one: `File.WriteAllText(path, text)`, `File.ReadAllLines(path)`, `New StreamWriter(path)`, `New StreamReader(stream, True)`, `My.Computer.FileSystem.WriteAllText(path, text, False)`...
 
-- **Severity:** Warning
+- **Severity:** Info
 - **Category:** Globalization
 - **Code fix:** ✔️ Three lightbulb actions: UTF-8 without BOM, UTF-8 with BOM, or `Encoding.Default`. The first action always keeps the current behavior.
 

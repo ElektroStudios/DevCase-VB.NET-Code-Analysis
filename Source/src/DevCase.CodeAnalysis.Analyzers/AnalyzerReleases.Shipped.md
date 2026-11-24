@@ -115,3 +115,31 @@ Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
 --------|--------------|--------------|--------------|--------------|-------
 DCA006 | Design | Info | Design | Warning | NamespaceDeclarationAnalyzer
 DCA046 | Reliability | Info | Reliability | Warning | ThrowInFinallyAnalyzer
+
+## Release 1.0.8
+
+### Changed Rules
+
+Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
+--------|--------------|--------------|--------------|--------------|-------
+DCA001 | Reliability | Warning | Reliability | Error | ConfigureAwaitAnalyzer
+DCA002 | Reliability | Warning | Reliability | Error | TaskResultAnalyzer
+DCA003 | Reliability | Info | Reliability | Warning | SilentGuardClauseAnalyzer
+DCA005 | Design | Info | Design | Warning | ExplicitConstructorAnalyzer
+DCA007 | Documentation | Info | Documentation | Warning | PublicMemberDocumentationAnalyzer
+DCA008 | Documentation | Info | Documentation | Warning | XmlParameterDocumentationAnalyzer
+DCA009 | Globalization | Info | Globalization | Warning | StringComparisonAnalyzer
+DCA010 | Style | Info | Style | Warning | FlagsEnumBitShiftAnalyzer
+DCA012 | Documentation | Info | Documentation | Warning | ExceptionDocumentationAnalyzer
+DCA017 | Security | Warning | Security | Error | RegexTimeoutAnalyzer
+DCA018 | Reliability | Info | Reliability | Warning | DateTimeKindAnalyzer
+DCA019 | Globalization | Info | Globalization | Warning | DateTimeParseAnalyzer
+DCA021 | Performance | Info | Performance | Warning | CollectionMethodAnalyzer
+DCA022 | Performance | Info | Performance | Warning | IndexerAnalyzer
+DCA023 | Style | Info | Style | Warning | InvertedComparisonAnalyzer
+DCA025 | Style | Info | Style | Warning | RedundantNullCheckAnalyzer
+DCA026 | Globalization | Info | Globalization | Warning | EncodingAnalyzer
+DCA033 | Reliability | Info | Reliability | Warning | OnErrorStatementAnalyzer
+DCA042 | Design | Warning | Design | Info | DuplicateBranchAnalyzer
+DCA046 | Reliability | Warning | Reliability | Info | ThrowInFinallyAnalyzer
+DCA054 | Reliability | Error | Reliability | Warning | ComImportClassCodeAnalyzer

@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA003 (Warning) on the <c>Exit Sub</c> of the guard clause on <c>text</c>, which hides the invalid argument.
+    ''' Expected: DCA003 (Info) on the <c>Exit Sub</c> of the guard clause on <c>text</c>, which hides the invalid argument.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): <c>Throw New ArgumentNullException(NameOf(text))</c> (on .NET Framework, DCA011 then offers

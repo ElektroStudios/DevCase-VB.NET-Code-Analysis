@@ -138,8 +138,8 @@ End Class
             Assert.Equal(ExpectedNames, names, StringComparer.Ordinal)
 
             Dim messages As List(Of String) = diagnostics.Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).ToList()
-            Assert.Equal("Parameter 'sender' of 'C.ToPen' is not the sender of an event; rename it to 'source'", messages(0))
-            Assert.Equal("Parameter 'sender' of 'C.Busy' is not the sender of an event; rename it", messages(messages.Count - 1))
+            Assert.Equal("Rename parameter 'sender' to 'source' in 'C.ToPen' because it is not an event handler", messages(0))
+            Assert.Equal("Rename parameter 'sender' in 'C.Busy' because it is not an event handler", messages(messages.Count - 1))
         End Function
 
         ''' <summary>

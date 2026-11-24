@@ -16,7 +16,7 @@ Namespace DCA_Rule_Testing
     '''
     ''' <remarks>
     ''' <para>
-    ''' Expected: DCA009 (Warning) on <c>filePath.EndsWith(".vb")</c>, which compares with the current culture.
+    ''' Expected: DCA009 (Info) on <c>filePath.EndsWith(".vb")</c>, which compares with the current culture.
     ''' </para>
     ''' <para>
     ''' Code fix (Ctrl+.): two fixes: <c>StringComparison.Ordinal</c> or <c>StringComparison.OrdinalIgnoreCase</c>.
