@@ -58,6 +58,8 @@ End Function
 
 Removes `New T()` and keeps the initializer. The elements keep their type: `{1024, 2048}` in a `Long()` context creates a `Long()` array.
 
+A creation wrapped in redundant parentheses (`Return (New Long() {1, 2})`) is also reported, and the fix removes the parentheses as well (`Return {1, 2}`): parentheses break the target typing of an array literal, so `({1, 2})` would be an `Integer()` that cannot be converted to `Long()` (error BC30332).
+
 ## 🔕 How to disable
 
 Use the narrowest scope that fits, and write down the reason.

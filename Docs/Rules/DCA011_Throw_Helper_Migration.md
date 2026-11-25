@@ -6,6 +6,7 @@
 - **Category:** Portability
 - **Code fix:** ✔️ Wraps the run in `#If NETCOREAPP Then ... #Else ... #End If`
 - **Configuration:** `devcase_analyzers.dca011_condition = NET8_0_OR_GREATER`
+- **Equivalent to:** Microsoft [CA1510](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1510) *"Use ArgumentNullException throw helper"*, [CA1511](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1511) *"Use ArgumentException throw helper"* and [CA1512](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1512) *"Use ArgumentOutOfRangeException throw helper"* (as a conditional block, since the helpers do not exist in .NET Framework)
 
 ---
 
@@ -34,6 +35,8 @@ The condition can also use a named argument (`String.IsNullOrEmpty(value:=p)`, `
 | `If p < 0 Then Throw New ArgumentOutOfRangeException(NameOf(p))` | `ArgumentOutOfRangeException.ThrowIfNegative(p)` |
 | `p <= 0` / `p = 0` | `ThrowIfNegativeOrZero(p)` / `ThrowIfZero(p)` |
 | `p < x`, `p <= x`, `p > x`, `p >= x`, `p = x`, `p <> x` (`x` can be an expression: `If count > sourceCount - startIndex Then ...`) | `ThrowIfLessThan(p, x)`, ..., `ThrowIfNotEqual(p, x)` (`ThrowIfGreaterThan(count, sourceCount - startIndex)`) |
+
+Every `ArgumentOutOfRangeException` helper suggested by CA1512 is covered (the nine `ThrowIf...` methods, with the operands in either order), for example `If decimalCount < 0 Then Throw New ArgumentOutOfRangeException(NameOf(decimalCount))` → `ArgumentOutOfRangeException.ThrowIfNegative(decimalCount)`.
 
 Consecutive guards form a single run (one diagnostic, one block).
 

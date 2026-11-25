@@ -147,6 +147,35 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Function
 
         ''' <summary>
+        ''' Returns the outermost parenthesized expression that wraps an expression (e.g. <c>((x))</c> for <c>x</c>), or the 
+        ''' expression itself when it is not parenthesized.
+        ''' </summary>
+        '''
+        ''' <param name="expr">
+        ''' The expression.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The outermost expression whose value is the same as that of <paramref name="expr"/>.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="expr"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function WalkUpParentheses(expr As ExpressionSyntax) As ExpressionSyntax
+
+            If expr Is Nothing Then
+                Throw New ArgumentNullException(NameOf(expr))
+            End If
+
+            Dim currentExpr As ExpressionSyntax = expr
+            While TypeOf currentExpr.Parent Is ParenthesizedExpressionSyntax
+                currentExpr = DirectCast(currentExpr.Parent, ParenthesizedExpressionSyntax)
+            End While
+            Return currentExpr
+        End Function
+
+        ''' <summary>
         ''' Determines whether an expression must be wrapped in parentheses before a member access
         ''' (e.g. <c>.ConfigureAwait(False)</c>) can be appended to it without changing its meaning.
         ''' </summary>
@@ -745,6 +774,251 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 End If
             End While
             Return result
+        End Function
+
+        ''' <summary>
+        ''' Gets the text of an expression used as the receiver of a member access: between parentheses when its precedence 
+        ''' requires them (see <see cref="RequiresParenthesesForMemberAccess"/>).
+        ''' </summary>
+        '''
+        ''' <param name="expression">
+        ''' The expression.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The text of the expression, without its leading and trailing trivia.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="expression"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function GetReceiverText(expression As SyntaxNode) As String
+
+            If expression Is Nothing Then
+                Throw New ArgumentNullException(NameOf(expression))
+            End If
+
+            Dim typed As ExpressionSyntax = TryCast(expression, ExpressionSyntax)
+            Return If(typed IsNot Nothing AndAlso UtilAnalyzerSyntax.RequiresParenthesesForMemberAccess(typed), $"({expression})", expression.ToString())
+        End Function
+
+        ''' <summary>
+        ''' Escapes an identifier with brackets when it is a keyword (<c>[Error]</c>, <c>[Date]</c>...).
+        ''' </summary>
+        '''
+        ''' <param name="name">
+        ''' The identifier.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The identifier, between brackets if it is a reserved or contextual keyword.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="name"/> is <see langword="Nothing"/> or empty.
+        ''' </exception>
+        Friend Shared Function EscapeIdentifier(name As String) As String
+
+            If String.IsNullOrEmpty(name) Then
+                Throw New ArgumentNullException(NameOf(name))
+            End If
+
+            Return If(SyntaxFacts.GetKeywordKind(name) = SyntaxKind.None, name, $"[{name}]")
+        End Function
+
+        ''' <summary>
+        ''' Gets the text of a negation that replaces an expression: <c>Not x</c>, between parentheses when the context of the 
+        ''' replaced expression binds tighter than <see langword="Not"/> (a comparison, an arithmetic operator, a member access...).
+        ''' </summary>
+        '''
+        ''' <param name="operandText">
+        ''' The text of the negated operand (an invocation or member access, which needs no parentheses after <see langword="Not"/>).
+        ''' </param>
+        '''
+        ''' <param name="replaced">
+        ''' The expression that the negation replaces.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' The text of the negation.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="replaced"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function Negate(operandText As String, replaced As SyntaxNode) As String
+
+            If replaced Is Nothing Then
+                Throw New ArgumentNullException(NameOf(replaced))
+            End If
+
+            Dim parent As SyntaxNode = replaced.Parent
+            Dim needsParentheses As Boolean
+            Select Case True
+                Case TypeOf parent Is BinaryExpressionSyntax
+                    ' "Not" binds tighter than the logical operators only.
+                    needsParentheses = Not (parent.IsKind(SyntaxKind.AndAlsoExpression) OrElse parent.IsKind(SyntaxKind.OrElseExpression) OrElse
+                                            parent.IsKind(SyntaxKind.AndExpression) OrElse parent.IsKind(SyntaxKind.OrExpression) OrElse
+                                            parent.IsKind(SyntaxKind.ExclusiveOrExpression))
+                Case TypeOf parent Is UnaryExpressionSyntax, TypeOf parent Is MemberAccessExpressionSyntax,
+                     TypeOf parent Is InvocationExpressionSyntax, TypeOf parent Is ConditionalAccessExpressionSyntax,
+                     TypeOf parent Is AwaitExpressionSyntax
+                    needsParentheses = True
+                Case Else
+                    needsParentheses = False
+            End Select
+            Return If(needsParentheses, $"(Not {operandText})", $"Not {operandText}")
+        End Function
+
+        ''' <summary>
+        ''' Determines whether a node contains comments or preprocessor directives between its first and last token (its leading 
+        ''' and trailing trivia are not inspected), which a code fix that rewrites the node as text would lose.
+        ''' </summary>
+        '''
+        ''' <param name="node">
+        ''' The node.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> if the node contains a comment, a directive or disabled text; otherwise, <see langword="False"/>.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="node"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function HasInnerComments(node As SyntaxNode) As Boolean
+
+            If node Is Nothing Then
+                Throw New ArgumentNullException(NameOf(node))
+            End If
+
+            Return node.DescendantTrivia(node.Span).Any(
+                Function(t As SyntaxTrivia) node.Span.Contains(t.Span) AndAlso
+                                            (t.IsKind(SyntaxKind.CommentTrivia) OrElse t.IsKind(SyntaxKind.DocumentationCommentTrivia) OrElse
+                                             t.IsKind(SyntaxKind.DisabledTextTrivia) OrElse t.IsDirective))
+        End Function
+
+        ''' <summary>
+        ''' Determines whether a node contains preprocessor directives or disabled code between its first and last token 
+        ''' (<c>#If DEBUG Then</c> around one of its statements), so that the code of another configuration may differ.
+        ''' </summary>
+        '''
+        ''' <param name="node">
+        ''' The node.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> if the node contains a directive or disabled text; otherwise, <see langword="False"/>.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="node"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function HasInnerDirectives(node As SyntaxNode) As Boolean
+
+            If node Is Nothing Then
+                Throw New ArgumentNullException(NameOf(node))
+            End If
+
+            Return node.DescendantTrivia(node.Span).Any(
+                Function(t As SyntaxTrivia) node.Span.Contains(t.Span) AndAlso (t.IsDirective OrElse t.IsKind(SyntaxKind.DisabledTextTrivia)))
+        End Function
+
+        ''' <summary>
+        ''' Gets the comments of a node that a code fix which rewrites the node as one line can keep: the comments at the end of 
+        ''' some of its lines (<c>' Check.</c> after <c>If x Then</c>), which go at the end of the new line, and the comments 
+        ''' on lines of their own, which go before it; and determines whether the node has no other comment or directive.
+        ''' </summary>
+        '''
+        ''' <param name="node">
+        ''' The node that the code fix rewrites.
+        ''' </param>
+        '''
+        ''' <param name="lines">
+        ''' The statements of the node whose end-of-line comments can be kept.
+        ''' </param>
+        '''
+        ''' <param name="comments">
+        ''' When this method returns <see langword="True"/>, the end-of-line comments, each preceded by a space; an empty string if 
+        ''' there are none.
+        ''' </param>
+        '''
+        ''' <param name="commentLines">
+        ''' When this method returns <see langword="True"/>, the comments on lines of their own, each followed by a line break and 
+        ''' the indentation of the node, to write before the new line; an empty string if there are none.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> if every comment between the first and last token of the node is at the end of one of 
+        ''' <paramref name="lines"/> or on a line of its own, and the node has no directive or disabled text; otherwise, 
+        ''' <see langword="False"/>.
+        ''' </returns>
+        '''
+        ''' <exception cref="ArgumentNullException">
+        ''' Thrown when <paramref name="node"/> or <paramref name="lines"/> is <see langword="Nothing"/>.
+        ''' </exception>
+        Friend Shared Function TryGetLineComments(node As SyntaxNode, lines As IEnumerable(Of SyntaxNode), ByRef comments As String,
+                                                  ByRef commentLines As String) As Boolean
+
+            If node Is Nothing Then
+                Throw New ArgumentNullException(NameOf(node))
+            End If
+            If lines Is Nothing Then
+                Throw New ArgumentNullException(NameOf(lines))
+            End If
+
+            comments = String.Empty
+            commentLines = String.Empty
+            Dim movable As List(Of SyntaxTrivia) = lines.SelectMany(Function(l As SyntaxNode) l.GetTrailingTrivia()).
+                                                         Where(Function(t As SyntaxTrivia) t.IsKind(SyntaxKind.CommentTrivia)).ToList()
+            Dim text As SourceText = node.SyntaxTree.GetText()
+            Dim inner As List(Of SyntaxTrivia) = node.DescendantTrivia(node.Span).Where(Function(t As SyntaxTrivia) node.Span.Contains(t.Span)).ToList()
+            Dim ownLines As New List(Of SyntaxTrivia)()
+            For Each trivia As SyntaxTrivia In inner
+                If trivia.IsKind(SyntaxKind.DocumentationCommentTrivia) OrElse trivia.IsKind(SyntaxKind.DisabledTextTrivia) OrElse trivia.IsDirective Then
+                    Return False
+                End If
+                If Not trivia.IsKind(SyntaxKind.CommentTrivia) OrElse movable.Contains(trivia) Then
+                    Continue For
+                End If
+
+                Dim line As TextLine = text.Lines.GetLineFromPosition(trivia.SpanStart)
+                If text.ToString(TextSpan.FromBounds(line.Start, trivia.SpanStart)).Trim().Length <> 0 Then
+                    Return False ' A comment after code that the new line does not keep.
+                End If
+                ownLines.Add(trivia)
+            Next trivia
+
+            comments = String.Concat(movable.Select(Function(t As SyntaxTrivia) $" {t}"))
+            Dim separator As String = $"{UtilAnalyzerSyntax.GetEndOfLine(node.SyntaxTree)}{UtilAnalyzerSyntax.GetLineIndentation(node.GetFirstToken())}"
+            commentLines = String.Concat(ownLines.Select(Function(t As SyntaxTrivia) $"{t}{separator}"))
+            Return True
+        End Function
+
+        ''' <summary>
+        ''' Determines whether two expressions are the same code (trivia and redundant parentheses are ignored).
+        ''' </summary>
+        '''
+        ''' <param name="first">
+        ''' The first expression.
+        ''' </param>
+        '''
+        ''' <param name="second">
+        ''' The second expression.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' <see langword="True"/> if both expressions are equivalent; otherwise, <see langword="False"/>.
+        ''' </returns>
+        Friend Shared Function AreEquivalentExpressions(first As SyntaxNode, second As SyntaxNode) As Boolean
+
+            If first Is Nothing OrElse second Is Nothing Then
+                Return False
+            End If
+
+            Dim left As SyntaxNode = If(TypeOf first Is ExpressionSyntax, UtilAnalyzerSyntax.SkipParentheses(DirectCast(first, ExpressionSyntax)), first)
+            Dim right As SyntaxNode = If(TypeOf second Is ExpressionSyntax, UtilAnalyzerSyntax.SkipParentheses(DirectCast(second, ExpressionSyntax)), second)
+            Return SyntaxFactory.AreEquivalent(left, right, topLevel:=False)
         End Function
 
         ''' <summary>

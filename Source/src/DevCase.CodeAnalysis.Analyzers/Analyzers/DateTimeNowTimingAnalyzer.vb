@@ -166,13 +166,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Dim declarator As VariableDeclaratorSyntax = TryCast(node, VariableDeclaratorSyntax)
                 If declarator IsNot Nothing AndAlso declarator.Initializer IsNot Nothing AndAlso
                    declarator.Names.Any(Function(n As ModifiedIdentifierSyntax) SymbolEqualityComparer.Default.Equals(model.GetDeclaredSymbol(n, context.CancellationToken), local)) Then
-                    value = declarator.Initializer.Value
+                    value = UtilAnalyzerSyntax.SkipParentheses(declarator.Initializer.Value)
                 End If
 
                 Dim assignment As AssignmentStatementSyntax = TryCast(node, AssignmentStatementSyntax)
                 If assignment IsNot Nothing AndAlso assignment.IsKind(SyntaxKind.SimpleAssignmentStatement) AndAlso
                    SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(assignment.Left, context.CancellationToken).Symbol, local) Then
-                    value = assignment.Right
+                    value = UtilAnalyzerSyntax.SkipParentheses(assignment.Right)
                 End If
 
                 Dim [property] As IPropertySymbol = If(value Is Nothing, Nothing, TryCast(model.GetSymbolInfo(value, context.CancellationToken).Symbol, IPropertySymbol))
@@ -203,7 +203,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Function
 
         ''' <summary>
-        ''' Removes the implicit conversions that wrap an operation.
+        ''' Removes the implicit conversions and the parentheses that wrap an operation.
         ''' </summary>
         ''' 
         ''' <param name="operation">
@@ -216,8 +216,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Private Shared Function SkipConversions(operation As IOperation) As IOperation
 
             Dim current As IOperation = operation
-            While TypeOf current Is IConversionOperation
-                current = DirectCast(current, IConversionOperation).Operand
+            While TypeOf current Is IConversionOperation OrElse TypeOf current Is IParenthesizedOperation
+                current = If(TypeOf current Is IConversionOperation,
+                             DirectCast(current, IConversionOperation).Operand,
+                             DirectCast(current, IParenthesizedOperation).Operand)
             End While
             Return current
         End Function

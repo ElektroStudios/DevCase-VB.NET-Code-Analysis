@@ -85,10 +85,9 @@ End Class
             Dim diagnostics As Collections.Immutable.ImmutableArray(Of Microsoft.CodeAnalysis.Diagnostic) =
                 Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, ReportedSource, targetNetFramework:=True).ConfigureAwait(True)
 
-            Dim messages As String() = diagnostics.Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).ToArray()
-            Assert.Contains("Use the StringBuilder.Append(Char, Integer) overload to avoid a temporary string", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the StringBuilder.Append(Integer) overload to avoid a temporary string", messages, StringComparer.Ordinal)
-            Assert.Contains("Use the StringBuilder.Insert(Integer, Boolean) overload to avoid a temporary string", messages, StringComparer.Ordinal)
+            ' The message matches CA1830.
+            Dim messages As String() = diagnostics.Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).Distinct(StringComparer.Ordinal).ToArray()
+            Assert.Equal("Prefer strongly-typed StringBuilder overload", Assert.Single(messages))
         End Function
 
         ''' <summary>

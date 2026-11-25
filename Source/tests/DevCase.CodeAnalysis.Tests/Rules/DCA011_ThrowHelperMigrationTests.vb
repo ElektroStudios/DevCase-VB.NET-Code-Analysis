@@ -360,6 +360,37 @@ End Class
             Assert.Contains("ArgumentNullException.ThrowIfNull(encoding)", fixedText, StringComparison.Ordinal)
         End Function
 
+        ''' <summary>
+        ''' Verifies that rule DCA011 replicates CA1512 with the reported example: a negative check that throws 
+        ''' <c>ArgumentOutOfRangeException</c> becomes <c>ArgumentOutOfRangeException.ThrowIfNegative</c>.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Fix_ReplicatesCA1512_ThrowIfNegative() As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
+Public Class C
+    Public Function Round(value As Double, decimalCount As Integer) As Double
+        [|If decimalCount < 0 Then Throw New ArgumentOutOfRangeException(NameOf(decimalCount))|]
+        Return Math.Round(value, decimalCount)
+    End Function
+End Class
+", "
+Public Class C
+    Public Function Round(value As Double, decimalCount As Integer) As Double
+#If NETCOREAPP Then
+        ArgumentOutOfRangeException.ThrowIfNegative(decimalCount)
+#Else
+        If decimalCount < 0 Then Throw New ArgumentOutOfRangeException(NameOf(decimalCount))
+#End If
+        Return Math.Round(value, decimalCount)
+    End Function
+End Class
+", targetNetFramework:=True).ConfigureAwait(True)
+        End Function
+
 #End Region
 
     End Class

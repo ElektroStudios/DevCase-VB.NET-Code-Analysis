@@ -614,21 +614,23 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </remarks>
         Private Shared Function IsConsumed(use As IdentifierNameSyntax, context As SyntaxNodeAnalysisContext) As Boolean
 
-            Dim parent As SyntaxNode = use.Parent
+            ' The parentheses of a use ((parameter).Length, target.Property = (parameter)) do not change how it is consumed.
+            Dim value As ExpressionSyntax = UtilAnalyzerSyntax.WalkUpParentheses(use)
+            Dim parent As SyntaxNode = value.Parent
             Select Case True
                 Case TypeOf parent Is MemberAccessExpressionSyntax
-                    Return DirectCast(parent, MemberAccessExpressionSyntax).Expression Is use
+                    Return DirectCast(parent, MemberAccessExpressionSyntax).Expression Is value
                 Case TypeOf parent Is InvocationExpressionSyntax
-                    Return DirectCast(parent, InvocationExpressionSyntax).Expression Is use
+                    Return DirectCast(parent, InvocationExpressionSyntax).Expression Is value
                 Case TypeOf parent Is SimpleArgumentSyntax
                     Dim owner As SyntaxNode = parent.Parent?.Parent
                     Dim isCallArgument As Boolean = TypeOf owner Is InvocationExpressionSyntax OrElse TypeOf owner Is ObjectCreationExpressionSyntax
                     Return isCallArgument AndAlso Not UnvalidatedParameterAnalyzer.AcceptsNothing(parent, context)
                 Case TypeOf parent Is ForEachStatementSyntax
-                    Return DirectCast(parent, ForEachStatementSyntax).Expression Is use
+                    Return DirectCast(parent, ForEachStatementSyntax).Expression Is value
                 Case TypeOf parent Is AssignmentStatementSyntax, TypeOf parent Is NamedFieldInitializerSyntax
                     ' Assigned to a framework property whose setter rejects Nothing (Thread.CurrentThread.CurrentCulture = culture).
-                    Dim [property] As IPropertySymbol = UnvalidatedParameterAnalyzer.GetAssignedProperty(use, context)
+                    Dim [property] As IPropertySymbol = UnvalidatedParameterAnalyzer.GetAssignedProperty(value, context)
                     Return [property] IsNot Nothing AndAlso UnvalidatedParameterAnalyzer.RejectsNothingInSetter([property])
                 Case Else
                     Return TypeOf parent Is SyncLockStatementSyntax OrElse TypeOf parent Is AwaitExpressionSyntax
@@ -640,8 +642,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' <c>New T With {.Property = parameter}</c>.
         ''' </summary>
         ''' 
-        ''' <param name="use">
-        ''' The identifier that refers to the parameter.
+        ''' <param name="value">
+        ''' The expression that refers to the parameter, including the parentheses that wrap it.
         ''' </param>
         ''' 
         ''' <param name="context">
@@ -651,13 +653,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' <returns>
         ''' The assigned property, or <see langword="Nothing"/> when the parameter is not the value assigned to a property.
         ''' </returns>
-        Private Shared Function GetAssignedProperty(use As IdentifierNameSyntax, context As SyntaxNodeAnalysisContext) As IPropertySymbol
+        Private Shared Function GetAssignedProperty(value As ExpressionSyntax, context As SyntaxNodeAnalysisContext) As IPropertySymbol
 
-            Dim parent As SyntaxNode = use.Parent
+            Dim parent As SyntaxNode = value.Parent
             Dim target As ExpressionSyntax = Nothing
-            If parent.IsKind(SyntaxKind.SimpleAssignmentStatement) AndAlso DirectCast(parent, AssignmentStatementSyntax).Right Is use Then
+            If parent.IsKind(SyntaxKind.SimpleAssignmentStatement) AndAlso DirectCast(parent, AssignmentStatementSyntax).Right Is value Then
                 target = DirectCast(parent, AssignmentStatementSyntax).Left
-            ElseIf TypeOf parent Is NamedFieldInitializerSyntax AndAlso DirectCast(parent, NamedFieldInitializerSyntax).Expression Is use Then
+            ElseIf TypeOf parent Is NamedFieldInitializerSyntax AndAlso DirectCast(parent, NamedFieldInitializerSyntax).Expression Is value Then
                 target = DirectCast(parent, NamedFieldInitializerSyntax).Name
             End If
             Return If(target Is Nothing, Nothing, TryCast(context.SemanticModel.GetSymbolInfo(target, context.CancellationToken).Symbol, IPropertySymbol))

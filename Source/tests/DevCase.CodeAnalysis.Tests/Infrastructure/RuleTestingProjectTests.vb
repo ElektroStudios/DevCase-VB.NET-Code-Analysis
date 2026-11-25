@@ -70,7 +70,16 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         Private Shared ReadOnly NetFrameworkOnlyRules As ImmutableHashSet(Of String) = ImmutableHashSet.Create(StringComparer.Ordinal,
             DiagnosticIds.TypeOutsideNamespace, DiagnosticIds.ThrowHelperMigration, DiagnosticIds.NetFrameworkApiMigration,
             DiagnosticIds.ThrowInFinally, DiagnosticIds.ZeroLengthArrayAllocation, DiagnosticIds.AnyInsteadOfEmptinessCheck,
-            DiagnosticIds.StringBuilderArgumentConvertedToString)
+            DiagnosticIds.StringBuilderArgumentConvertedToString, DiagnosticIds.GenericOverloadInsteadOfTypeArgument,
+            DiagnosticIds.MissingDesignerSerializationConfiguration, DiagnosticIds.ArgumentNullExceptionForValueType,
+            DiagnosticIds.TaskContinuationOptionsAsState, DiagnosticIds.EndOfStreamInAsyncMethod, DiagnosticIds.IncompatibleCastOrOfType,
+            DiagnosticIds.BlockCopyLengthAsByteCount, DiagnosticIds.ValueTypeInReferenceEquals, DiagnosticIds.StringLiteralInsteadOfNameOf,
+            DiagnosticIds.ManualCancellationCheck, DiagnosticIds.HasFlagWithDifferentEnum, DiagnosticIds.ThreadStaticFieldInitialization,
+            DiagnosticIds.CancellationTokenNotForwarded, DiagnosticIds.CountInsteadOfAny, DiagnosticIds.CountMethodInsteadOfProperty,
+            DiagnosticIds.CountInsteadOfIsEmpty, DiagnosticIds.WhenAllWithSingleTask, DiagnosticIds.WaitAllWithSingleTask,
+            DiagnosticIds.ContainsKeyBeforeRemove, DiagnosticIds.ContainsBeforeSetAddOrRemove, DiagnosticIds.KeysOrValuesContains,
+            DiagnosticIds.CurrentThreadManagedThreadId, DiagnosticIds.ContainsKeyThenIndexer, DiagnosticIds.IndexOfComparedWithZero,
+            DiagnosticIds.RedundantSubstringLength, DiagnosticIds.ConstantArrayArgument)
 
         ''' <summary>
         ''' The global imports that the SDK adds to Visual Basic projects (and, with Windows Forms, the Windows Desktop SDK).

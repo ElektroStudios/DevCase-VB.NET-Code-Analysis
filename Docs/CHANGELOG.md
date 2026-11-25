@@ -1,6 +1,78 @@
 # DevCase VB.NET Code Analysis Change Log 📋
 
-## v1.0.8 *(current)* 🆕
+## v1.0.9 *(current)* 🆕
+
+### 🧰 26 new rules: Microsoft's modern code-quality rules, for .NET Framework
+
+.NET Framework projects do not get many of the code-quality rules that Microsoft ships with modern .NET. DCA059–DCA084 bring 25 of those CA rules, and WFO1000 (the Windows Forms designer rule of .NET 9), to .NET Framework projects. Like DCA055, DCA056 and DCA058, they **run only in .NET Framework projects**: on modern .NET, the original rule reports the same code, so nothing is reported twice. 20 of them have a code fix, and all of those support Fix All; the other 6 only report, because the right change depends on what the code means.
+
+| Rule | Title | Replicates | Severity | Code fix |
+|---|---|---|---|---|
+| DCA059 | `System.Type` argument instead of a generic overload | [CA2263](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2263) | Info | `Activator.CreateInstance(Of T)()`, without the redundant cast |
+| DCA060 | Component property without designer serialization configuration | [WFO1000](https://learn.microsoft.com/dotnet/desktop/winforms/compiler-messages/wfo1000) | Warning | `<DesignerSerializationVisibility(Visible)>`, `(Content)`, `<DefaultValue(value)>` or `(Hidden)` |
+| DCA061 | `ArgumentNullException` for a value-type parameter | [CA2264](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2264) | Warning | — |
+| DCA062 | `TaskContinuationOptions` passed to a `TaskCompletionSource` constructor | [CA2247](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2247) | Warning | `TaskCreationOptions.X` |
+| DCA063 | `StreamReader.EndOfStream` in an `Async` method | [CA2024](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2024) | Warning | — |
+| DCA064 | `Enumerable.Cast` or `OfType` with an incompatible type | [CA2021](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2021) | Warning | — |
+| DCA065 | `Buffer.BlockCopy` count is an array length | [CA2018](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2018) | Warning | `Buffer.ByteLength(array)` |
+| DCA066 | Value type passed to `ReferenceEquals` | [CA2013](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2013) | Warning | — |
+| DCA067 | String literal instead of `NameOf` | [CA1507](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1507) | Info | `NameOf(name)` |
+| DCA068 | `IsCancellationRequested` check that throws `OperationCanceledException` | [CA2250](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2250) | Info | `token.ThrowIfCancellationRequested()` |
+| DCA069 | `Enum.HasFlag` with a different enum type | [CA2248](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2248) | Warning | — |
+| DCA070 | `ThreadStatic` field initialized inline or in a `Shared` constructor | [CA2019](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2019) | Warning | — |
+| DCA071 | `CancellationToken` parameter not forwarded | [CA2016](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2016) | Info | Passes the token (named when needed) |
+| DCA072 | `Count()` compared with zero instead of `Any()` | [CA1827](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1827) | Info | `Any()` / `Not Any()` |
+| DCA073 | `Enumerable.Count()` instead of the `Length` or `Count` property | [CA1829](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1829) | Info | `Length` / `Count` |
+| DCA074 | `Count` compared with zero instead of `IsEmpty` | [CA1836](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1836) | Info | `IsEmpty` / `Not IsEmpty` |
+| DCA075 | `Task.WhenAll` with a single task | [CA1842](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1842) | Info | The task itself |
+| DCA076 | `Task.WaitAll` with a single task | [CA1843](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1843) | Info | `task.Wait()` |
+| DCA077 | `Dictionary.Remove` guarded by `ContainsKey` | [CA1853](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1853) | Info | `map.Remove(key)` |
+| DCA078 | Set `Add` or `Remove` guarded by `Contains` | [CA1868](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1868) | Info | `items.Add(item)` / `items.Remove(item)` |
+| DCA079 | `Keys.Contains` or `Values.Contains` on a dictionary | [CA1841](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1841) | Info | `ContainsKey` / `ContainsValue` |
+| DCA080 | `Thread.CurrentThread.ManagedThreadId` instead of `Environment.CurrentManagedThreadId` | [CA1840](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1840) | Info | `Environment.CurrentManagedThreadId` |
+| DCA081 | `ContainsKey` followed by the indexer instead of `TryGetValue` | [CA1854](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1854) | Info | `Dim value ... = Nothing` + `TryGetValue` |
+| DCA082 | `IndexOf` compared with zero instead of `StartsWith` | [CA1858](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1858) | Info | `StartsWith` |
+| DCA083 | Redundant length argument of `Substring` | [CA1514](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1514) | Info | `Substring(start)` |
+| DCA084 | Constant array passed as an argument | [CA1861](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1861) | Info | `Private Shared ReadOnly` field |
+
+Details that go beyond the original rules:
+ - **DCA060** offers up to four actions, the first one keeping the current behavior: `Visible` (the designer keeps serializing the property), `Content` (the designer serializes the items of a collection or the properties of a nested object; offered for classes other than `String`, interfaces and arrays, not for value types, where the designer would modify a copy), `DefaultValue` (only for auto-implemented properties with a constant initial value; the argument is typed for the overload of the property type: `5L`, `0S`, `CByte(7)`, `0.5R`, `"x"c`, `DayOfWeek.Friday`), and `Hidden`, the fix that Microsoft offers for WFO1000.
+ - **DCA084** names the field after the member, the called method and a number, as requested: `FindSeparatorIndexOfAny0`. The numbers are assigned per type, also across the files of a `Partial` type, and skip the names already in use, so Fix All declares a different field for each array. The field goes before the member, inside its `#Region` and before its documentation comment.
+ - **DCA081** recognizes every way of writing the check, not only `If map.ContainsKey(key) Then`: the ternary `If(map.ContainsKey(key), map(key), 0)` (the form that IDE0046 produces), `Not` with the reads in the `Else` part, `AndAlso` and `OrElse` (reads on the right side), guard clauses (`If Not map.ContainsKey(key) Then Return`, with the reads in the statements that follow), `ElseIf`, and redundant parentheses. It declares `value`, or `value1`, `value2`... when the name is used or the method has several of these checks, so Fix All never declares the same variable twice.
+ - **DCA059** checks the constraints of the generic overload itself, because speculative binding does not. In .NET Framework, `Activator.CreateInstance(Of T)()` has no `New` constraint, so `DirectCast(Activator.CreateInstance(GetType(T)), T)` is reported for any `T`, as CA2263 does.
+ - **DCA072**: on .NET Framework, `Any()` always creates an enumerator while `Count()` reads `ICollection(Of T).Count`, so `Count()` without a predicate on a collection is left to DCA073 (the property beats both). The rule reports lazy sequences and calls with a predicate, where the gain is real.
+ - **DCA068**, **DCA077** and **DCA078** keep the comments at the end of the removed lines (after the call) and the comments on lines of their own (before the call), and do not report statements with preprocessor directives inside (another configuration may compile other statements).
+ - **DCA071** writes a named argument (`token:=cancellationToken`) when a positional one would not reach the parameter, and adds the parentheses of a call written without them.
+
+Every fix is computed and validated by the analyzer (the replacement is bound speculatively at the position of the code) and applied by a single new code fix provider. Its Fix All merges the changes of every diagnostic of a document, concatenating the insertions at the same position (several fields extracted before the same member).
+
+### Changes
+ - **DCA022** was imprecise: it ignored `IReadOnlyList(Of T)` types that do not implement `IList(Of T)` and strings. It now reports them too: `IReadOnlyList(Of T)` types in .NET Framework projects (in modern .NET projects, CA1826 reports them), and `String`, indexed through its `Chars` default property, on every target framework. On both, `Last()` and `ElementAt()` enumerate the sequence. `Last()` on a string is fixed with `text(text.Length - 1)`. The message now matches CA1826: *"Do not use Enumerable methods on indexable collections; instead use the collection directly"*. CA1826 writes two sentences separated by a period; here they are joined with a semicolon, because the message has no final period and a message with two sentences must end with one (RS1032).
+ - **DCA049**: the message follows CA1834, generalized with the name of the called method: *"Use 'StringBuilder.Append(Char)' instead of 'StringBuilder.Append(String)' when the input is a constant unit string"* (`String.Replace`, `String.Join`, `TextWriter.Write`...).
+ - **DCA058**: the message matches CA1830: *"Prefer strongly-typed StringBuilder overload"*.
+ - **DCA066**: the message says what goes wrong: *"Do not pass value type 'Integer' to 'ReferenceEquals' because each call boxes it into a new object, causing the reference comparison to always return 'False'"*.
+ - Redundant parentheses broke several rules, which the new syntax variations of the tests (see below) found:
+   - **DCA003** did not report `If items.Length = 0 Then Return (Nothing)`.
+   - **DCA030** did not report `Dim values As Long() = (New Long() {1, 2})`. Its fix now also removes the parentheses, because `({1, 2})` is not target-typed: it would be an `Integer()` that cannot be converted to `Long()` (BC30332).
+   - **DCA044** did not report `Dim start As Date = (DateTime.Now)`, nor `(DateTime.Now - start)`.
+   - **DCA050** did not report `Thread.CurrentThread.CurrentCulture = (culture)`, nor other parenthesized uses that consume the parameter.
+ - **DCA011**: its document names the rules that it replicates as conditional blocks, CA1510, CA1511 and CA1512. Every `ArgumentOutOfRangeException` helper of CA1512 was already covered (the nine `ThrowIf...` methods, with the operands in either order); a new test uses the reported example, `If decimalCount < 0 Then Throw New ArgumentOutOfRangeException(NameOf(decimalCount))` → `ArgumentOutOfRangeException.ThrowIfNegative(decimalCount)`.
+ - CA1860 was already replicated by DCA056.
+
+### Rule testing solution
+ - New files `DCA059.vb` … `DCA084.vb` in the .NET Framework project (the rules do not run in the .NET 10 project). Each one triggers only its rule, also after applying its code fix with `#Region` and `#If` decorations.
+ - `DCA022.vb` (.NET Framework) also reports `values.Last()` on an `IReadOnlyList(Of Integer)`.
+ - `DCA060.vb` also has a `List(Of String)` property, for the `Content` action.
+ - `DCA071.vb` and `DCA081.vb` suppress the IDE suggestions that their own example code triggers on purpose: IDE0060 (*"Remove unused parameter"*) on `PauseAsync`, whose not forwarded token is the subject of DCA071, and IDE0046 (*"Convert to conditional expression"*) on `GetAge`, whose `If` statement is the subject of DCA081.
+
+### Tests
+ - One test class per new rule: what is reported and what is not, nothing on modern .NET, the code fix (also with `Option Strict Off` / `Option Infer On`), Fix All, the offered actions and the messages.
+ - New tests for DCA022 (`IReadOnlyList(Of T)` and strings, on .NET Framework and modern .NET, and the message), DCA049 and DCA058 (messages), and DCA011 (the CA1512 example).
+ - The test host can list the code actions of a .NET Framework project. The registration tests expect 84 rules and 41 code fix providers.
+ - **Syntax variations**: every analyzer and code fix test now also runs on six rewrites of its source that write the same code in another way: redundant parentheses (conditions, `Return` values, initializers, assigned values, ternary conditions), explicit line continuations (` _` after commas, opening parentheses, member-access dots, `AndAlso`, `OrElse` and `&`), method bodies inside `#Region` blocks, inside `#If True Then` blocks and inside a `Using` block, and comment lines between statements. Each rewrite must compile; the analyzer must report the same diagnostics as for the original source, and the code fix must still produce code that compiles and has no diagnostic left. This applies to the existing rules and to every future one, with no test written by hand; a rule that is silent on purpose in a variation is listed with its reason (DCA011 and DCA013 inside `#If` blocks). The variations found the parenthesis bugs listed above, and the comment lines that blocked the fixes of DCA068, DCA077 and DCA078.
+ - New tests for DCA060 (`Content`), DCA081 (every form of the check, reads where the key may not exist, single-line lambdas), DCA030 (parenthesized creations) and DCA068/DCA077 (comment lines kept).
+
+## v1.0.8 🔖
 
 ### 🔤 Every message and every severity, reviewed rule by rule
 

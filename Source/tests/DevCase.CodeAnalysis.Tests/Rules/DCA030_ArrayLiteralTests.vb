@@ -107,6 +107,33 @@ End Class
 ", targetNetFramework:=True).ConfigureAwait(True)
         End Function
 
+        ''' <summary>
+        ''' Verifies that the code fix of rule DCA030 also removes the parentheses that wrap the creation, which would break the 
+        ''' target typing of the array literal.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Fix_RemovesTheParentheses() As Task
+            Await AnalyzerTestHost.VerifyCodeFixAsync(Analyzer, Provider, "
+Public Class C
+    Public Function M() As Long()
+        Dim values As Long() = ([|New Long()|] {1, 2})
+        Return (([|New Long()|] {values(0)}))
+    End Function
+End Class
+", "
+Public Class C
+    Public Function M() As Long()
+        Dim values As Long() = {1, 2}
+        Return {values(0)}
+    End Function
+End Class
+", targetNetFramework:=True).ConfigureAwait(True)
+        End Function
+
 #End Region
 
     End Class

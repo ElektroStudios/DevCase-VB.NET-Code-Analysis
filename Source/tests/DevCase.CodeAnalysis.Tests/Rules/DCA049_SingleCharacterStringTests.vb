@@ -39,6 +39,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         Private Shared ReadOnly Analyzer As New SingleCharacterStringAnalyzer()
 
         ''' <summary>
+        ''' The expected messages of <see cref="Message_NamesTheCharOverload"/>.
+        ''' </summary>
+        Private Shared ReadOnly ExpectedMessages As String() = {
+            "Use 'StringBuilder.Append(Char)' instead of 'StringBuilder.Append(String)' when the input is a constant unit string",
+            "Use 'String.Replace(Char)' instead of 'String.Replace(String)' when the input is a constant unit string"}
+
+        ''' <summary>
         ''' The code fix provider under test.
         ''' </summary>
         Private Shared ReadOnly Provider As New SingleCharacterStringCodeFixProvider()
@@ -305,6 +312,29 @@ End Class
                 checkedJoins += 1
             Next invocation
             Assert.Equal(4, checkedJoins)
+        End Function
+
+        ''' <summary>
+        ''' Verifies the message of rule DCA049, which follows CA1834 with the name of the called method, in a .NET Framework project.
+        ''' </summary>
+        '''
+        ''' <returns>
+        ''' A <see cref="Task"/> that represents the asynchronous test.
+        ''' </returns>
+        <Fact>
+        Public Async Function Message_NamesTheCharOverload() As Task
+            Dim diagnostics As Collections.Immutable.ImmutableArray(Of Microsoft.CodeAnalysis.Diagnostic) = Await AnalyzerTestHost.VerifyAnalyzerAsync(Analyzer, "
+Imports System.Text
+
+Public Class C
+    Public Function Run(sb As StringBuilder, text As String) As String
+        sb.Append([|"",""|])
+        Return text.Replace([|""a""|], ""b"")
+    End Function
+End Class
+", targetNetFramework:=True).ConfigureAwait(True)
+            Assert.Equal(DCA049_SingleCharacterStringTests.ExpectedMessages,
+                         diagnostics.Select(Function(d As Microsoft.CodeAnalysis.Diagnostic) d.GetMessage(Globalization.CultureInfo.InvariantCulture)).ToArray())
         End Function
 
 #End Region

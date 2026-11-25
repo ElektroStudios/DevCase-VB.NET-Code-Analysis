@@ -112,8 +112,12 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.CodeFixes
                 Throw New InvalidOperationException("The diagnostic does not point to an array creation expression.")
             End If
 
-            Dim span As TextSpan = TextSpan.FromBounds(creation.NewKeyword.SpanStart, creation.Initializer.SpanStart)
-            Return Await UtilCodeFix.ApplyTextChangesAsync(document, {New TextChange(span, String.Empty)}, cancellationToken).ConfigureAwait(False)
+            ' A parenthesized creation loses its parentheses too, because they would break the target typing of the literal.
+            Dim outer As ExpressionSyntax = UtilAnalyzerSyntax.WalkUpParentheses(creation)
+            Dim change As TextChange = If(outer Is creation,
+                                          New TextChange(TextSpan.FromBounds(creation.NewKeyword.SpanStart, creation.Initializer.SpanStart), String.Empty),
+                                          New TextChange(outer.Span, creation.Initializer.ToString()))
+            Return Await UtilCodeFix.ApplyTextChangesAsync(document, {change}, cancellationToken).ConfigureAwait(False)
         End Function
 
 #End Region

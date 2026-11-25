@@ -387,8 +387,198 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
             If AnalyzerTestHost.IsLineFeedOnly(markupSource) Then
                 Await AnalyzerTestHost.VerifyAnalyzerCoreAsync(analyzer, AnalyzerTestHost.ToCrLf(markupSource), editorConfig, allowCompilerErrors, targetNetFramework, optionStatements).ConfigureAwait(False)
             End If
+            If Not allowCompilerErrors Then
+                Await AnalyzerTestHost.VerifyAnalyzerVariationsAsync(analyzer, markupSource, editorConfig, targetNetFramework, optionStatements).ConfigureAwait(False)
+            End If
             Return diagnostics
         End Function
+
+        ''' <summary>
+        ''' Verifies that an analyzer reports as many diagnostics for every <see cref="SyntaxVariations">syntax variation</see> of 
+        ''' a source as for the source itself.
+        ''' </summary>
+        '''
+        ''' <param name="analyzer">
+        ''' The analyzer under test.
+        ''' </param>
+        '''
+        ''' <param name="markupSource">
+        ''' The source with markup.
+        ''' </param>
+        '''
+        ''' <param name="editorConfig">
+        ''' Optional <c>.editorconfig</c> key/value lines.
+        ''' </param>
+        '''
+        ''' <param name="targetNetFramework">
+        ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies.
+        ''' </param>
+        '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A task that represents the asynchronous verification.
+        ''' </returns>
+        Private Shared Async Function VerifyAnalyzerVariationsAsync(analyzer As DiagnosticAnalyzer, markupSource As String, editorConfig As String,
+                                                                     targetNetFramework As Boolean,
+                                                                     optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)?) As Task
+
+            Dim spans As List(Of TextSpan) = Nothing
+            Dim source As String = AnalyzerTestHost.ParseMarkup(markupSource, spans)
+            Dim original As ImmutableArray(Of Diagnostic) =
+                Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(AnalyzerTestHost.CreateProject(source, editorConfig, targetNetFramework, optionStatements), analyzer).ConfigureAwait(False)
+            For Each variation As SyntaxVariation In SyntaxVariations.All
+                Dim rewritten As String = variation.Rewrite(source)
+                If rewritten Is Nothing Then
+                    Continue For
+                End If
+
+                Dim project As Project = AnalyzerTestHost.CreateProject(rewritten, editorConfig, targetNetFramework, optionStatements)
+                Await AnalyzerTestHost.AssertVariationCompilesAsync(project, variation, rewritten).ConfigureAwait(False)
+                Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, analyzer).ConfigureAwait(False)
+                AnalyzerTestHost.AssertSameDiagnostics(original, diagnostics, variation, rewritten)
+            Next variation
+        End Function
+
+        ''' <summary>
+        ''' Verifies that a code fix still applies, and produces code that compiles and fixes the diagnostics, for every 
+        ''' <see cref="SyntaxVariations">syntax variation</see> of a source.
+        ''' </summary>
+        '''
+        ''' <param name="analyzer">
+        ''' The analyzer under test.
+        ''' </param>
+        '''
+        ''' <param name="provider">
+        ''' The code fix provider under test.
+        ''' </param>
+        '''
+        ''' <param name="markupSource">
+        ''' The source with markup.
+        ''' </param>
+        '''
+        ''' <param name="equivalenceKey">
+        ''' Optional equivalence key of the code action to apply.
+        ''' </param>
+        '''
+        ''' <param name="editorConfig">
+        ''' Optional <c>.editorconfig</c> key/value lines.
+        ''' </param>
+        '''
+        ''' <param name="allowRemainingDiagnostics">
+        ''' <see langword="True"/> when some diagnostics are expected to remain unfixable.
+        ''' </param>
+        '''
+        ''' <param name="targetNetFramework">
+        ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies.
+        ''' </param>
+        '''
+        ''' <param name="optionStatements">
+        ''' The <c>Option Strict</c>, <c>Option Explicit</c> and <c>Option Infer</c> settings of the project.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A task that represents the asynchronous verification.
+        ''' </returns>
+        '''
+        ''' <exception cref="Xunit.Sdk.XunitException">
+        ''' Thrown when the code fix fails for a variation; the message names the variation and shows its source.
+        ''' </exception>
+        Private Shared Async Function VerifyCodeFixVariationsAsync(analyzer As DiagnosticAnalyzer, provider As CodeFixProvider, markupSource As String,
+                                                                    equivalenceKey As String, editorConfig As String, allowRemainingDiagnostics As Boolean,
+                                                                    targetNetFramework As Boolean,
+                                                                    optionStatements As (Strict As OptionStrict, Explicit As Boolean, Infer As Boolean)?) As Task
+
+            Dim spans As List(Of TextSpan) = Nothing
+            Dim source As String = AnalyzerTestHost.ParseMarkup(markupSource, spans)
+            Dim original As ImmutableArray(Of Diagnostic) =
+                Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(AnalyzerTestHost.CreateProject(source, editorConfig, targetNetFramework, optionStatements), analyzer).ConfigureAwait(False)
+            For Each variation As SyntaxVariation In SyntaxVariations.All
+                Dim rewritten As String = variation.Rewrite(source)
+                If rewritten Is Nothing Then
+                    Continue For
+                End If
+
+                Dim project As Project = AnalyzerTestHost.CreateProject(rewritten, editorConfig, targetNetFramework, optionStatements)
+                Await AnalyzerTestHost.AssertVariationCompilesAsync(project, variation, rewritten).ConfigureAwait(False)
+                Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, analyzer).ConfigureAwait(False)
+                AnalyzerTestHost.AssertSameDiagnostics(original, diagnostics, variation, rewritten)
+                If SyntaxVariations.IsExempt(original, variation) Then
+                    Continue For
+                End If
+
+                Try
+                    Await AnalyzerTestHost.VerifyCodeFixCoreAsync(analyzer, provider, rewritten, Nothing, equivalenceKey, editorConfig, allowRemainingDiagnostics,
+                                                                  False, targetNetFramework, optionStatements).ConfigureAwait(False)
+                Catch ex As Xunit.Sdk.XunitException
+                    Throw New Xunit.Sdk.XunitException($"[{variation.Name} variation] {ex.Message}{vbLf}Source:{vbLf}{rewritten}", ex)
+                End Try
+            Next variation
+        End Function
+
+        ''' <summary>
+        ''' Asserts that a syntax variation of a test source compiles (a variation that does not compile is a defect of the 
+        ''' variation, not of the rule).
+        ''' </summary>
+        '''
+        ''' <param name="project">
+        ''' The project of the variation.
+        ''' </param>
+        '''
+        ''' <param name="variation">
+        ''' The variation.
+        ''' </param>
+        '''
+        ''' <param name="rewritten">
+        ''' The rewritten source.
+        ''' </param>
+        '''
+        ''' <returns>
+        ''' A task that represents the asynchronous assertion.
+        ''' </returns>
+        Private Shared Async Function AssertVariationCompilesAsync(project As Project, variation As SyntaxVariation, rewritten As String) As Task
+
+            Dim errors As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetCompilerErrorsAsync(project).ConfigureAwait(False)
+            Assert.True(errors.IsEmpty, $"The {variation.Name} variation of the test source does not compile: {String.Join(" | ", errors.Select(Function(e As Diagnostic) e.ToString()))}{vbLf}Source:{vbLf}{rewritten}")
+        End Function
+
+        ''' <summary>
+        ''' Asserts that the diagnostics of a syntax variation have the same identifiers and counts as those of the original source, 
+        ''' except for the exempted rules (see <see cref="SyntaxVariations.IsExempt"/>).
+        ''' </summary>
+        '''
+        ''' <param name="original">
+        ''' The diagnostics of the original source.
+        ''' </param>
+        '''
+        ''' <param name="actual">
+        ''' The diagnostics of the variation.
+        ''' </param>
+        '''
+        ''' <param name="variation">
+        ''' The variation.
+        ''' </param>
+        '''
+        ''' <param name="rewritten">
+        ''' The rewritten source.
+        ''' </param>
+        Private Shared Sub AssertSameDiagnostics(original As ImmutableArray(Of Diagnostic), actual As ImmutableArray(Of Diagnostic), variation As SyntaxVariation, rewritten As String)
+
+            If SyntaxVariations.IsExempt(original, variation) OrElse SyntaxVariations.IsExempt(actual, variation) Then
+                Return
+            End If
+
+            Dim summarize As Func(Of ImmutableArray(Of Diagnostic), String) =
+                Function(diagnostics As ImmutableArray(Of Diagnostic)) String.Join(", ", diagnostics.GroupBy(Function(d As Diagnostic) d.Id, StringComparer.Ordinal).
+                                                                                                    OrderBy(Function(g As IGrouping(Of String, Diagnostic)) g.Key, StringComparer.Ordinal).
+                                                                                                    Select(Function(g As IGrouping(Of String, Diagnostic)) $"{g.Key} x{g.Count()}"))
+            Dim expected As String = summarize(original)
+            Dim found As String = summarize(actual)
+            Assert.True(expected.Equals(found, StringComparison.Ordinal),
+                        $"The {variation.Name} variation changes the diagnostics: expected [{expected}], found [{found}].{vbLf}Messages: {String.Join(" | ", actual.Select(Function(d As Diagnostic) $"{d.GetMessage()} at {d.Location.GetLineSpan().StartLinePosition}"))}{vbLf}Source:{vbLf}{rewritten}")
+        End Sub
 
         ''' <summary>
         ''' Determines whether a source contains line breaks and all of them are LF.
@@ -549,6 +739,10 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                                                               equivalenceKey, editorConfig, allowRemainingDiagnostics, allowCompilerErrors,
                                                               targetNetFramework, optionStatements).ConfigureAwait(False)
             End If
+            If Not allowCompilerErrors Then
+                Await AnalyzerTestHost.VerifyCodeFixVariationsAsync(analyzer, provider, markupSource, equivalenceKey, editorConfig, allowRemainingDiagnostics,
+                                                                    targetNetFramework, optionStatements).ConfigureAwait(False)
+            End If
         End Function
 
         ''' <summary>
@@ -568,7 +762,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' </param>
         '''
         ''' <param name="expectedSource">
-        ''' The expected fixed source.
+        ''' The expected fixed source; <see langword="Nothing"/> to only check that the fixed source compiles and has no 
+        ''' diagnostics left (for the syntax variations).
         ''' </param>
         '''
         ''' <param name="equivalenceKey">
@@ -645,7 +840,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
             Next iteration
 
             Assert.True(fixedOnce, "No code fix was applied.")
-            AnalyzerTestHost.AssertTextEqual(expectedSource, currentText)
+            If expectedSource IsNot Nothing Then
+                AnalyzerTestHost.AssertTextEqual(expectedSource, currentText)
+            End If
 
             Dim finalProject As Project = AnalyzerTestHost.CreateProject(currentText, editorConfig, targetNetFramework, optionStatements)
             If Not allowCompilerErrors Then
@@ -787,12 +984,17 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' The source (without markup).
         ''' </param>
         '''
+        ''' <param name="targetNetFramework">
+        ''' <see langword="True"/> to compile against the .NET Framework 4.8 reference assemblies instead of the test runtime.
+        ''' </param>
+        '''
         ''' <returns>
         ''' The registered code actions.
         ''' </returns>
-        Friend Shared Async Function GetRegisteredActionsAsync(analyzer As DiagnosticAnalyzer, provider As CodeFixProvider, source As String) As Task(Of List(Of CodeAction))
+        Friend Shared Async Function GetRegisteredActionsAsync(analyzer As DiagnosticAnalyzer, provider As CodeFixProvider, source As String,
+                                                               Optional targetNetFramework As Boolean = False) As Task(Of List(Of CodeAction))
 
-            Dim project As Project = AnalyzerTestHost.CreateProject(source)
+            Dim project As Project = AnalyzerTestHost.CreateProject(source, targetNetFramework:=targetNetFramework)
             Dim diagnostics As ImmutableArray(Of Diagnostic) = Await AnalyzerTestHost.GetAnalyzerDiagnosticsAsync(project, analyzer).ConfigureAwait(False)
             Assert.NotEmpty(diagnostics)
 

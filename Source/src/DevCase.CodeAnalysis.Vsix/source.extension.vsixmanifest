@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="DevCase.CodeAnalysis.Vsix.62ed00af-6323-4e0e-bd91-03147c0a49f1" Version="1.0.8" Language="en-US" Publisher="ElektroStudios" />
+    <Identity Id="DevCase.CodeAnalysis.Vsix.62ed00af-6323-4e0e-bd91-03147c0a49f1" Version="1.0.9" Language="en-US" Publisher="ElektroStudios" />
     <DisplayName>DevCase VB.NET Code Analysis</DisplayName>
     <Description xml:space="preserve">Roslyn analyzers and code fixes for Visual Basic .NET: async code (ConfigureAwait, blocking .Result, Async Sub, Thread.Sleep, discarded awaiters), guard clauses and argument validation, sender and IEnumerable parameter names, call parentheses, XML documentation, Option statements, constructors and namespaces, string comparisons and encodings, Char literals, Flags enums, .NET Framework to modern .NET migration helpers, file-system loops, recursion, Regex timeouts (ReDoS), DateTime pitfalls, collection methods, Any() checks, empty arrays, StringBuilder overloads, End/On Error/GoTo, DoEvents, unsafe locks and threading, duplicated conditions and branches, secure temporary files, dead code in ComImport classes and exceptions thrown in Finally, Finalize and property getters.</Description>
     <MoreInfo>https://github.com/ElektroStudios/DevCase-VB.NET-Code-Analysis</MoreInfo>

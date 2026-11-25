@@ -25,12 +25,15 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
     ''' <summary>
-    ''' Reports LINQ <c>First()</c>, <c>Last()</c> and <c>ElementAt(index)</c> calls on types that implement <c>IList(Of T)</c> 
-    ''' and expose an indexer (rule <see cref="DiagnosticIds.LinqInsteadOfIndexer"/>).
+    ''' Reports LINQ <c>First()</c>, <c>Last()</c> and <c>ElementAt(index)</c> calls on indexable collections: arrays, 
+    ''' <see cref="String"/>, and types that implement <c>IList(Of T)</c> or <c>IReadOnlyList(Of T)</c> and expose an 
+    ''' <see cref="Integer"/> indexer (rule <see cref="DiagnosticIds.LinqInsteadOfIndexer"/>).
     ''' </summary>
     ''' 
     ''' <remarks>
-    ''' Arrays use <c>Length</c> and other types their <c>Count</c> property for <c>Last()</c>. 
+    ''' In modern .NET projects, types that implement <c>IReadOnlyList(Of T)</c> but not <c>IList(Of T)</c> are left to the 
+    ''' built-in rule CA1826, which reports them. 
+    ''' Arrays and strings use <c>Length</c> and other types their <c>Count</c> property for <c>Last()</c>. 
     ''' Calls with a predicate (<c>First(predicate)</c>) and the <c>OrDefault</c> variants are not reported, because the indexer has no equivalent. 
     ''' <c>Last()</c> on a receiver that is not a simple name or member access (e.g. a method call) is reported without a fix, 
     ''' because the receiver would be evaluated twice.
@@ -84,7 +87,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)
             context.EnableConcurrentExecution()
-            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(AddressOf IndexerAnalyzer.AnalyzeInvocation), SyntaxKind.InvocationExpression)
+            context.RegisterCompilationStartAction(AddressOf IndexerAnalyzer.OnCompilationStart)
         End Sub
 
 #End Region
@@ -100,7 +103,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </param>
         ''' 
         ''' <returns>
-        ''' <c>Length</c> for arrays, <c>Count</c> when the type exposes it; otherwise, <see langword="Nothing"/>.
+        ''' <c>Length</c> for arrays and strings, <c>Count</c> when the type exposes it; otherwise, <see langword="Nothing"/>.
         ''' </returns>
         ''' 
         ''' <exception cref="ArgumentNullException">
@@ -112,7 +115,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Throw New ArgumentNullException(NameOf(type))
             End If
 
-            If TypeOf type Is IArrayTypeSymbol Then
+            If TypeOf type Is IArrayTypeSymbol OrElse type.SpecialType = SpecialType.System_String Then
                 Return NameOf(Array.Length)
             End If
 
@@ -127,13 +130,31 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
 #Region " Private Methods "
 
         ''' <summary>
+        ''' Registers the analysis of invocations, knowing whether the compilation targets .NET Framework.
+        ''' </summary>
+        '''
+        ''' <param name="context">
+        ''' The compilation start analysis context.
+        ''' </param>
+        Private Shared Sub OnCompilationStart(context As CompilationStartAnalysisContext)
+
+            Dim isNetFramework As Boolean = UtilAnalyzerSemantic.IsNetFramework(context.Compilation)
+            context.RegisterSyntaxNodeAction(UtilAnalyzerFiles.SkipExcludedNodes(
+                Sub(c As SyntaxNodeAnalysisContext) IndexerAnalyzer.AnalyzeInvocation(c, isNetFramework)), SyntaxKind.InvocationExpression)
+        End Sub
+
+        ''' <summary>
         ''' Analyzes an invocation expression.
         ''' </summary>
         ''' 
         ''' <param name="context">
         ''' The syntax node analysis context.
         ''' </param>
-        Private Shared Sub AnalyzeInvocation(context As SyntaxNodeAnalysisContext)
+        '''
+        ''' <param name="isNetFramework">
+        ''' <see langword="True"/> if the compilation targets .NET Framework, where CA1826 does not report <c>IReadOnlyList(Of T)</c>.
+        ''' </param>
+        Private Shared Sub AnalyzeInvocation(context As SyntaxNodeAnalysisContext, isNetFramework As Boolean)
 
             Dim invocation As InvocationExpressionSyntax = DirectCast(context.Node, InvocationExpressionSyntax)
             Dim access As MemberAccessExpressionSyntax = TryCast(invocation.Expression, MemberAccessExpressionSyntax)
@@ -165,7 +186,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             End If
 
             Dim receiverType As ITypeSymbol = context.SemanticModel.GetTypeInfo(access.Expression, context.CancellationToken).Type
-            If receiverType Is Nothing OrElse Not IndexerAnalyzer.IsIndexableList(receiverType) Then
+            If receiverType Is Nothing OrElse Not IndexerAnalyzer.IsIndexable(receiverType, isNetFramework) Then
                 Exit Sub
             End If
 
@@ -182,26 +203,36 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         End Sub
 
         ''' <summary>
-        ''' Determines whether a type implements <c>IList(Of T)</c> and exposes a public <see cref="Integer"/> indexer.
+        ''' Determines whether a type can be indexed directly: a one-dimensional array, a <see cref="String"/>, or a type that 
+        ''' implements <c>IList(Of T)</c> or <c>IReadOnlyList(Of T)</c> and exposes a public <see cref="Integer"/> indexer.
         ''' </summary>
         ''' 
         ''' <param name="type">
         ''' The type.
         ''' </param>
+        '''
+        ''' <param name="isNetFramework">
+        ''' <see langword="True"/> to also accept types that implement <c>IReadOnlyList(Of T)</c> without <c>IList(Of T)</c>, 
+        ''' which CA1826 reports in modern .NET.
+        ''' </param>
         ''' 
         ''' <returns>
         ''' <see langword="True"/> if the type can be indexed directly; otherwise, <see langword="False"/>.
         ''' </returns>
-        Private Shared Function IsIndexableList(type As ITypeSymbol) As Boolean
+        Private Shared Function IsIndexable(type As ITypeSymbol, isNetFramework As Boolean) As Boolean
 
             If TypeOf type Is IArrayTypeSymbol Then
                 Return DirectCast(type, IArrayTypeSymbol).IsSZArray
+            End If
+            If type.SpecialType = SpecialType.System_String Then
+                Return True ' The Chars default property.
             End If
 
             Dim implementsList As Boolean =
                 type.OriginalDefinition.SpecialType = SpecialType.System_Collections_Generic_IList_T OrElse
                 type.AllInterfaces.Any(Function(i As INamedTypeSymbol) i.OriginalDefinition.SpecialType = SpecialType.System_Collections_Generic_IList_T)
-            Return implementsList AndAlso IndexerAnalyzer.GetAccessibleProperties(type).Any(
+            Dim implementsReadOnlyList As Boolean = UtilAnalyzerSemantic.IsOrDerivesFrom(type, "System.Collections.Generic.IReadOnlyList`1")
+            Return (implementsList OrElse (implementsReadOnlyList AndAlso isNetFramework)) AndAlso IndexerAnalyzer.GetAccessibleProperties(type).Any(
                 Function(p As IPropertySymbol) p.IsIndexer AndAlso p.Parameters.Length = 1 AndAlso p.Parameters(0).Type.SpecialType = SpecialType.System_Int32)
         End Function
 

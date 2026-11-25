@@ -90,11 +90,18 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
             ' An empty array (New Integer() {}) is not reported: it must not be allocated at all (Array.Empty, rule DCA055 or CA1825).
             If creation.ArrayBounds IsNot Nothing OrElse creation.RankSpecifiers.Count <> 1 OrElse creation.RankSpecifiers(0).Rank <> 1 OrElse
                creation.AttributeLists.Count > 0 OrElse TypeOf creation.Type Is ArrayTypeSyntax OrElse
-               creation.Initializer.Initializers.Count = 0 OrElse Not ArrayLiteralAnalyzer.IsTargetTyped(creation) Then
+               creation.Initializer.Initializers.Count = 0 Then
                 Exit Sub
             End If
 
-            Dim info As TypeInfo = context.SemanticModel.GetTypeInfo(creation, context.CancellationToken)
+            ' Parentheses break the target typing of an array literal (({1, 2}) is Integer(), never Long()), so the check and the 
+            ' types use the outermost parenthesized expression, and the fix removes the parentheses as well.
+            Dim outer As ExpressionSyntax = UtilAnalyzerSyntax.WalkUpParentheses(creation)
+            If Not ArrayLiteralAnalyzer.IsTargetTyped(outer) Then
+                Exit Sub
+            End If
+
+            Dim info As TypeInfo = context.SemanticModel.GetTypeInfo(outer, context.CancellationToken)
             If info.Type Is Nothing OrElse Not SymbolEqualityComparer.Default.Equals(info.Type, info.ConvertedType) Then
                 Exit Sub
             End If

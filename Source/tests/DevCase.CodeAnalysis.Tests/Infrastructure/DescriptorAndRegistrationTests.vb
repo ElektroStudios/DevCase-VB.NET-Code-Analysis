@@ -79,8 +79,8 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
         ''' </summary>
         <Fact>
         Public Sub AnalyzerAndProviderCounts_MatchTheRuleSet()
-            Assert.Equal(58, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
-            Assert.Equal(40, DescriptorAndRegistrationTests.GetProviderTypes().Count)
+            Assert.Equal(84, DescriptorAndRegistrationTests.GetAnalyzerTypes().Count)
+            Assert.Equal(41, DescriptorAndRegistrationTests.GetProviderTypes().Count)
         End Sub
 
         ''' <summary>
@@ -97,7 +97,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 Dim analyzer As DiagnosticAnalyzer = DirectCast(Activator.CreateInstance(analyzerType), DiagnosticAnalyzer)
                 Dim descriptor As DiagnosticDescriptor = Assert.Single(analyzer.SupportedDiagnostics)
                 Assert.True(ids.Add(descriptor.Id), $"Duplicated id {descriptor.Id}")
-                Assert.Matches("^DCA0(0[1-9]|[1-4][0-9]|5[0-8])$", descriptor.Id)
+                Assert.Matches("^DCA0(0[1-9]|[1-7][0-9]|8[0-4])$", descriptor.Id)
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Title.ToString()))
                 Assert.False(String.IsNullOrWhiteSpace(descriptor.Description.ToString()))
                 Assert.True(descriptor.IsEnabledByDefault)
@@ -123,7 +123,13 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                                      DiagnosticIds.SingleCharacterString, DiagnosticIds.UnvalidatedParameter,
                                      DiagnosticIds.MisusedSenderParameter, DiagnosticIds.MethodCallWithoutParentheses,
                                      DiagnosticIds.ZeroLengthArrayAllocation, DiagnosticIds.AnyInsteadOfEmptinessCheck,
-                                     DiagnosticIds.CollectionNameOnEnumerableParameter, DiagnosticIds.StringBuilderArgumentConvertedToString}
+                                     DiagnosticIds.CollectionNameOnEnumerableParameter, DiagnosticIds.StringBuilderArgumentConvertedToString,
+                                     DiagnosticIds.GenericOverloadInsteadOfTypeArgument, DiagnosticIds.StringLiteralInsteadOfNameOf,
+                                     DiagnosticIds.ManualCancellationCheck, DiagnosticIds.CancellationTokenNotForwarded, DiagnosticIds.CountInsteadOfAny,
+                                     DiagnosticIds.CountMethodInsteadOfProperty, DiagnosticIds.CountInsteadOfIsEmpty, DiagnosticIds.WhenAllWithSingleTask,
+                                     DiagnosticIds.WaitAllWithSingleTask, DiagnosticIds.ContainsKeyBeforeRemove, DiagnosticIds.ContainsBeforeSetAddOrRemove,
+                                     DiagnosticIds.KeysOrValuesContains, DiagnosticIds.CurrentThreadManagedThreadId, DiagnosticIds.ContainsKeyThenIndexer,
+                                     DiagnosticIds.IndexOfComparedWithZero, DiagnosticIds.RedundantSubstringLength, DiagnosticIds.ConstantArrayArgument}
             For Each analyzerType As Type In DescriptorAndRegistrationTests.GetAnalyzerTypes()
                 Dim analyzer As DiagnosticAnalyzer = DirectCast(Activator.CreateInstance(analyzerType), DiagnosticAnalyzer)
                 Dim descriptor As DiagnosticDescriptor = analyzer.SupportedDiagnostics(0)
@@ -169,7 +175,9 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 DiagnosticIds.ThreadSuspendResume, DiagnosticIds.BeginInvokeWithoutEndInvoke, DiagnosticIds.DuplicateCondition,
                 DiagnosticIds.AllBranchesIdentical, DiagnosticIds.DuplicateBranch, DiagnosticIds.IdenticalOperands,
                 DiagnosticIds.DateTimeNowForTiming, DiagnosticIds.ThrowInFinally, DiagnosticIds.ThrowInFinalize, DiagnosticIds.ThrowInPropertyGetter,
-                DiagnosticIds.DiscardedAwaiter}
+                DiagnosticIds.DiscardedAwaiter, DiagnosticIds.ArgumentNullExceptionForValueType, DiagnosticIds.EndOfStreamInAsyncMethod,
+                DiagnosticIds.IncompatibleCastOrOfType, DiagnosticIds.ValueTypeInReferenceEquals, DiagnosticIds.HasFlagWithDifferentEnum,
+                DiagnosticIds.ThreadStaticFieldInitialization}
             knownIds.ExceptWith(reportOnly)
             Assert.Equal(knownIds.OrderBy(Function(s As String) s, StringComparer.Ordinal), fixedIds.OrderBy(Function(s As String) s, StringComparer.Ordinal))
         End Sub
@@ -227,7 +235,34 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Tests
                 {DevCaseDescriptors.ZeroLengthArrayAllocation, {"String"}},
                 {DevCaseDescriptors.AnyInsteadOfEmptinessCheck, {"Count", "Queue(Of Integer)"}},
                 {DevCaseDescriptors.CollectionNameOnEnumerableParameter, {"collection", "UtilCollections.AddRange", " to 'sequence'"}},
-                {DevCaseDescriptors.StringBuilderArgumentConvertedToString, {"Append", "Char, Integer"}}}
+                {DevCaseDescriptors.LinqInsteadOfIndexer, {"First", "List(Of Integer)"}},
+                {DevCaseDescriptors.StringBuilderArgumentConvertedToString, {"Append", "Char, Integer"}},
+                {DevCaseDescriptors.GenericOverloadInsteadOfTypeArgument, {"Activator.CreateInstance(Of T)", "T"}},
+                {DevCaseDescriptors.MissingDesignerSerializationConfiguration, {"Title"}},
+                {DevCaseDescriptors.ArgumentNullExceptionForValueType, {"count", "Integer"}},
+                {DevCaseDescriptors.TaskContinuationOptionsAsState, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.EndOfStreamInAsyncMethod, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.IncompatibleCastOrOfType, {"Cast", "String", "Integer", "every element throws InvalidCastException"}},
+                {DevCaseDescriptors.BlockCopyLengthAsByteCount, {"source"}},
+                {DevCaseDescriptors.ValueTypeInReferenceEquals, {"Integer"}},
+                {DevCaseDescriptors.StringLiteralInsteadOfNameOf, {"value"}},
+                {DevCaseDescriptors.ManualCancellationCheck, {"cancellationToken"}},
+                {DevCaseDescriptors.HasFlagWithDifferentEnum, {"FileAttributes", "ConsoleModifiers"}},
+                {DevCaseDescriptors.ThreadStaticFieldInitialization, {"buffer"}},
+                {DevCaseDescriptors.CancellationTokenNotForwarded, {"cancellationToken", "Delay"}},
+                {DevCaseDescriptors.CountInsteadOfAny, {"Count"}},
+                {DevCaseDescriptors.CountMethodInsteadOfProperty, {"Length"}},
+                {DevCaseDescriptors.CountInsteadOfIsEmpty, {"ConcurrentQueue(Of Integer)"}},
+                {DevCaseDescriptors.WhenAllWithSingleTask, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.WaitAllWithSingleTask, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.ContainsKeyBeforeRemove, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.ContainsBeforeSetAddOrRemove, {"Add"}},
+                {DevCaseDescriptors.KeysOrValuesContains, {"ContainsKey", "Keys"}},
+                {DevCaseDescriptors.CurrentThreadManagedThreadId, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.ContainsKeyThenIndexer, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.IndexOfComparedWithZero, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.RedundantSubstringLength, Array.Empty(Of Object)()},
+                {DevCaseDescriptors.ConstantArrayArgument, {"IndexOfAny"}}}
 
             For Each pair As KeyValuePair(Of DiagnosticDescriptor, Object()) In samples
                 Dim message As String = Diagnostic.Create(pair.Key, Location.None, pair.Value).GetMessage(Globalization.CultureInfo.InvariantCulture)

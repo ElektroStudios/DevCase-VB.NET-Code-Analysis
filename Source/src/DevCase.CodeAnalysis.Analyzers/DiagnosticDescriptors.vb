@@ -344,11 +344,11 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly LinqInsteadOfIndexer As New DiagnosticDescriptor(
             id:=DiagnosticIds.LinqInsteadOfIndexer,
             title:="LINQ method used instead of the indexer",
-            messageFormat:="Use the indexer instead of 'Enumerable.{0}()' to avoid LINQ overhead",
+            messageFormat:="Do not use Enumerable methods on indexable collections; instead use the collection directly",
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
-            description:="Types that implement IList(Of T) (List(Of T), arrays, Collection(Of T)...) can be indexed directly; First, Last and ElementAt go through LINQ type checks and interface calls. Equivalent to SonarQube rule S6608 (CA1826 only covers IReadOnlyList(Of T) types that do not implement IList(Of T)).")
+            description:="Arrays, strings and types that implement IList(Of T) or IReadOnlyList(Of T) (List(Of T), Collection(Of T), ReadOnlyCollection(Of T), ImmutableArray(Of T)...) can be indexed directly; First, Last and ElementAt go through LINQ type checks and interface calls, and Last enumerates the whole sequence on strings and IReadOnlyList(Of T) types. Equivalent of SonarQube S6608 and CA1826 (in modern .NET projects, the types that CA1826 reports are left to it).")
 
         ''' <summary>
         ''' The descriptor of rule <see cref="DiagnosticIds.InvertedComparison"/>.
@@ -668,7 +668,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly SingleCharacterString As New DiagnosticDescriptor(
             id:=DiagnosticIds.SingleCharacterString,
             title:="Single-character string where a Char can be used",
-            messageFormat:="Use a character literal instead of a string to invoke the Char overload",
+            messageFormat:="Use '{1}(Char)' instead of '{1}(String)' when the input is a constant unit string",
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
@@ -776,11 +776,323 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         Public Shared ReadOnly StringBuilderArgumentConvertedToString As New DiagnosticDescriptor(
             id:=DiagnosticIds.StringBuilderArgumentConvertedToString,
             title:="StringBuilder argument converted to a string",
-            messageFormat:="Use the StringBuilder.{0}({1}) overload to avoid a temporary string",
+            messageFormat:="Prefer strongly-typed StringBuilder overload",
             category:=DevCaseDescriptors.CategoryPerformance,
             defaultSeverity:=DiagnosticSeverity.Info,
             isEnabledByDefault:=True,
             description:="StringBuilder.Append and StringBuilder.Insert have overloads for every primitive type, and Append(Char, Integer) repeats a character. Converting the argument with ToString(), or creating the string with New String(Char, Integer), allocates a temporary string that the overload avoids, with the same result. Equivalent of CA1830, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.GenericOverloadInsteadOfTypeArgument"/>.
+        ''' </summary>
+        Public Shared ReadOnly GenericOverloadInsteadOfTypeArgument As New DiagnosticDescriptor(
+            id:=DiagnosticIds.GenericOverloadInsteadOfTypeArgument,
+            title:="System.Type argument instead of a generic overload",
+            messageFormat:="Use the generic overload '{0}' instead of 'GetType({1})' for compile-time type safety",
+            category:=DevCaseDescriptors.CategoryDesign,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="When the type is known at compile time (GetType(T)), the generic overload of the same method, such as Activator.CreateInstance(Of T)(), Marshal.SizeOf(Of T)() or Marshal.PtrToStructure(Of T)(ptr), returns the right type without a cast and is checked by the compiler. Equivalent of CA2263, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.MissingDesignerSerializationConfiguration"/>.
+        ''' </summary>
+        Public Shared ReadOnly MissingDesignerSerializationConfiguration As New DiagnosticDescriptor(
+            id:=DiagnosticIds.MissingDesignerSerializationConfiguration,
+            title:="Component property without designer serialization configuration",
+            messageFormat:="Add <DesignerSerializationVisibility> or <DefaultValue> to property '{0}' to control how the designer serializes it",
+            category:=DevCaseDescriptors.CategoryDesign,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="The Windows Forms designer writes the value of every public read-write property of a component into the InitializeComponent code. A property should state how it is serialized with DesignerSerializationVisibilityAttribute, DefaultValueAttribute or a ShouldSerialize method, so the designer does not persist values (or content) by accident. Equivalent of WFO1000, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ArgumentNullExceptionForValueType"/>.
+        ''' </summary>
+        Public Shared ReadOnly ArgumentNullExceptionForValueType As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ArgumentNullExceptionForValueType,
+            title:="ArgumentNullException for a value-type parameter",
+            messageFormat:="Do not throw 'ArgumentNullException' for '{0}' because a '{1}' value can never be Nothing",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="A parameter of a non-nullable value type (Integer, Date, a Structure...) can never be Nothing, so a guard that throws ArgumentNullException for it is dead code or, with 'value = Nothing', a check for the default value (0, #12:00:00 AM#...) that reports the wrong exception. Similar to CA2264, for the classic guards of .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.TaskContinuationOptionsAsState"/>.
+        ''' </summary>
+        Public Shared ReadOnly TaskContinuationOptionsAsState As New DiagnosticDescriptor(
+            id:=DiagnosticIds.TaskContinuationOptionsAsState,
+            title:="TaskContinuationOptions passed to a TaskCompletionSource constructor",
+            messageFormat:="Use 'TaskCreationOptions' instead of 'TaskContinuationOptions' because this constructor treats the argument as state",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="TaskCompletionSource has a constructor that takes TaskCreationOptions and another that takes an Object state. A TaskContinuationOptions value binds to the state constructor: the options are stored as state and never applied (RunContinuationsAsynchronously, for example, has no effect). Equivalent of CA2247, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.EndOfStreamInAsyncMethod"/>.
+        ''' </summary>
+        Public Shared ReadOnly EndOfStreamInAsyncMethod As New DiagnosticDescriptor(
+            id:=DiagnosticIds.EndOfStreamInAsyncMethod,
+            title:="StreamReader.EndOfStream in an Async method",
+            messageFormat:="Check the result of 'ReadLineAsync' for Nothing instead of reading 'EndOfStream' in this Async method to avoid blocking the thread",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="StreamReader.EndOfStream reads from the stream synchronously when no data is buffered, which blocks the thread of an Async method. ReadLineAsync returns Nothing at the end of the stream, so the loop can test its result instead. Equivalent of CA2024, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.IncompatibleCastOrOfType"/>.
+        ''' </summary>
+        Public Shared ReadOnly IncompatibleCastOrOfType As New DiagnosticDescriptor(
+            id:=DiagnosticIds.IncompatibleCastOrOfType,
+            title:="Enumerable.Cast or OfType with an incompatible type",
+            messageFormat:="Do not call '{0}(Of {1})' on a sequence of '{2}' because {3}",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Enumerable.Cast(Of T) and Enumerable.OfType(Of T) use a run-time type check, without widening or user-defined conversions. When the element type of the sequence can never be T, Cast throws InvalidCastException for every element and OfType always returns an empty sequence. Equivalent of CA2021, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.BlockCopyLengthAsByteCount"/>.
+        ''' </summary>
+        Public Shared ReadOnly BlockCopyLengthAsByteCount As New DiagnosticDescriptor(
+            id:=DiagnosticIds.BlockCopyLengthAsByteCount,
+            title:="Buffer.BlockCopy count is an array length",
+            messageFormat:="Use 'Buffer.ByteLength({0})' instead of '{0}.Length' because 'Buffer.BlockCopy' counts bytes, not elements",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="The count argument of Buffer.BlockCopy is a number of bytes. The Length of an array whose elements are larger than one byte (Integer, Char, Double...) is a number of elements, so only part of the array is copied. Equivalent of CA2018, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ValueTypeInReferenceEquals"/>.
+        ''' </summary>
+        Public Shared ReadOnly ValueTypeInReferenceEquals As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ValueTypeInReferenceEquals,
+            title:="Value type passed to ReferenceEquals",
+            messageFormat:="Do not pass value type '{0}' to 'ReferenceEquals' because each call boxes it into a new object, causing the reference comparison to always return 'False'",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Object.ReferenceEquals compares references. A value-type argument is boxed into a new object for each call, so the comparison is False even for the same value (or True for two Nothing nullable values), never a meaningful identity check. Equivalent of CA2013, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.StringLiteralInsteadOfNameOf"/>.
+        ''' </summary>
+        Public Shared ReadOnly StringLiteralInsteadOfNameOf As New DiagnosticDescriptor(
+            id:=DiagnosticIds.StringLiteralInsteadOfNameOf,
+            title:="String literal instead of NameOf",
+            messageFormat:="Use 'NameOf({0})' instead of the string literal to keep the name in sync with renames",
+            category:=DevCaseDescriptors.CategoryStyle,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="A string literal that repeats the name of a parameter (paramName arguments) or of a property (propertyName arguments) is not updated when the parameter or property is renamed. NameOf produces the same string and is checked by the compiler. Equivalent of CA1507, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ManualCancellationCheck"/>.
+        ''' </summary>
+        Public Shared ReadOnly ManualCancellationCheck As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ManualCancellationCheck,
+            title:="IsCancellationRequested check that throws OperationCanceledException",
+            messageFormat:="Use '{0}.ThrowIfCancellationRequested()' instead of checking 'IsCancellationRequested' and throwing 'OperationCanceledException'",
+            category:=DevCaseDescriptors.CategoryStyle,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="CancellationToken.ThrowIfCancellationRequested checks whether the token has been canceled and throws an OperationCanceledException with the token if it has: the If statement that does the same is longer and loses the token. Equivalent of CA2250, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.HasFlagWithDifferentEnum"/>.
+        ''' </summary>
+        Public Shared ReadOnly HasFlagWithDifferentEnum As New DiagnosticDescriptor(
+            id:=DiagnosticIds.HasFlagWithDifferentEnum,
+            title:="Enum.HasFlag with a different enum type",
+            messageFormat:="Pass a '{0}' value to 'HasFlag' instead of '{1}' because a different enum type throws 'ArgumentException'",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="Enum.HasFlag requires an argument of the same enum type as the instance; a value of another enum type throws ArgumentException at run time. Equivalent of CA2248, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ThreadStaticFieldInitialization"/>.
+        ''' </summary>
+        Public Shared ReadOnly ThreadStaticFieldInitialization As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ThreadStaticFieldInitialization,
+            title:="ThreadStatic field initialized inline or in a Shared constructor",
+            messageFormat:="Initialize ThreadStatic field '{0}' lazily on each thread because an initializer only runs on one thread",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Warning,
+            isEnabledByDefault:=True,
+            description:="A <ThreadStatic> field has one value per thread. Its initializer, like an assignment in the Shared constructor, runs once, on the thread that initializes the type: every other thread sees Nothing or the default value. Equivalent of CA2019, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.CancellationTokenNotForwarded"/>.
+        ''' </summary>
+        Public Shared ReadOnly CancellationTokenNotForwarded As New DiagnosticDescriptor(
+            id:=DiagnosticIds.CancellationTokenNotForwarded,
+            title:="CancellationToken parameter not forwarded",
+            messageFormat:="Forward the '{0}' parameter to '{1}' to propagate cancellation",
+            category:=DevCaseDescriptors.CategoryReliability,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="A method that receives a CancellationToken should pass it to the methods it calls that accept one, as an overload with an additional CancellationToken parameter or as an optional parameter, so that canceling the operation also cancels them. Equivalent of CA2016, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.CountInsteadOfAny"/>.
+        ''' </summary>
+        Public Shared ReadOnly CountInsteadOfAny As New DiagnosticDescriptor(
+            id:=DiagnosticIds.CountInsteadOfAny,
+            title:="Count() compared with zero instead of Any()",
+            messageFormat:="Use 'Any()' instead of '{0}()' to stop enumerating at the first element",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Comparing Enumerable.Count() or LongCount() with 0 or 1 enumerates the whole sequence when it is not a collection (a LINQ query, an iterator...), and Count(predicate) always does; Any() stops at the first element, or at the first element that matches the predicate. Equivalent of CA1827, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.CountMethodInsteadOfProperty"/>.
+        ''' </summary>
+        Public Shared ReadOnly CountMethodInsteadOfProperty As New DiagnosticDescriptor(
+            id:=DiagnosticIds.CountMethodInsteadOfProperty,
+            title:="Enumerable.Count() instead of the Length or Count property",
+            messageFormat:="Use the '{0}' property instead of 'Enumerable.Count()' to avoid enumerating the sequence",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Arrays and strings expose their length directly; Enumerable.Count() on a string enumerates every character, and on an array it goes through a type check and an interface call. Equivalent of CA1829, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.CountInsteadOfIsEmpty"/>.
+        ''' </summary>
+        Public Shared ReadOnly CountInsteadOfIsEmpty As New DiagnosticDescriptor(
+            id:=DiagnosticIds.CountInsteadOfIsEmpty,
+            title:="Count compared with zero instead of IsEmpty",
+            messageFormat:="Use 'IsEmpty' instead of 'Count' to check whether this '{0}' is empty without counting its elements",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Collections that expose both Count and IsEmpty, such as ConcurrentQueue, ConcurrentStack, ConcurrentBag and ConcurrentDictionary, compute Count by walking or locking the whole collection, while IsEmpty only checks whether there is an element. Equivalent of CA1836, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.WhenAllWithSingleTask"/>.
+        ''' </summary>
+        Public Shared ReadOnly WhenAllWithSingleTask As New DiagnosticDescriptor(
+            id:=DiagnosticIds.WhenAllWithSingleTask,
+            title:="Task.WhenAll with a single task",
+            messageFormat:="Await or return the task directly instead of passing it alone to 'Task.WhenAll'",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Task.WhenAll with a single task allocates an array and a new task that completes when that task completes: the task itself can be awaited or returned. Equivalent of CA1842, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.WaitAllWithSingleTask"/>.
+        ''' </summary>
+        Public Shared ReadOnly WaitAllWithSingleTask As New DiagnosticDescriptor(
+            id:=DiagnosticIds.WaitAllWithSingleTask,
+            title:="Task.WaitAll with a single task",
+            messageFormat:="Call 'Wait()' on the task directly instead of passing it alone to 'Task.WaitAll'",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Task.WaitAll with a single task allocates an array to wait for one task; Task.Wait() waits for it directly and throws the same AggregateException. Equivalent of CA1843, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ContainsKeyBeforeRemove"/>.
+        ''' </summary>
+        Public Shared ReadOnly ContainsKeyBeforeRemove As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ContainsKeyBeforeRemove,
+            title:="Dictionary.Remove guarded by ContainsKey",
+            messageFormat:="Do not guard 'Remove' with 'ContainsKey' because 'Remove' already checks whether the key exists",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Dictionary.Remove(key) looks up the key, removes it if it exists and returns whether it did, without throwing when it does not. Checking ContainsKey first looks up the key twice. Equivalent of CA1853, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ContainsBeforeSetAddOrRemove"/>.
+        ''' </summary>
+        Public Shared ReadOnly ContainsBeforeSetAddOrRemove As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ContainsBeforeSetAddOrRemove,
+            title:="Set Add or Remove guarded by Contains",
+            messageFormat:="Do not guard '{0}' with 'Contains' because '{0}' already checks whether the item exists",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="HashSet.Add and HashSet.Remove (and the members of every ISet) look up the item, add or remove it only when needed and return whether they did. Checking Contains first looks up the item twice. Equivalent of CA1868, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.KeysOrValuesContains"/>.
+        ''' </summary>
+        Public Shared ReadOnly KeysOrValuesContains As New DiagnosticDescriptor(
+            id:=DiagnosticIds.KeysOrValuesContains,
+            title:="Keys.Contains or Values.Contains on a dictionary",
+            messageFormat:="Use '{0}' instead of '{1}.Contains' to look up the dictionary directly",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Dictionary.Keys.Contains binds to the LINQ Contains method on .NET Framework, which walks every key, while ContainsKey is a hash lookup; Values.Contains also goes through the Values collection and LINQ, which ContainsValue avoids. Equivalent of CA1841, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.CurrentThreadManagedThreadId"/>.
+        ''' </summary>
+        Public Shared ReadOnly CurrentThreadManagedThreadId As New DiagnosticDescriptor(
+            id:=DiagnosticIds.CurrentThreadManagedThreadId,
+            title:="Thread.CurrentThread.ManagedThreadId instead of Environment.CurrentManagedThreadId",
+            messageFormat:="Use 'Environment.CurrentManagedThreadId' instead of 'Thread.CurrentThread.ManagedThreadId' because it is simpler and faster",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Environment.CurrentManagedThreadId (.NET Framework 4.5 or later) returns the identifier of the current managed thread without getting its Thread object first. Equivalent of CA1840, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ContainsKeyThenIndexer"/>.
+        ''' </summary>
+        Public Shared ReadOnly ContainsKeyThenIndexer As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ContainsKeyThenIndexer,
+            title:="ContainsKey followed by the indexer instead of TryGetValue",
+            messageFormat:="Use 'TryGetValue' instead of 'ContainsKey' and the indexer to avoid a double lookup",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="Checking ContainsKey and then reading the indexer looks up the key twice; TryGetValue looks it up once and returns the value. Equivalent of CA1854, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.IndexOfComparedWithZero"/>.
+        ''' </summary>
+        Public Shared ReadOnly IndexOfComparedWithZero As New DiagnosticDescriptor(
+            id:=DiagnosticIds.IndexOfComparedWithZero,
+            title:="IndexOf compared with zero instead of StartsWith",
+            messageFormat:="Use 'StartsWith' instead of comparing 'IndexOf' with 0 to avoid searching the whole string",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="String.IndexOf(value) = 0 checks whether the string starts with value, but IndexOf keeps searching the whole string when it does not; StartsWith only compares the beginning. Equivalent of CA1858, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.RedundantSubstringLength"/>.
+        ''' </summary>
+        Public Shared ReadOnly RedundantSubstringLength As New DiagnosticDescriptor(
+            id:=DiagnosticIds.RedundantSubstringLength,
+            title:="Redundant length argument of Substring",
+            messageFormat:="Remove the redundant length argument of 'Substring' because it already reads to the end of the string",
+            category:=DevCaseDescriptors.CategoryStyle,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="text.Substring(start, text.Length - start) computes the length of the rest of the string, which text.Substring(start) already does: the calculation is redundant and easy to get wrong. Equivalent of CA1514, for .NET Framework projects.")
+
+        ''' <summary>
+        ''' The descriptor of rule <see cref="DiagnosticIds.ConstantArrayArgument"/>.
+        ''' </summary>
+        Public Shared ReadOnly ConstantArrayArgument As New DiagnosticDescriptor(
+            id:=DiagnosticIds.ConstantArrayArgument,
+            title:="Constant array passed as an argument",
+            messageFormat:="Extract the constant array argument of '{0}' into a Shared ReadOnly field to avoid allocating it on every call",
+            category:=DevCaseDescriptors.CategoryPerformance,
+            defaultSeverity:=DiagnosticSeverity.Info,
+            isEnabledByDefault:=True,
+            description:="An array of constants created in an argument is allocated again on every call. When the called method does not modify the array, a Shared ReadOnly field created once can be passed instead. Equivalent of CA1861, for .NET Framework projects.")
 
 #End Region
 

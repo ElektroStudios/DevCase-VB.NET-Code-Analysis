@@ -143,3 +143,36 @@ DCA033 | Reliability | Info | Reliability | Warning | OnErrorStatementAnalyzer
 DCA042 | Design | Warning | Design | Info | DuplicateBranchAnalyzer
 DCA046 | Reliability | Warning | Reliability | Info | ThrowInFinallyAnalyzer
 DCA054 | Reliability | Error | Reliability | Warning | ComImportClassCodeAnalyzer
+
+## Release 1.0.9
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+DCA059 | Design | Info | GenericOverloadAnalyzer
+DCA060 | Design | Warning | DesignerSerializationAnalyzer
+DCA061 | Reliability | Warning | ArgumentNullExceptionValueTypeAnalyzer
+DCA062 | Reliability | Warning | TaskCompletionSourceOptionsAnalyzer
+DCA063 | Reliability | Warning | EndOfStreamInAsyncAnalyzer
+DCA064 | Reliability | Warning | IncompatibleCastAnalyzer
+DCA065 | Reliability | Warning | BlockCopyCountAnalyzer
+DCA066 | Reliability | Warning | ReferenceEqualsValueTypeAnalyzer
+DCA067 | Style | Info | NameOfAnalyzer
+DCA068 | Style | Info | CancellationCheckAnalyzer
+DCA069 | Reliability | Warning | HasFlagEnumTypeAnalyzer
+DCA070 | Reliability | Warning | ThreadStaticInitializationAnalyzer
+DCA071 | Reliability | Info | CancellationTokenForwardingAnalyzer
+DCA072 | Performance | Info | CountInsteadOfAnyAnalyzer
+DCA073 | Performance | Info | CountMethodAnalyzer
+DCA074 | Performance | Info | IsEmptyAnalyzer
+DCA075 | Performance | Info | WhenAllSingleTaskAnalyzer
+DCA076 | Performance | Info | WaitAllSingleTaskAnalyzer
+DCA077 | Performance | Info | ContainsKeyBeforeRemoveAnalyzer
+DCA078 | Performance | Info | ContainsBeforeSetChangeAnalyzer
+DCA079 | Performance | Info | DictionaryContainsAnalyzer
+DCA080 | Performance | Info | ManagedThreadIdAnalyzer
+DCA081 | Performance | Info | TryGetValueAnalyzer
+DCA082 | Performance | Info | IndexOfZeroAnalyzer
+DCA083 | Style | Info | SubstringLengthAnalyzer
+DCA084 | Performance | Info | ConstantArrayArgumentAnalyzer

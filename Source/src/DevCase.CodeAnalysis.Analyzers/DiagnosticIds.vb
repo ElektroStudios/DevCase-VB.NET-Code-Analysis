@@ -307,6 +307,136 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
         ''' </summary>
         Public Const StringBuilderArgumentConvertedToString As String = "DCA058"
 
+        ''' <summary>
+        ''' The identifier of the rule: System.Type argument instead of a generic overload (.NET Framework).
+        ''' </summary>
+        Public Const GenericOverloadInsteadOfTypeArgument As String = "DCA059"
+
+        ''' <summary>
+        ''' The identifier of the rule: Component property without designer serialization configuration (.NET Framework).
+        ''' </summary>
+        Public Const MissingDesignerSerializationConfiguration As String = "DCA060"
+
+        ''' <summary>
+        ''' The identifier of the rule: ArgumentNullException for a value-type parameter (.NET Framework).
+        ''' </summary>
+        Public Const ArgumentNullExceptionForValueType As String = "DCA061"
+
+        ''' <summary>
+        ''' The identifier of the rule: TaskContinuationOptions passed to a TaskCompletionSource constructor (.NET Framework).
+        ''' </summary>
+        Public Const TaskContinuationOptionsAsState As String = "DCA062"
+
+        ''' <summary>
+        ''' The identifier of the rule: StreamReader.EndOfStream in an Async method (.NET Framework).
+        ''' </summary>
+        Public Const EndOfStreamInAsyncMethod As String = "DCA063"
+
+        ''' <summary>
+        ''' The identifier of the rule: Enumerable.Cast or OfType with an incompatible type (.NET Framework).
+        ''' </summary>
+        Public Const IncompatibleCastOrOfType As String = "DCA064"
+
+        ''' <summary>
+        ''' The identifier of the rule: Buffer.BlockCopy count is an array length (.NET Framework).
+        ''' </summary>
+        Public Const BlockCopyLengthAsByteCount As String = "DCA065"
+
+        ''' <summary>
+        ''' The identifier of the rule: Value type passed to ReferenceEquals (.NET Framework).
+        ''' </summary>
+        Public Const ValueTypeInReferenceEquals As String = "DCA066"
+
+        ''' <summary>
+        ''' The identifier of the rule: String literal instead of NameOf (.NET Framework).
+        ''' </summary>
+        Public Const StringLiteralInsteadOfNameOf As String = "DCA067"
+
+        ''' <summary>
+        ''' The identifier of the rule: IsCancellationRequested check that throws OperationCanceledException (.NET Framework).
+        ''' </summary>
+        Public Const ManualCancellationCheck As String = "DCA068"
+
+        ''' <summary>
+        ''' The identifier of the rule: Enum.HasFlag with a different enum type (.NET Framework).
+        ''' </summary>
+        Public Const HasFlagWithDifferentEnum As String = "DCA069"
+
+        ''' <summary>
+        ''' The identifier of the rule: ThreadStatic field initialized inline or in a Shared constructor (.NET Framework).
+        ''' </summary>
+        Public Const ThreadStaticFieldInitialization As String = "DCA070"
+
+        ''' <summary>
+        ''' The identifier of the rule: CancellationToken parameter not forwarded (.NET Framework).
+        ''' </summary>
+        Public Const CancellationTokenNotForwarded As String = "DCA071"
+
+        ''' <summary>
+        ''' The identifier of the rule: Count() compared with zero instead of Any() (.NET Framework).
+        ''' </summary>
+        Public Const CountInsteadOfAny As String = "DCA072"
+
+        ''' <summary>
+        ''' The identifier of the rule: Enumerable.Count() instead of the Length or Count property (.NET Framework).
+        ''' </summary>
+        Public Const CountMethodInsteadOfProperty As String = "DCA073"
+
+        ''' <summary>
+        ''' The identifier of the rule: Count compared with zero instead of IsEmpty (.NET Framework).
+        ''' </summary>
+        Public Const CountInsteadOfIsEmpty As String = "DCA074"
+
+        ''' <summary>
+        ''' The identifier of the rule: Task.WhenAll with a single task (.NET Framework).
+        ''' </summary>
+        Public Const WhenAllWithSingleTask As String = "DCA075"
+
+        ''' <summary>
+        ''' The identifier of the rule: Task.WaitAll with a single task (.NET Framework).
+        ''' </summary>
+        Public Const WaitAllWithSingleTask As String = "DCA076"
+
+        ''' <summary>
+        ''' The identifier of the rule: Dictionary.Remove guarded by ContainsKey (.NET Framework).
+        ''' </summary>
+        Public Const ContainsKeyBeforeRemove As String = "DCA077"
+
+        ''' <summary>
+        ''' The identifier of the rule: Set Add or Remove guarded by Contains (.NET Framework).
+        ''' </summary>
+        Public Const ContainsBeforeSetAddOrRemove As String = "DCA078"
+
+        ''' <summary>
+        ''' The identifier of the rule: Keys.Contains or Values.Contains on a dictionary (.NET Framework).
+        ''' </summary>
+        Public Const KeysOrValuesContains As String = "DCA079"
+
+        ''' <summary>
+        ''' The identifier of the rule: Thread.CurrentThread.ManagedThreadId instead of Environment.CurrentManagedThreadId (.NET Framework).
+        ''' </summary>
+        Public Const CurrentThreadManagedThreadId As String = "DCA080"
+
+        ''' <summary>
+        ''' The identifier of the rule: ContainsKey followed by the indexer instead of TryGetValue (.NET Framework).
+        ''' </summary>
+        Public Const ContainsKeyThenIndexer As String = "DCA081"
+
+        ''' <summary>
+        ''' The identifier of the rule: IndexOf compared with zero instead of StartsWith (.NET Framework).
+        ''' </summary>
+        Public Const IndexOfComparedWithZero As String = "DCA082"
+
+        ''' <summary>
+        ''' The identifier of the rule: Redundant length argument of Substring (.NET Framework).
+        ''' </summary>
+        Public Const RedundantSubstringLength As String = "DCA083"
+
+        ''' <summary>
+        ''' The identifier of the rule: Constant array passed as an argument (.NET Framework).
+        ''' </summary>
+        Public Const ConstantArrayArgument As String = "DCA084"
+
 #End Region
 
 #Region " Constructors "

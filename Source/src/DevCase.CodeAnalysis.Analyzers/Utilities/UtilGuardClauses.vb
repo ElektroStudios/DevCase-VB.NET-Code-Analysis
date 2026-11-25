@@ -291,7 +291,7 @@ Namespace DevCase.Core.Diagnostics.Dotnet.CodeAnalysis.Analyzers
                 Case SyntaxKind.ReturnStatement
                     Dim returnStatement As ReturnStatementSyntax = DirectCast(statement, ReturnStatementSyntax)
                     Return returnStatement.Expression Is Nothing OrElse
-                           returnStatement.Expression.IsKind(SyntaxKind.NothingLiteralExpression)
+                           UtilAnalyzerSyntax.SkipParentheses(returnStatement.Expression).IsKind(SyntaxKind.NothingLiteralExpression)
 
                 Case Else
                     Return False

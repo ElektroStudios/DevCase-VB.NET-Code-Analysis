@@ -84,6 +84,7 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 - **A comprehensive set of diagnostic rules**, most of them featuring a code fix, all fixes supporting **Fix All** (document, project and solution). Rules without a safe, behavior-preserving fix only report.
 - **Semantic precision:** rules bind symbols through the Roslyn semantic model, so look-alike names (`myAsyncSettings.Result`) are not reported and no fix produces code that does not compile.
 - **.NET Framework migration helpers:** dedicated rules prepare .NET Framework code for modern .NET by adding `#If NETCOREAPP` blocks with the recommended modern APIs, keeping the original code untouched in the `#Else` branch.
+- **Modern code-quality rules for .NET Framework:** .NET Framework projects miss many of the built-in rules of modern .NET (CA1826, CA1827, CA1829, CA1854, CA1861, CA2016, CA2263, WFO1000...). Rules marked *(.NET Framework)* replicate them, with a VB.NET code fix where Microsoft has one, and stay silent on modern .NET, where the original rule runs.
 - **Behavior first:** when a fix offers several actions, the first one keeps the current behavior and only makes it explicit (for example `DateTimeKind.Unspecified` or `CultureInfo.CurrentCulture`); fixes that could change the result are never applied silently.
 - **Scannable messages:** every message follows the same pattern, *what to do* + *where* + *why* (optional), in one short sentence (*"Concatenate strings using '&' instead of '+' to avoid operator ambiguity"*), so a long Error List can be read at a glance.
 - **Respectful fixes:** preserve comments, trivia, region layout, line endings (CRLF/LF) and indentation; never reformat unrelated code.
@@ -154,17 +155,43 @@ Why keep fixing the same mistakes by hand when the compiler platform can point a
 | [`DCA056`](Docs/Rules/DCA056_Any_Instead_Of_Emptiness_Check.md) | 🔢 [`Enumerable.Any()` instead of `IsEmpty`, `Count` or `Length` *(.NET Framework)*](Docs/Rules/DCA056_Any_Instead_Of_Emptiness_Check.md) | Info | Performance | ✔️ |
 | [`DCA057`](Docs/Rules/DCA057_Collection_Name_On_Enumerable_Parameter.md) | 🌊 [`IEnumerable` parameter named as a collection](Docs/Rules/DCA057_Collection_Name_On_Enumerable_Parameter.md) | Info | Naming | ✔️ |
 | [`DCA058`](Docs/Rules/DCA058_StringBuilder_Argument_Converted_To_String.md) | 🧩 [`StringBuilder` argument converted to a string *(.NET Framework)*](Docs/Rules/DCA058_StringBuilder_Argument_Converted_To_String.md) | Info | Performance | ✔️ |
+| [`DCA059`](Docs/Rules/DCA059_Type_Argument_Instead_Of_Generic_Overload.md) | 🧬 [`System.Type` argument instead of a generic overload *(.NET Framework)*](Docs/Rules/DCA059_Type_Argument_Instead_Of_Generic_Overload.md) | Info | Design | ✔️ |
+| [`DCA060`](Docs/Rules/DCA060_Missing_Designer_Serialization_Configuration.md) | 🎨 [Component property without designer serialization configuration *(.NET Framework)*](Docs/Rules/DCA060_Missing_Designer_Serialization_Configuration.md) | Warning | Design | ✔️ |
+| [`DCA061`](Docs/Rules/DCA061_ArgumentNullException_For_Value_Type.md) | 🚫 [`ArgumentNullException` for a value-type parameter *(.NET Framework)*](Docs/Rules/DCA061_ArgumentNullException_For_Value_Type.md) | Warning | Reliability | ❌ |
+| [`DCA062`](Docs/Rules/DCA062_TaskContinuationOptions_As_State.md) | 🔀 [`TaskContinuationOptions` passed to a `TaskCompletionSource` constructor *(.NET Framework)*](Docs/Rules/DCA062_TaskContinuationOptions_As_State.md) | Warning | Reliability | ✔️ |
+| [`DCA063`](Docs/Rules/DCA063_EndOfStream_In_Async_Method.md) | 🌊 [`StreamReader.EndOfStream` in an `Async` method *(.NET Framework)*](Docs/Rules/DCA063_EndOfStream_In_Async_Method.md) | Warning | Reliability | ❌ |
+| [`DCA064`](Docs/Rules/DCA064_Incompatible_Cast_Or_OfType.md) | 💥 [`Enumerable.Cast` or `OfType` with an incompatible type *(.NET Framework)*](Docs/Rules/DCA064_Incompatible_Cast_Or_OfType.md) | Warning | Reliability | ❌ |
+| [`DCA065`](Docs/Rules/DCA065_BlockCopy_Count_Is_Array_Length.md) | 📏 [`Buffer.BlockCopy` count is an array length *(.NET Framework)*](Docs/Rules/DCA065_BlockCopy_Count_Is_Array_Length.md) | Warning | Reliability | ✔️ |
+| [`DCA066`](Docs/Rules/DCA066_Value_Type_In_ReferenceEquals.md) | 📦 [Value type passed to `ReferenceEquals` *(.NET Framework)*](Docs/Rules/DCA066_Value_Type_In_ReferenceEquals.md) | Warning | Reliability | ❌ |
+| [`DCA067`](Docs/Rules/DCA067_String_Literal_Instead_Of_NameOf.md) | 🏷️ [String literal instead of `NameOf` *(.NET Framework)*](Docs/Rules/DCA067_String_Literal_Instead_Of_NameOf.md) | Info | Style | ✔️ |
+| [`DCA068`](Docs/Rules/DCA068_Manual_Cancellation_Check.md) | 🛑 [`IsCancellationRequested` check that throws `OperationCanceledException` *(.NET Framework)*](Docs/Rules/DCA068_Manual_Cancellation_Check.md) | Info | Style | ✔️ |
+| [`DCA069`](Docs/Rules/DCA069_HasFlag_With_Different_Enum.md) | 🚩 [`Enum.HasFlag` with a different enum type *(.NET Framework)*](Docs/Rules/DCA069_HasFlag_With_Different_Enum.md) | Warning | Reliability | ❌ |
+| [`DCA070`](Docs/Rules/DCA070_ThreadStatic_Field_Initialization.md) | 🧶 [`ThreadStatic` field initialized inline or in a `Shared` constructor *(.NET Framework)*](Docs/Rules/DCA070_ThreadStatic_Field_Initialization.md) | Warning | Reliability | ❌ |
+| [`DCA071`](Docs/Rules/DCA071_CancellationToken_Not_Forwarded.md) | 📨 [`CancellationToken` parameter not forwarded *(.NET Framework)*](Docs/Rules/DCA071_CancellationToken_Not_Forwarded.md) | Info | Reliability | ✔️ |
+| [`DCA072`](Docs/Rules/DCA072_Count_Instead_Of_Any.md) | 🔢 [`Count()` compared with zero instead of `Any()` *(.NET Framework)*](Docs/Rules/DCA072_Count_Instead_Of_Any.md) | Info | Performance | ✔️ |
+| [`DCA073`](Docs/Rules/DCA073_Count_Method_Instead_Of_Property.md) | 📐 [`Enumerable.Count()` instead of the `Length` or `Count` property *(.NET Framework)*](Docs/Rules/DCA073_Count_Method_Instead_Of_Property.md) | Info | Performance | ✔️ |
+| [`DCA074`](Docs/Rules/DCA074_Count_Instead_Of_IsEmpty.md) | 📭 [`Count` compared with zero instead of `IsEmpty` *(.NET Framework)*](Docs/Rules/DCA074_Count_Instead_Of_IsEmpty.md) | Info | Performance | ✔️ |
+| [`DCA075`](Docs/Rules/DCA075_WhenAll_With_Single_Task.md) | ⏳ [`Task.WhenAll` with a single task *(.NET Framework)*](Docs/Rules/DCA075_WhenAll_With_Single_Task.md) | Info | Performance | ✔️ |
+| [`DCA076`](Docs/Rules/DCA076_WaitAll_With_Single_Task.md) | ⌛ [`Task.WaitAll` with a single task *(.NET Framework)*](Docs/Rules/DCA076_WaitAll_With_Single_Task.md) | Info | Performance | ✔️ |
+| [`DCA077`](Docs/Rules/DCA077_ContainsKey_Before_Remove.md) | 🗝️ [`Dictionary.Remove` guarded by `ContainsKey` *(.NET Framework)*](Docs/Rules/DCA077_ContainsKey_Before_Remove.md) | Info | Performance | ✔️ |
+| [`DCA078`](Docs/Rules/DCA078_Contains_Before_Set_Add_Or_Remove.md) | 🧺 [Set `Add` or `Remove` guarded by `Contains` *(.NET Framework)*](Docs/Rules/DCA078_Contains_Before_Set_Add_Or_Remove.md) | Info | Performance | ✔️ |
+| [`DCA079`](Docs/Rules/DCA079_Keys_Or_Values_Contains.md) | 🔑 [`Keys.Contains` or `Values.Contains` on a dictionary *(.NET Framework)*](Docs/Rules/DCA079_Keys_Or_Values_Contains.md) | Info | Performance | ✔️ |
+| [`DCA080`](Docs/Rules/DCA080_CurrentThread_ManagedThreadId.md) | 🆔 [`Thread.CurrentThread.ManagedThreadId` instead of `Environment.CurrentManagedThreadId` *(.NET Framework)*](Docs/Rules/DCA080_CurrentThread_ManagedThreadId.md) | Info | Performance | ✔️ |
+| [`DCA081`](Docs/Rules/DCA081_ContainsKey_Then_Indexer.md) | 🔍 [`ContainsKey` followed by the indexer instead of `TryGetValue` *(.NET Framework)*](Docs/Rules/DCA081_ContainsKey_Then_Indexer.md) | Info | Performance | ✔️ |
+| [`DCA082`](Docs/Rules/DCA082_IndexOf_Compared_With_Zero.md) | ⏮️ [`IndexOf` compared with zero instead of `StartsWith` *(.NET Framework)*](Docs/Rules/DCA082_IndexOf_Compared_With_Zero.md) | Info | Performance | ✔️ |
+| [`DCA083`](Docs/Rules/DCA083_Redundant_Substring_Length.md) | ✂️ [Redundant length argument of `Substring` *(.NET Framework)*](Docs/Rules/DCA083_Redundant_Substring_Length.md) | Info | Style | ✔️ |
+| [`DCA084`](Docs/Rules/DCA084_Constant_Array_Argument.md) | 🧊 [Constant array passed as an argument *(.NET Framework)*](Docs/Rules/DCA084_Constant_Array_Argument.md) | Info | Performance | ✔️ |
 
 Click a rule to see its purpose, detection details, edge cases and VB.NET code examples.
 
-Rules marked *(.NET Framework)* run only in .NET Framework projects: on modern .NET, Microsoft's built-in rules report the same code (for example CA1050 for DCA006, CA1825 for DCA055), so nothing is reported twice.
+Rules marked *(.NET Framework)* run only in .NET Framework projects: on modern .NET, Microsoft's built-in rules report the same code (for example CA1050 for DCA006, CA1825 for DCA055, CA1861 for DCA084), so nothing is reported twice. DCA055, DCA056, DCA058 and DCA059–DCA084 bring to .NET Framework the code-quality rules that Microsoft only ships for modern .NET (and WFO1000, the Windows Forms designer rule of .NET 9); each rule document names the rule that it replicates.
 
 **Severity** says how serious the reported code is, not how much it is worth changing:
 
 | Severity | Meaning | Rules |
 | :---: | :--- | :--- |
 | **Error** | Code that the compiler accepts but that can never work. | DCA054 |
-| **Warning** | Code that can fail at run time, hang, lose exceptions or data, or that hides a defect (unreachable or duplicated code). | DCA001, DCA002, DCA004, DCA014–DCA017, DCA020, DCA024, DCA027–DCA029, DCA032, DCA035–DCA043, DCA045–DCA047, DCA051 |
+| **Warning** | Code that can fail at run time, hang, lose exceptions or data, or that hides a defect (unreachable or duplicated code). | DCA001, DCA002, DCA004, DCA014–DCA017, DCA020, DCA024, DCA027–DCA029, DCA032, DCA035–DCA043, DCA045–DCA047, DCA051, DCA060–DCA066, DCA069, DCA070 |
 | **Info** | Style, structure, documentation, naming, readability and micro-performance: the code works, the fix makes it clearer or faster. | The rest |
 
 Using an API as the .NET class library exposes it (for example `Task.Result`) is never an Error: it compiles and works. Every severity can be changed in `.editorconfig` (`dotnet_diagnostic.DCA009.severity = warning`).
@@ -177,8 +204,8 @@ The [`RuleTesting`](RuleTesting) folder contains a solution, [`DCA Rule Testing 
 
 | Project | Target | Files |
 |---|---|---|
-| `DCA Rule Testing (net 48)` | .NET Framework 4.8 | `DCA001.vb` … `DCA058.vb`: one file per rule |
-| `DCA Rule Testing (net 10)` | .NET 10 (`net10.0-windows`) | One file per rule, except the rules that run only on .NET Framework (DCA006, DCA011, DCA013, DCA046, DCA055, DCA056, DCA058) |
+| `DCA Rule Testing (net 48)` | .NET Framework 4.8 | `DCA001.vb` … `DCA084.vb`: one file per rule |
+| `DCA Rule Testing (net 10)` | .NET 10 (`net10.0-windows`) | One file per rule, except the rules that run only on .NET Framework (DCA006, DCA011, DCA013, DCA046, DCA055, DCA056, DCA058, DCA059–DCA084) |
 
 Each `DCAnnn.vb` file triggers **only the rule of its name**, and its XML documentation says what is reported and what the code fix writes. To try them:
 
@@ -222,7 +249,7 @@ A few details of the solution:
 To debug the analyzers, set `DevCase.CodeAnalysis.Vsix` as the startup project and press **F5**: an experimental instance of Visual Studio starts with the extension loaded.
 
 > [!NOTE]
-> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA003, DCA005, DCA006, DCA007, DCA008, DCA009, DCA010, DCA011, DCA012, DCA013, DCA018, DCA019, DCA021, DCA022, DCA023, DCA025, DCA026, DCA030, DCA031, DCA033, DCA034, DCA044, DCA048, DCA049, DCA050, DCA052, DCA053, DCA055, DCA056, DCA057, DCA058) appear in the *Messages* tab of the Error List and as gray dots under the code.
+> Analyzers installed through a VSIX run inside the IDE (live analysis, Error List and lightbulb), not on command-line builds. Info-level rules (DCA003, DCA005, DCA006, DCA007, DCA008, DCA009, DCA010, DCA011, DCA012, DCA013, DCA018, DCA019, DCA021, DCA022, DCA023, DCA025, DCA026, DCA030, DCA031, DCA033, DCA034, DCA044, DCA048, DCA049, DCA050, DCA052, DCA053, DCA055, DCA056, DCA057, DCA058, DCA059, DCA067, DCA068, DCA071–DCA084) appear in the *Messages* tab of the Error List and as gray dots under the code.
 
 ## ⚙️ Configuration
 
@@ -297,6 +324,7 @@ The test project (`xUnit v3`) builds in-memory VB.NET projects and:
 - applies every code fix repeatedly, re-parsing the text between passes like the IDE does, and verifies that the **fixed code still compiles**;
 - verifies **Fix All** batch merging;
 - runs every analyzer, code fix and Fix All test twice, with **LF and CRLF** line endings, and checks that the fixes never mix line endings (the Roslyn formatter writes the line ending of the operating system);
+- runs every analyzer and code fix test again on **six syntax variations** of its source, the same code written in another way: redundant parentheses, ` _` line continuations, method bodies inside `#Region`, `#If True Then` and `Using` blocks, and comment lines between statements. Each variation must report the same diagnostics, and its fix must still compile and leave no diagnostic, so a rule that only recognizes one way of writing the code fails its existing tests, without writing the variations by hand;
 - compiles the .NET Framework rules against the real **.NET Framework 4.8 reference assemblies**, and the modern branch of their fixes against .NET;
 - **enforces every DCA rule on its own code at build time**: the CodeFixes and Tests projects reference the analyzers as analyzers, the Analyzers project is checked by a self-analysis test, and Visual Studio's code style suggestions are raised to warnings in the repository `.editorconfig`, so the solution builds with 0 warnings;
 - verifies that every suppression mechanism documented in the rules (`.editorconfig`, `#Disable Warning`, `SuppressMessage`) works;
